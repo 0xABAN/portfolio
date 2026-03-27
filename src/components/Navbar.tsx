@@ -1,39 +1,42 @@
-import { ArrowUpRight } from "lucide-react";
+import { Github, Linkedin, LucideProps } from "lucide-react";
 
-const NAV_LINKS = ["About", "Works", "Services", "Testimonial"] as const;
+const SOCIAL_LINKS = [
+  {
+    name: "GitHub",
+    icon: Github,
+    href: "https://github.com/adamtorres", // Placeholder
+  },
+  {
+    name: "LinkedIn",
+    icon: Linkedin,
+    href: "https://linkedin.com/in/adamtorres", // Placeholder
+  },
+  {
+    name: "X",
+    icon: (props: LucideProps) => (
+      <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    ),
+    href: "https://x.com/adamtorres", // Placeholder
+  },
+];
 
 export default function Navbar() {
   return (
-    <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between bg-white rounded-[16px] px-5 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.10)] w-[min(900px,calc(100vw-48px))]">
-      {/* Logo */}
-      <span className="font-sans font-bold text-dark text-[15px] tracking-tight select-none">
-        AT Studio
-      </span>
-
-      {/* Nav links */}
-      <ul className="hidden md:flex items-center gap-7 list-none m-0 p-0">
-        {NAV_LINKS.map((link) => (
-          <li key={link}>
-            <a
-              href={`#${link.toLowerCase()}`}
-              className="font-sans font-medium text-[14px] text-dark/70 hover:text-dark transition-colors duration-200 no-underline"
-            >
-              {link}
-            </a>
-          </li>
-        ))}
-      </ul>
-
-      {/* CTA */}
-      <a
-        href="#contact"
-        className="flex items-center gap-2 bg-dark text-white font-sans font-medium text-[14px] px-4 py-2 rounded-full hover:bg-dark/85 transition-colors duration-200 no-underline whitespace-nowrap"
-      >
-        Book A Free Meeting
-        <span className="flex items-center justify-center w-[22px] h-[22px] rounded-full bg-white/15 flex-shrink-0">
-          <ArrowUpRight className="w-[12px] h-[12px]" strokeWidth={2.5} />
-        </span>
-      </a>
+    <nav className="fixed top-12 left-16 z-50 flex items-center gap-1 liquid-glass rounded-lg px-2 py-1.5">
+      {SOCIAL_LINKS.map((social) => (
+        <a
+          key={social.name}
+          href={social.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 text-white/60 hover:text-white transition-colors duration-200"
+          aria-label={social.name}
+        >
+          <social.icon className="w-4 h-4" />
+        </a>
+      ))}
     </nav>
   );
 }

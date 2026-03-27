@@ -19,7 +19,7 @@ const barlow = Barlow({
 
 export const metadata: Metadata = {
   title: "Adam Torres — Software Developer",
-  description: "The perfect mix of Mofongo and Mangú, now in the USA.",
+  description: "Born in PR, rooted in DR, thriving in the USA.",
 };
 
 export default function RootLayout({

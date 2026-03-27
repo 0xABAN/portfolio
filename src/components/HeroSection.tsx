@@ -50,19 +50,19 @@ export default function HeroSection() {
           Adam Torres
         </h1>
 
-        <p className="font-serif italic text-[48px] md:text-[64px] text-white leading-none m-0">
+        <p className="font-serif italic text-[48px] md:text-[64px] text-white/80 leading-none m-0">
           software with meaning
         </p>
 
-        <p className="font-sans font-medium text-[18px] text-white/80 m-0">
+        <p className="font-sans font-medium text-[18px] text-white/60 m-0">
           The perfect mix of Mofongo and Mangú, now in the USA.
         </p>
 
         <a
           href="#works"
-          className="mt-2 flex items-center gap-3 bg-white text-dark font-sans font-medium text-[16px] px-6 py-3 rounded-full hover:bg-white/90 transition-colors duration-200 no-underline"
+          className="mt-2 flex items-center gap-3 liquid-glass-strong text-white font-sans font-medium text-[16px] px-6 py-3 rounded-lg hover:bg-white/10 transition-colors duration-200 no-underline"
         >
-          <span className="flex items-center justify-center w-[28px] h-[28px] rounded-full bg-dark text-white flex-shrink-0">
+          <span className="flex items-center justify-center w-[28px] h-[28px] rounded-md bg-white/20 text-white flex-shrink-0">
             <Play className="w-[11px] h-[11px] translate-x-[1px]" fill="currentColor" strokeWidth={0} />
           </span>
           See work
