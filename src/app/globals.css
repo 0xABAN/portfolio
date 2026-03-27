@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: var(--font-instrument-serif), serif;
+  --font-sans: var(--font-barlow), sans-serif;
+  --color-dark: #222222;
+  --tracking-tightest: -0.25rem;
+  --text-hero: 84px;
+  --text-hero--line-height: 1;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
