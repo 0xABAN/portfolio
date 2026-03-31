@@ -63,6 +63,7 @@ export function sampleVideoFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
   measurement: BoxMeasurement,
+  drawScale = 1,
 ): FrameAlphaSample | null {
   const width = Math.max(1, Math.round(measurement.width));
   const height = Math.max(1, Math.round(measurement.height));
@@ -78,7 +79,7 @@ export function sampleVideoFrame(
 
   context.clearRect(0, 0, width, height);
 
-  const drawRect = getContainDrawRect(video.videoWidth, video.videoHeight, width, height);
+  const drawRect = getContainDrawRect(video.videoWidth, video.videoHeight, width * drawScale, height * drawScale);
   context.drawImage(video, drawRect.x, drawRect.y, drawRect.width, drawRect.height);
 
   const imageData = context.getImageData(0, 0, width, height);
@@ -201,7 +202,7 @@ function getContainDrawRect(
   const height = mediaHeight * scale;
   return {
     x: 0,
-    y: (boxHeight - height) / 2,
+    y: 0,
     width,
     height,
   };
