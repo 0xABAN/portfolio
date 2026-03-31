@@ -33,6 +33,7 @@ type FrameAlphaSample = {
 
 type LayoutOptions = {
   alphaThreshold?: number;
+  cursorCircle?: { x: number; y: number; radius: number };
   horizontalPadding?: number;
   minSlotWidth?: number;
   sampleStep?: number;
@@ -113,6 +114,7 @@ export function layoutFragmentsFromFrame(
 ): PositionedFragment[] {
   const {
     alphaThreshold = DEFAULT_ALPHA_THRESHOLD,
+    cursorCircle,
     horizontalPadding = DEFAULT_HORIZONTAL_PADDING,
     minSlotWidth = DEFAULT_MIN_SLOT_WIDTH,
     sampleStep = DEFAULT_SAMPLE_STEP,
@@ -143,6 +145,7 @@ export function layoutFragmentsFromFrame(
       minSlotWidth,
       sampleStep,
       verticalPadding,
+      cursorCircle,
     );
 
     if (slots.length === 0) {
@@ -219,6 +222,7 @@ function getTextSlotsForBand(
   minSlotWidth: number,
   sampleStep: number,
   verticalPadding: number,
+  cursorCircle?: { x: number; y: number; radius: number },
 ): Interval[] {
   const blocked = getBlockedIntervalForBand(
     imageData,
@@ -229,8 +233,23 @@ function getTextSlotsForBand(
     sampleStep,
     verticalPadding,
   );
-  if (blocked === null) return [{ left: usableLeft, right: usableRight }];
-  return carveTextLineSlots({ left: usableLeft, right: usableRight }, [blocked], minSlotWidth);
+
+  const allBlocked: Interval[] = blocked ? [blocked] : [];
+
+  if (cursorCircle !== undefined) {
+    const lineCenter = (bandTop + bandBottom) / 2;
+    const dy = Math.abs(lineCenter - cursorCircle.y);
+    if (dy < cursorCircle.radius) {
+      const dx = Math.sqrt(cursorCircle.radius ** 2 - dy ** 2);
+      allBlocked.push({
+        left: Math.max(0, cursorCircle.x - dx - horizontalPadding),
+        right: Math.min(imageData.width, cursorCircle.x + dx + horizontalPadding),
+      });
+    }
+  }
+
+  if (allBlocked.length === 0) return [{ left: usableLeft, right: usableRight }];
+  return carveTextLineSlots({ left: usableLeft, right: usableRight }, allBlocked, minSlotWidth);
 }
 
 function getBlockedIntervalForBand(

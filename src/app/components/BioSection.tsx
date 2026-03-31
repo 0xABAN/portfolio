@@ -37,7 +37,7 @@ function highlight(text: string) {
   );
 }
 
-const HERO_COPY = "Adam Torres Encarnacion is a Penn State student who builds AI that ships. Not demos, not repos that never get touched again. Actual systems, running in production. He interned at IBM and Amazon, and somewhere in between found time to win hackathons — first at YHacks, first at HackPrinceton, second at ByteDance (solo, that one). He picks something that should exist and builds it. ".repeat(15).trim();
+const HERO_COPY = "Adam Torres Encarnacion is a Penn State student building AI products that ship. Not demos, not repos that never get touched again. Actual systems, running in production. He interned at IBM and Amazon, and somewhere in between found time to win hackathons — first at YHacks, first at HackPrinceton, second at ByteDance (solo, that one). He picks something that should exist and builds it. ".repeat(15).trim();
 
 type VideoWithFrameCallback = HTMLVideoElement & {
   requestVideoFrameCallback?: (callback: (now: number, metadata: unknown) => void) => number;
@@ -54,6 +54,8 @@ const fadeUp = {
 };
 
 export function BioSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cursorPosRef = useRef<{ x: number; y: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -121,7 +123,10 @@ export function BioSection() {
       return;
     }
 
-    const nextFragments = layoutFragmentsFromFrame(preparedText, measurement, frame, { minSlotWidth: 100 });
+    const nextFragments = layoutFragmentsFromFrame(preparedText, measurement, frame, {
+      minSlotWidth: 100,
+      cursorCircle: cursorPosRef.current ? { ...cursorPosRef.current, radius: 75 } : undefined,
+    });
     setFragments((previous) => (fragmentsEqual(previous, nextFragments) ? previous : nextFragments));
   }, [measurement, preparedText]);
 
@@ -151,8 +156,20 @@ export function BioSection() {
 
   return (
     <motion.div
+      ref={containerRef}
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
       style={{ flex: "0 0 51%", background: "rgba(0,0,0,0.7)", position: "relative", height: "85%", alignSelf: "flex-start" }}
+      onMouseMove={(e) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          cursorPosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+          computeTextLayout();
+        }
+      }}
+      onMouseLeave={() => {
+        cursorPosRef.current = null;
+        computeTextLayout();
+      }}
     >
       <Corners />
       <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
