@@ -40,7 +40,7 @@ export function Navbar() {
             style={{
               color: "rgba(255,255,255,0.7)", textDecoration: "none", fontSize: "0.875rem",
               display: "flex", alignItems: "center", justifyContent: "center",
-              width: "6rem",
+              width: "6rem", margin: "0.4rem 0",
             }}
           >
             {link}
