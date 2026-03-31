@@ -16,14 +16,7 @@ export function Navbar() {
       padding: "1rem 3rem",
       borderBottom: "1px solid rgba(255,255,255,0.18)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: "0 0 auto" }}>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="3" stroke="white" strokeWidth="1" />
-          <circle cx="10" cy="10" r="6" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
-          <circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-        </svg>
-        <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "#fff" }}>ATE</span>
-      </div>
+      <div style={{ flex: "0 0 auto" }} />
 
       <div style={{ flex: 1, display: "flex", justifyContent: "center", gap: "2.5rem" }}>
         {["Work", "About", "Contact"].map((link) => (
