@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# large media
+*.webm
+*.webp
+*.mp4
+*.mov
+
+# tools
+.playwright-mcp/
+tasks/
