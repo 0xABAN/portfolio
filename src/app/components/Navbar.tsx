@@ -13,7 +13,8 @@ export function Navbar() {
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0,
       zIndex: 50, display: "flex", alignItems: "center",
-      padding: "1.5rem 3rem",
+      padding: "1rem 3rem",
+      borderBottom: "1px solid rgba(255,255,255,0.18)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: "0 0 auto" }}>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none">

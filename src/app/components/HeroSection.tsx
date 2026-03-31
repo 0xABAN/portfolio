@@ -45,7 +45,7 @@ const fadeUp = {
   }),
 };
 
-const HERO_COPY = "Adam Torres Encarnacion is a Penn State student who builds AI that ships. Not demos, not repos that never get touched again — actual systems, running in production. He interned at IBM and Amazon, and somewhere in between found time to win hackathons: first at YHacks, first at HackPrinceton, second at ByteDance (solo, that one). The pattern is pretty consistent. He picks something that should exist and makes it work. ".repeat(15).trim();
+const HERO_COPY = "Adam Torres Encarnacion is a Penn State student who builds AI that ships. Not demos, not repos that never get touched again. Actual systems, running in production. He interned at IBM and Amazon, and somewhere in between found time to win hackathons — first at YHacks, first at HackPrinceton, second at ByteDance (solo, that one). He picks something that should exist and builds it. ".repeat(15).trim();
 
 type VideoWithFrameCallback = HTMLVideoElement & {
   requestVideoFrameCallback?: (callback: (now: number, metadata: unknown) => void) => number;
@@ -55,6 +55,7 @@ type VideoWithFrameCallback = HTMLVideoElement & {
 export function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
+  const ageRef = useRef<HTMLSpanElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [fragments, setFragments] = useState<PositionedFragment[]>([]);
   const [measurement, setMeasurement] = useState<BoxMeasurement | null>(null);
@@ -148,6 +149,20 @@ export function HeroSection() {
     };
   }, [computeTextLayout, measurement, preparedText]);
 
+  useEffect(() => {
+    const birthdate = new Date(2005, 7, 30);
+    const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+    let rafId: number;
+    const tick = () => {
+      if (ageRef.current) {
+        ageRef.current.textContent = ((Date.now() - birthdate.getTime()) / msPerYear).toFixed(8);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
   return (
     <section style={{
       height: "100vh", padding: "4rem", paddingTop: "8rem",
@@ -200,9 +215,9 @@ export function HeroSection() {
         </motion.h1>
         <motion.p
           variants={fadeUp} initial="hidden" animate="visible" custom={0.3}
-          style={{ margin: "1rem 0 0", color: "#fff", fontSize: "1rem" }}
+          style={{ margin: "0.4rem 0 0", color: "#fff", fontSize: "0.875rem", fontVariantNumeric: "tabular-nums" }}
         >
-          Designer &amp; Developer
+          approx. <span ref={ageRef} /> years old
         </motion.p>
       </div>
     </section>
