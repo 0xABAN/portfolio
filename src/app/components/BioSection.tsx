@@ -12,12 +12,13 @@ import {
   type PositionedFragment,
 } from "../pretext-video-flow";
 import { blobPositions } from "./BlobCursor/blobPositions";
+import BorderGlow from "./BorderGlow/BorderGlow";
 
 const cornerStyles: Record<string, CSSProperties> = {
-  tl: { top: -20, left: -20, borderTop: "2px solid #fff", borderLeft: "2px solid #fff" },
-  tr: { top: -20, right: -20, borderTop: "2px solid #fff", borderRight: "2px solid #fff" },
-  bl: { bottom: -20, left: -20, borderBottom: "2px solid #fff", borderLeft: "2px solid #fff" },
-  br: { bottom: -20, right: -20, borderBottom: "2px solid #fff", borderRight: "2px solid #fff" },
+  tl: { top: -20, left: -20, borderTop: "3px solid #fff", borderLeft: "3px solid #fff" },
+  tr: { top: -20, right: -20, borderTop: "3px solid #fff", borderRight: "3px solid #fff" },
+  bl: { bottom: -20, left: -20, borderBottom: "3px solid #fff", borderLeft: "3px solid #fff" },
+  br: { bottom: -20, right: -20, borderBottom: "3px solid #fff", borderRight: "3px solid #fff" },
 };
 
 function Corners() {
@@ -28,7 +29,7 @@ function Corners() {
       transition={{ duration: 3.5, ease: "easeInOut", repeat: Infinity }}
     >
       {Object.values(cornerStyles).map((style, i) => (
-        <div key={i} style={{ position: "absolute", width: 20, height: 20, zIndex: 10, ...style }} />
+        <div key={i} style={{ position: "absolute", width: 28, height: 28, zIndex: 10, ...style }} />
       ))}
     </motion.div>
   );
@@ -169,7 +170,7 @@ export function BioSection() {
     <motion.div
       ref={containerRef}
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
-      style={{ flex: "0 0 51%", background: "rgba(0,0,0,0.7)", position: "relative", height: "85%", alignSelf: "flex-start" }}
+      style={{ flex: "0 0 51%", position: "relative", height: "85%", alignSelf: "flex-start" }}
       onMouseMove={(e) => {
         const rect = containerRef.current?.getBoundingClientRect();
         if (rect) {
@@ -183,6 +184,16 @@ export function BioSection() {
       }}
     >
       <Corners />
+      <BorderGlow
+        className="bio-border-glow"
+        glowColor="0 0 88"
+        backgroundColor="rgba(0,0,0,0.7)"
+        colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]}
+        borderRadius={0}
+        fillOpacity={0.2}
+        glowIntensity={2.5}
+        glowRadius={60}
+      >
       <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
         <video
           ref={videoRef}
@@ -216,6 +227,7 @@ export function BioSection() {
           <source src="/rain_effect.webm" type="video/webm" />
         </video>
       </div>
+      </BorderGlow>
     </motion.div>
   );
 }

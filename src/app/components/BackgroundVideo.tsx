@@ -26,8 +26,8 @@ export function BackgroundVideo() {
         opacity: 0.6, mixBlendMode: "overlay",
       }} />
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, height: "16rem",
-        background: "linear-gradient(to bottom, transparent, #000)",
+        position: "fixed", bottom: 0, left: 0, right: 0, height: "15vh",
+        background: "linear-gradient(to bottom, rgba(6,7,18,0) 0%, rgba(6,7,18,0.01) 8.1%, rgba(6,7,18,0.04) 15.5%, rgba(6,7,18,0.09) 22.5%, rgba(6,7,18,0.15) 29%, rgba(6,7,18,0.24) 35.3%, rgba(6,7,18,0.34) 41.2%, rgba(6,7,18,0.45) 47.1%, rgba(6,7,18,0.56) 52.9%, rgba(6,7,18,0.68) 58.8%, rgba(6,7,18,0.78) 64.7%, rgba(6,7,18,0.87) 71%, rgba(6,7,18,0.93) 77.5%, rgba(6,7,18,0.97) 84.5%, rgba(6,7,18,0.99) 91.9%, #060712 100%)",
         zIndex: 1, pointerEvents: "none",
       }} />
     </>
