@@ -3,7 +3,7 @@
     perspective: 900px;
     overflow: visible;
   }
-  
+
   .card {
     position: absolute;
     top: 50%;
@@ -11,22 +11,21 @@
     border-radius: 0;
     border: 1px solid #fff;
     background: #fff;
+    overflow: hidden;
 
-    transform-style: preserve-3d;
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
-  
+
   @media (max-width: 768px) {
     .card-swap-container {
       transform: scale(0.75) translate(25%, 25%);
     }
   }
-  
+
   @media (max-width: 480px) {
     .card-swap-container {
       transform: scale(0.55) translate(25%, 25%);
     }
   }
-  

@@ -1,10 +1,9 @@
 "use client";
 
-import BorderGlow from "./BorderGlow/BorderGlow";
 import CardSwap, { Card } from "./CardSwap/CardSwap";
+import TextType from "./TextType/TextType";
 
 export function AboutMe() {
-
   return (
     <section style={{
       minHeight: "100vh",
@@ -21,7 +20,7 @@ export function AboutMe() {
       <div style={{ flex: "0 0 auto", marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-start", paddingRight: 0, paddingLeft: 0, minWidth: "calc(28ch + 4vw)" }}>
         <h2 style={{ margin: 0, fontSize: "clamp(3rem, 4.5vw, 5.5rem)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.05 }}>
           <em style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 400 }}>
-            about me
+            <TextType text={["about me", "sobre mi"]} as="span" typingSpeed={80} deletingSpeed={50} pauseDuration={2000} showCursor cursorCharacter="|" />
           </em>
         </h2>
         <p style={{ margin: "0.4rem 0 0", color: "#fff", fontSize: "0.875rem", lineHeight: 1.6, maxWidth: "calc(28ch + 4vw)", textAlign: "left" }}>
@@ -30,18 +29,9 @@ export function AboutMe() {
       </div>
       <div style={{ flex: "0 0 50%", paddingLeft: "5rem", position: "relative", zIndex: 3 }}>
         <CardSwap width={420} height={520} cardDistance={50} verticalDistance={30} pauseOnHover>
-          <Card style={{ background: "transparent", border: "none" }}>
-            <BorderGlow className="about-card-glow" backgroundColor="#ffffff" borderRadius={0} colors={["#ffffff", "#f0f0f0", "#e8e8e8"]} glowColor="0 0 100" />
-            <div style={{ position: "absolute", inset: "0.75rem", border: "2px solid red", boxSizing: "border-box" }} />
-          </Card>
-          <Card style={{ background: "transparent", border: "none" }}>
-            <BorderGlow className="about-card-glow" backgroundColor="#ffffff" borderRadius={0} colors={["#ffffff", "#f0f0f0", "#e8e8e8"]} glowColor="0 0 100" />
-            <div style={{ position: "absolute", inset: "0.75rem", border: "2px solid red", boxSizing: "border-box" }} />
-          </Card>
-          <Card style={{ background: "transparent", border: "none" }}>
-            <BorderGlow className="about-card-glow" backgroundColor="#ffffff" borderRadius={0} colors={["#ffffff", "#f0f0f0", "#e8e8e8"]} glowColor="0 0 100" />
-            <div style={{ position: "absolute", inset: "0.75rem", border: "2px solid red", boxSizing: "border-box" }} />
-          </Card>
+          <Card><div style={{ position: "absolute", inset: "0.75rem", border: "2px solid red", boxSizing: "border-box", pointerEvents: "none" }} /></Card>
+          <Card><div style={{ position: "absolute", inset: "0.75rem", border: "2px solid red", boxSizing: "border-box", pointerEvents: "none" }} /></Card>
+          <Card><div style={{ position: "absolute", inset: "0.75rem", border: "2px solid red", boxSizing: "border-box", pointerEvents: "none" }} /></Card>
         </CardSwap>
       </div>
     </section>
