@@ -6,10 +6,14 @@ import { Navbar } from "./components/Navbar";
 
 export default function Home() {
   return (
-    <main style={{ position: "relative", minHeight: "100vh" }}>
+    <main style={{ position: "relative" }}>
       <BackgroundVideo />
       <Navbar />
       <HeroSection />
+      <section style={{
+        minHeight: "100vh", background: "#060712",
+        position: "relative", zIndex: 2,
+      }} />
     </main>
   );
 }

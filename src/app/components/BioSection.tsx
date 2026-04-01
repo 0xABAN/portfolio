@@ -11,6 +11,7 @@ import {
   type BoxMeasurement,
   type PositionedFragment,
 } from "../pretext-video-flow";
+import { blobPositions } from "./BlobCursor/blobPositions";
 
 const cornerStyles: Record<string, CSSProperties> = {
   tl: { top: -20, left: -20, borderTop: "2px solid #fff", borderLeft: "2px solid #fff" },
@@ -21,11 +22,15 @@ const cornerStyles: Record<string, CSSProperties> = {
 
 function Corners() {
   return (
-    <>
+    <motion.div
+      style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+      animate={{ scale: [1, 1.03, 1] }}
+      transition={{ duration: 3.5, ease: "easeInOut", repeat: Infinity }}
+    >
       {Object.values(cornerStyles).map((style, i) => (
-        <div key={i} style={{ position: "absolute", width: 20, height: 20, ...style }} />
+        <div key={i} style={{ position: "absolute", width: 20, height: 20, zIndex: 10, ...style }} />
       ))}
-    </>
+    </motion.div>
   );
 }
 
@@ -123,9 +128,15 @@ export function BioSection() {
       return;
     }
 
+    const rect = containerRef.current?.getBoundingClientRect();
+    const circles = rect
+      ? blobPositions.map((b) => ({ x: b.x - rect.left, y: b.y - rect.top, radius: b.radius }))
+      : [];
+    if (cursorPosRef.current) circles.push({ ...cursorPosRef.current, radius: 52 });
+
     const nextFragments = layoutFragmentsFromFrame(preparedText, measurement, frame, {
       minSlotWidth: 100,
-      cursorCircle: cursorPosRef.current ? { ...cursorPosRef.current, radius: 75 } : undefined,
+      cursorCircles: circles.length > 0 ? circles : undefined,
     });
     setFragments((previous) => (fragmentsEqual(previous, nextFragments) ? previous : nextFragments));
   }, [measurement, preparedText]);
@@ -198,6 +209,12 @@ export function BioSection() {
             </span>
           ))}
         </div>
+        <video
+          autoPlay loop muted playsInline
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.4, mixBlendMode: "screen" }}
+        >
+          <source src="/rain_effect.webm" type="video/webm" />
+        </video>
       </div>
     </motion.div>
   );
