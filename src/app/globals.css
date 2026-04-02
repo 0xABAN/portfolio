@@ -23,6 +23,11 @@ body {
   overflow: hidden;
 }
 
+.about-card-glow .border-glow-inner {
+  height: 100%;
+  overflow: visible;
+}
+
 .liquid-glass {
   background: rgba(255, 255, 255, 0.01);
   background-blend-mode: luminosity;

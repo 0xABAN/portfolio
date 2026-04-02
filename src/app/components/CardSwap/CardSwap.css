@@ -16,6 +16,7 @@
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.85), 0 6px 16px rgba(0,0,0,0.7);
   }
 
   @media (max-width: 768px) {
