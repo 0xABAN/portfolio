@@ -36,14 +36,14 @@ function Corners() {
 }
 
 function highlight(text: string) {
-  return text.split(/(Adam|Torres|Encarnacion)/).map((part, i) =>
-    ["Adam", "Torres", "Encarnacion"].includes(part)
+  return text.split(/(adam|torres|encarnacion)/).map((part, i) =>
+    ["adam", "torres", "encarnacion"].includes(part)
       ? <span key={i} style={{ color: "#6B6EBF" }}>{part}</span>
       : part
   );
 }
 
-const HERO_COPY = "Adam Torres Encarnacion is a Penn State student building AI products that ship. Not demos, not repos that never get touched again. Actual systems, running in production. He interned at IBM and Amazon, and somewhere in between found time to win hackathons — first at YHacks, first at HackPrinceton, second at ByteDance (solo, that one). He picks something that should exist and builds it. ".repeat(15).trim();
+const HERO_COPY = "adam torres encarnacion goes to penn state and builds things that actually run. not side projects. ibm, amazon, a handful of hackathons he won (first at yhacks, first at hackprinceton, second at bytedance — that one solo). he sees something missing and makes it. ".repeat(15).trim();
 
 type VideoWithFrameCallback = HTMLVideoElement & {
   requestVideoFrameCallback?: (callback: (now: number, metadata: unknown) => void) => number;
@@ -204,7 +204,7 @@ export function BioSection() {
         </video>
         <div
           ref={textLayerRef}
-          aria-label="Hero copy wrapped around video"
+          aria-label="hero copy wrapped around video"
           style={{
             position: "absolute", inset: 0, margin: 0, padding: "1rem",
             color: "#5a5954", fontSize: "0.875rem", lineHeight: 1.6,
