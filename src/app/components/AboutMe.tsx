@@ -4,6 +4,16 @@ import CardSwap, { Card } from "./CardSwap/CardSwap";
 import TextType from "./TextType/TextType";
 import { Terminal, AnimatedSpan, TypingAnimation } from "@/registry/magicui/terminal";
 import BorderGlow from "./BorderGlow/BorderGlow";
+import OrbitImages from "./OrbitImages/OrbitImages";
+
+const orbitImages = [
+  "/BadBunny/dtmf.png",
+  "/BadBunny/eutdm.png",
+  "/BadBunny/oasis.png",
+  "/BadBunny/uvst.png",
+  "/BadBunny/x100pre.png",
+  "/BadBunny/yhlqmdlg.png",
+];
 
 export function AboutMe() {
   return (
@@ -74,8 +84,8 @@ export function AboutMe() {
       </div>
       <div style={{ flex: "0 0 50%", paddingLeft: "30px", paddingTop: "14vh", position: "relative", zIndex: 7 }}>
         <CardSwap width={420} height={650} cardDistance={50} verticalDistance={60} pauseOnHover>
-          <Card><BorderGlow className="h-full w-full about-card-glow" glowColor="0 0 88" backgroundColor="#060712" colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]} borderRadius={0} fillOpacity={0.2} glowIntensity={2.5} glowRadius={60}><div style={{ position: "absolute", inset: "0.75rem", border: "2px solid white", boxSizing: "border-box", pointerEvents: "none" }} /></BorderGlow></Card>
-          <Card><BorderGlow className="h-full w-full about-card-glow" glowColor="0 0 88" backgroundColor="#060712" colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]} borderRadius={0} fillOpacity={0.2} glowIntensity={2.5} glowRadius={60}><div style={{ position: "absolute", inset: "0.75rem", border: "2px solid white", boxSizing: "border-box", pointerEvents: "none" }} /></BorderGlow></Card>
+          <Card><BorderGlow className="h-full w-full about-card-glow" glowColor="0 0 88" backgroundColor="#060712" colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]} borderRadius={0} fillOpacity={0.2} glowIntensity={2.5} glowRadius={60}><div style={{ position: "absolute", inset: "0.75rem", display: "flex", flexDirection: "column" }}><div style={{ border: "2px solid white", boxSizing: "border-box", overflow: "hidden" }}><img src="/selfie.png" alt="Adam" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ border: "2px solid white", boxSizing: "border-box", overflow: "hidden", marginTop: "0.75rem" }}><img src="/win.png" alt="Win" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ flex: 1, padding: "0.75rem", color: "white", fontSize: "0.8rem", lineHeight: 1.6, overflow: "hidden" }}>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione sequi nesciunt.</div></div></BorderGlow></Card>
+          <Card><BorderGlow className="h-full w-full about-card-glow" glowColor="0 0 88" backgroundColor="#060712" colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]} borderRadius={0} fillOpacity={0.2} glowIntensity={2.5} glowRadius={60}><div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "20px" }}><OrbitImages images={orbitImages} shape="ellipse" baseWidth={600} radiusX={150} radiusY={250} rotation={-27} duration={30} itemSize={100} responsive={true} radius={160} direction="normal" fill showPath pathColor="rgba(255,255,255,0.4)" paused={false} /></div></BorderGlow></Card>
           <Card><BorderGlow className="h-full w-full about-card-glow" glowColor="0 0 88" backgroundColor="#060712" colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]} borderRadius={0} fillOpacity={0.2} glowIntensity={2.5} glowRadius={60}><div style={{ position: "absolute", inset: "0.75rem", border: "2px solid white", boxSizing: "border-box", pointerEvents: "none" }} /></BorderGlow></Card>
         </CardSwap>
       </div>
