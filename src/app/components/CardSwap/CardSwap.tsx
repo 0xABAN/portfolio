@@ -175,6 +175,7 @@ import React, {
           clearInterval(intervalRef.current);
         };
         const resume = () => {
+          clearInterval(intervalRef.current);
           tlRef.current?.play();
           intervalRef.current = window.setInterval(swap, delay);
         };

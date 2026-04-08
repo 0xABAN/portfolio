@@ -12,16 +12,30 @@ const trans = (x, y) => `translate3d(${x}px,${y}px,0) translate3d(-50%,-50%,0)`;
 
 const BlobCursor = ({ blobType = 'circle', fillColor = '#6B6EBF' }) => {
   const containerRef = useRef(null);
+  const containerTopRef = useRef(0);
 
   const [trail, api] = useTrail(3, (i) => ({
     xy: [0, 0],
     config: i === 0 ? fast : slow,
     onChange: ({ value }) => {
-      const top = containerRef.current?.getBoundingClientRect().top ?? 0;
       blobPositions[i].x = value.xy[0];
-      blobPositions[i].y = value.xy[1] + top;
+      blobPositions[i].y = value.xy[1] + containerTopRef.current;
     },
   }));
+
+  useEffect(() => {
+    const updateTop = () => {
+      containerTopRef.current = containerRef.current?.getBoundingClientRect().top ?? 0;
+    };
+    updateTop();
+    window.addEventListener('scroll', updateTop, { passive: true });
+    const observer = new ResizeObserver(updateTop);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => {
+      window.removeEventListener('scroll', updateTop);
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const handleMove = (e) => {

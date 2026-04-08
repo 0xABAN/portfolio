@@ -61,6 +61,7 @@ const fadeUp = {
 
 export function BioSection() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const containerRectRef = useRef<DOMRect | null>(null);
   const cursorPosRef = useRef<{ x: number; y: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -68,6 +69,20 @@ export function BioSection() {
   const [fragments, setFragments] = useState<PositionedFragment[]>([]);
   const [measurement, setMeasurement] = useState<BoxMeasurement | null>(null);
   const [textFont, setTextFont] = useState<string>("");
+
+  useEffect(() => {
+    const update = () => {
+      containerRectRef.current = containerRef.current?.getBoundingClientRect() ?? null;
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => {
+      window.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, []);
 
   const refreshTextMetrics = useCallback(() => {
     const textLayer = textLayerRef.current;
@@ -129,7 +144,7 @@ export function BioSection() {
       return;
     }
 
-    const rect = containerRef.current?.getBoundingClientRect();
+    const rect = containerRectRef.current;
     const circles = rect
       ? blobPositions.map((b) => ({ x: b.x - rect.left, y: b.y - rect.top, radius: b.radius }))
       : [];
@@ -172,15 +187,13 @@ export function BioSection() {
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
       style={{ flex: "0 0 51%", position: "relative", height: "85%", alignSelf: "flex-start" }}
       onMouseMove={(e) => {
-        const rect = containerRef.current?.getBoundingClientRect();
+        const rect = containerRectRef.current;
         if (rect) {
           cursorPosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-          computeTextLayout();
         }
       }}
       onMouseLeave={() => {
         cursorPosRef.current = null;
-        computeTextLayout();
       }}
     >
       <Corners />

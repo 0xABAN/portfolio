@@ -1,7 +1,5 @@
 # Agent Instructions
 
-> **Next.js 16.2.1** has breaking changes — APIs and conventions differ from older versions. Read `node_modules/next/dist/docs/` before writing Next.js-specific code.
-
 ## Package Manager
 Use **bun**: `bun install`, `bun dev`, `bun build`, `bun lint`
 Add shadcn components: `bunx shadcn add <component>`
@@ -41,7 +39,9 @@ Single-page portfolio — `src/app/page.tsx` composes sections top-to-bottom:
 | `TextType` | Typewriter effect, multi-string cycling |
 | `OrbitImages` | Elliptical orbit via SVG + CSS animation |
 | `BlobCursor` | Mouse-following cursor blob |
-| `Terminal` / `AnimatedSpan` / `TypingAnimation` | magicui terminal (`src/registry/magicui/terminal.tsx`) |
+| `GlassSurface` | Frosted glass panel with refraction effect |
+| `TargetCursor` | Custom crosshair cursor overlay |
+| `Terminal` / `AnimatedSpan` / `TypingAnimation` | Terminal UI (`src/app/components/Terminal/terminal.tsx`) |
 
 ## Lessons
 <!-- Self-improvement: add patterns here after any correction -->

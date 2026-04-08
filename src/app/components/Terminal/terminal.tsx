@@ -19,12 +19,15 @@ import {
   type MotionProps,
 } from "motion/react"
 
-import { cn } from "@/app/lib/utils"
+import { cn } from "@/lib/utils"
+
+const IN_VIEW_OPTIONS = { amount: 0.3, once: true } as const
 
 interface SequenceContextValue {
   completeItem: (index: number) => void
   activeIndex: number
   sequenceStarted: boolean
+  loopCount: number
 }
 
 const SequenceContext = createContext<SequenceContextValue | null>(null)
@@ -72,14 +75,13 @@ export const AnimatedSpan = ({
   ...props
 }: AnimatedSpanProps) => {
   const elementRef = useRef<HTMLDivElement | null>(null)
-  const isInView = useInView(elementRef as React.RefObject<Element>, {
-    amount: 0.3,
-    once: true,
-  })
+  const isInView = useInView(elementRef as React.RefObject<Element>, IN_VIEW_OPTIONS)
 
   const sequence = useSequence()
   const itemIndex = useItemIndex()
   const [hasStarted, setHasStarted] = useState(false)
+  const loopCount = sequence?.loopCount ?? 0
+  useEffect(() => { setHasStarted(false) }, [loopCount])
   useEffect(() => {
     if (!sequence || itemIndex === null) return
     if (!sequence.sequenceStarted) return
@@ -139,16 +141,15 @@ export const TypingAnimation = ({
   const [displayedText, setDisplayedText] = useState<string>("")
   const [started, setStarted] = useState(false)
   const elementRef = useRef<HTMLElement | null>(null)
-  const isInView = useInView(elementRef as React.RefObject<Element>, {
-    amount: 0.3,
-    once: true,
-  })
+  const isInView = useInView(elementRef as React.RefObject<Element>, IN_VIEW_OPTIONS)
 
   const sequence = useSequence()
   const itemIndex = useItemIndex()
   const hasSequence = sequence !== null
   const sequenceStarted = sequence?.sequenceStarted ?? false
   const sequenceActiveIndex = sequence?.activeIndex ?? null
+  const loopCount = sequence?.loopCount ?? 0
+  useEffect(() => { setStarted(false); setDisplayedText("") }, [loopCount])
   const sequenceCompleteItemRef = useRef<
     SequenceContextValue["completeItem"] | null
   >(null)
@@ -231,6 +232,8 @@ interface TerminalProps {
   className?: string
   sequence?: boolean
   startOnView?: boolean
+  loop?: boolean
+  loopDelay?: number
 }
 
 export const Terminal = ({
@@ -238,36 +241,52 @@ export const Terminal = ({
   className,
   sequence = true,
   startOnView = true,
+  loop = false,
+  loopDelay = 1500,
 }: TerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const isInView = useInView(containerRef as React.RefObject<Element>, {
-    amount: 0.3,
-    once: true,
-  })
+  const isInView = useInView(containerRef as React.RefObject<Element>, IN_VIEW_OPTIONS)
 
   const [activeIndex, setActiveIndex] = useState(0)
+  const [loopCount, setLoopCount] = useState(0)
   const sequenceHasStarted = sequence ? !startOnView || isInView : false
+  const loopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (loopTimeoutRef.current !== null) clearTimeout(loopTimeoutRef.current)
+  }, [])
+
+  const childrenArray = useMemo(() => Children.toArray(children), [children])
+  const childCount = childrenArray.length
 
   const contextValue = useMemo<SequenceContextValue | null>(() => {
     if (!sequence) return null
     return {
       completeItem: (index: number) => {
-        setActiveIndex((current) => (index === current ? current + 1 : current))
+        if (index !== activeIndex) return
+        const next = activeIndex + 1
+        setActiveIndex(next)
+        if (loop && next >= childCount) {
+          loopTimeoutRef.current = setTimeout(() => {
+            setActiveIndex(0)
+            setLoopCount((c) => c + 1)
+          }, loopDelay)
+        }
       },
       activeIndex,
       sequenceStarted: sequenceHasStarted,
+      loopCount,
     }
-  }, [sequence, activeIndex, sequenceHasStarted])
+  }, [sequence, activeIndex, sequenceHasStarted, loop, loopDelay, childCount, loopCount])
 
   const wrappedChildren = useMemo(() => {
     if (!sequence) return children
-    const array = Children.toArray(children)
-    return array.map((child, index) => (
+    return childrenArray.map((child, index) => (
       <ItemIndexContext.Provider key={index} value={index}>
         {child as React.ReactNode}
       </ItemIndexContext.Provider>
     ))
-  }, [children, sequence])
+  }, [childrenArray, sequence, children])
 
   const content = (
     <div
@@ -284,7 +303,7 @@ export const Terminal = ({
           <div className="h-2 w-2 rounded-full bg-green-500"></div>
         </div>
       </div>
-      <pre className="p-4">
+      <pre className="p-4 text-white">
         <code className="grid gap-y-1 overflow-auto">{wrappedChildren}</code>
       </pre>
     </div>

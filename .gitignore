@@ -20,6 +20,10 @@
 # production
 /build
 
+# ai-grep search index
+/SEARCH/
+.searchignore
+
 # misc
 .DS_Store
 *.pem

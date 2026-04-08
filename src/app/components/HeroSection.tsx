@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { BioSection } from "./BioSection";
 
@@ -19,15 +19,14 @@ export function HeroSection() {
   useEffect(() => {
     const birthdate = new Date(2005, 7, 30);
     const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
-    let rafId: number;
     const tick = () => {
       if (ageRef.current) {
         ageRef.current.textContent = ((Date.now() - birthdate.getTime()) / msPerYear).toFixed(8);
       }
-      rafId = requestAnimationFrame(tick);
     };
     tick();
-    return () => cancelAnimationFrame(rafId);
+    const id = setInterval(tick, 100);
+    return () => clearInterval(id);
   }, []);
 
   return (
