@@ -185,7 +185,7 @@ export function BioSection() {
     <motion.div
       ref={containerRef}
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
-      style={{ flex: "0 0 51%", position: "relative", height: "85%", alignSelf: "flex-start" }}
+      className="relative self-start w-full h-[45vh] md:flex-[0_0_51%] md:h-[85%]"
       onMouseMove={(e) => {
         const rect = containerRectRef.current;
         if (rect) {

@@ -30,26 +30,26 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section style={{
-      height: "100vh", padding: "4rem", paddingTop: "8rem",
-      boxSizing: "border-box", display: "flex", flexDirection: "row",
-      gap: "3rem", position: "relative", zIndex: 2,
-    }}>
+    <section
+      aria-label="Hero"
+      className="h-screen p-6 pt-20 md:p-16 md:pt-32 box-border flex flex-col md:flex-row gap-8 md:gap-12 relative z-[2]"
+    >
       <BioSection />
 
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
+      <div className="flex flex-col justify-start">
         <motion.h1
           variants={fadeUp} initial="hidden" animate="visible" custom={0.15}
-          style={{ margin: 0, fontSize: "clamp(3rem, 4.5vw, 5.5rem)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.05 }}
+          className="m-0 font-bold"
+          style={{ fontSize: "clamp(3rem, 4.5vw, 5.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}
         >
           Adam<br />
-          <em style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 400 }}>
+          <em className="font-normal italic" style={{ fontFamily: "var(--font-serif)" }}>
             Torres Encarnacion
           </em>
         </motion.h1>
         <motion.p
           variants={fadeUp} initial="hidden" animate="visible" custom={0.3}
-          style={{ margin: "0.4rem 0 0", color: "#fff", fontSize: "0.875rem", fontVariantNumeric: "tabular-nums" }}
+          className="mt-[0.4rem] text-white text-sm tabular-nums"
         >
           approx. <span ref={ageRef} /> years old
         </motion.p>
