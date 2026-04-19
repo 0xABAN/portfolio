@@ -1,24 +1,42 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# frontend dependencies
+src/frontend/node_modules/
+src/frontend/.pnp
+src/frontend/.pnp.*
+src/frontend/.yarn/*
+!src/frontend/.yarn/patches
+!src/frontend/.yarn/plugins
+!src/frontend/.yarn/releases
+!src/frontend/.yarn/versions
 
-# testing
-/coverage
+# frontend testing
+src/frontend/coverage/
 
 # next.js
-/.next/
-/out/
+src/frontend/.next/
+src/frontend/out/
 
-# production
-/build
+# frontend production
+src/frontend/build/
+
+# frontend typescript
+src/frontend/*.tsbuildinfo
+src/frontend/next-env.d.ts
+
+# frontend debug
+src/frontend/npm-debug.log*
+src/frontend/yarn-debug.log*
+src/frontend/yarn-error.log*
+src/frontend/.pnpm-debug.log*
+
+# backend
+src/backend/.venv/
+src/backend/__pycache__/
+src/backend/**/__pycache__/
+src/backend/.ruff_cache/
+src/backend/.pytest_cache/
+src/backend/*.egg-info/
 
 # ai-grep search index
 /SEARCH/
@@ -28,21 +46,11 @@
 .DS_Store
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
 # env files (can opt-in for committing if needed)
 .env*
 
 # vercel
 .vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
 
 # tools
 .playwright-mcp/
