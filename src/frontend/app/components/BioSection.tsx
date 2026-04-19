@@ -12,7 +12,9 @@ import {
   type PositionedFragment,
 } from "../pretext-video-flow";
 import { blobPositions } from "./BlobCursor/blobPositions";
-import BorderGlow from "./BorderGlow/BorderGlow";
+import BentoGlow from "./BentoGlow/BentoGlow";
+import LightRays from "./LightRays/LightRays";
+import SpotlightCard from "./SpotlightCard/SpotlightCard";
 
 const cornerStyles: Record<string, CSSProperties> = {
   tl: { top: -20, left: -20, borderTop: "3px solid #fff", borderLeft: "3px solid #fff" },
@@ -196,18 +198,27 @@ export function BioSection() {
         cursorPosRef.current = null;
       }}
     >
-      <Corners />
-      <BorderGlow
+      <BentoGlow
         className="bio-border-glow"
-        glowColor="0 0 88"
-        backgroundColor="rgba(0,0,0,0.7)"
-        colors={["rgba(255,255,255,0.2)", "rgba(220,220,220,0.12)", "rgba(200,200,200,0.08)"]}
-        borderRadius={0}
-        fillOpacity={0.2}
-        glowIntensity={2.5}
-        glowRadius={60}
+        glowColor="255, 255, 255"
+        backgroundColor="rgba(0,0,0,0.85)"
+        borderRadius={5}
+        spotlightRadius={300}
+        enableTilt
       >
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <Corners />
+      <SpotlightCard
+        className="bio-spotlight"
+        spotlightColor="rgba(255, 255, 255, 0.25)"
+        style={{
+          position: "absolute",
+          inset: 0,
+          padding: 0,
+          border: "none",
+          borderRadius: 5,
+          backgroundColor: "transparent",
+        }}
+      >
         <video
           ref={videoRef}
           autoPlay loop muted playsInline
@@ -220,7 +231,7 @@ export function BioSection() {
           aria-label="hero copy wrapped around video"
           style={{
             position: "absolute", inset: 0, margin: 0, padding: "1rem",
-            color: "#5a5954", fontSize: "0.875rem", lineHeight: 1.6,
+            color: "#5a5954", fontSize: "1.125rem", lineHeight: 1.6,
             overflow: "hidden", userSelect: "text",
           }}
         >
@@ -233,14 +244,21 @@ export function BioSection() {
             </span>
           ))}
         </div>
-        <video
-          autoPlay loop muted playsInline
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.4, mixBlendMode: "screen" }}
-        >
-          <source src="/rain_effect.webm" type="video/webm" />
-        </video>
-      </div>
-      </BorderGlow>
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "screen", opacity: 0.6 }}>
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={1}
+            lightSpread={0.8}
+            rayLength={1.2}
+            followMouse
+            mouseInfluence={0.1}
+            noiseAmount={0.08}
+            distortion={0.03}
+          />
+        </div>
+      </SpotlightCard>
+      </BentoGlow>
     </motion.div>
   );
 }

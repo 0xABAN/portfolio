@@ -18,13 +18,11 @@ body {
   height: 100%;
 }
 
-.bio-border-glow .border-glow-inner {
-  height: 100%;
-  overflow: hidden;
+.bio-border-glow {
+  overflow: visible;
 }
 
-.about-card-glow .border-glow-inner {
-  height: 100%;
+.about-card-glow {
   overflow: visible;
 }
 

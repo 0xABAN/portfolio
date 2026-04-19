@@ -56,6 +56,7 @@ export function AboutMeVideoLoop() {
               objectFit: "cover",
               zIndex: 0,
               opacity: 0.4,
+              transform: page % 2 === 0 ? "scaleX(-1)" : undefined,
             }}
           />
           <div
