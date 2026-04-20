@@ -1,5 +1,7 @@
 # Portfolio
 
+[▶ Watch Demo](assets/demo.mp4)
+
 Split into two projects under `src/`:
 
 - `src/frontend/` — Next.js 16 + React 19 portfolio app
