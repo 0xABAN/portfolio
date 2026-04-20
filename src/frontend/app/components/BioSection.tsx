@@ -1,7 +1,7 @@
 "use client";
 
 import { prepareWithSegments } from "@chenglou/pretext";
-import { motion, type Variants } from "framer-motion";
+import { motion, type Variants } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   fragmentsEqual,

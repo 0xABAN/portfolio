@@ -40,7 +40,7 @@ const experiences: GalleryItem[] = [
     common: "IBM",
     binomial: "AI Engineering Intern · May 2025 — Present",
     photo: {
-      url: "/Work/ibm.png",
+      url: "/Work/ibm.webp",
       text: "ibm",
       pos: "50% 50%",
       by: "LLM Microservices · Remote",

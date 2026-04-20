@@ -111,7 +111,7 @@ const projects: Project[] = [
         handles the drawing, supabase handles the memory.
       </>
     ),
-    image: "/Projects/nexdraw.gif",
+    image: "/Projects/nexdraw.webm",
     accent: "#d7b6ff",
     href: "https://github.com/AdamPSU/maestro",
     award: "NexHacks '26 · ByteDance 2nd place",
@@ -156,7 +156,7 @@ const projects: Project[] = [
         what my brain does when it looks at clothes.
       </>
     ),
-    image: "/Projects/fit-check.gif",
+    image: "/Projects/fit-check.webm",
     accent: "#7cc9e8",
     href: "https://github.com/AdamPSU/fit-check",
     award: "Hackathon entry · April 2026",

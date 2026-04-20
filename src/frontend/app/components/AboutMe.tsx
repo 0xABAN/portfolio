@@ -114,7 +114,7 @@ export function AboutMe() {
           <br /><br />
           in my time at penn state, i&apos;ve <strong>won 3 hackathons</strong>, building cool stuff beside some of the brightest people i know. i&apos;ve also held <strong>leadership positions</strong> at the biggest clubs on campus, including nittany ai, nittany data labs, and the newly founded claude builder club. these opportunities have sculpted me into the engineer i am today.
         </p>
-        <Image src="/ascii_cat.gif" alt="" aria-hidden width={560} height={106} loading="lazy" unoptimized style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(35ch + 5vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
+        <video src="/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(35ch + 5vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
       </div>
       <div
         className="hidden lg:block"
