@@ -1,7 +1,7 @@
 "use client";
 
 import { prepareWithSegments } from "@chenglou/pretext";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   fragmentsEqual,
@@ -52,7 +52,7 @@ type VideoWithFrameCallback = HTMLVideoElement & {
   cancelVideoFrameCallback?: (handle: number) => void;
 };
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (delay: number) => ({
     opacity: 1,
@@ -187,7 +187,7 @@ export function BioSection() {
     <motion.div
       ref={containerRef}
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
-      className="relative self-start w-full h-[45vh] md:flex-[0_0_51%] md:h-[85%]"
+      className="relative self-start w-full h-[55vh] lg:flex-[0_0_51%] lg:h-[85%]"
       onMouseMove={(e) => {
         const rect = containerRectRef.current;
         if (rect) {
@@ -201,7 +201,7 @@ export function BioSection() {
       <BentoGlow
         className="bio-border-glow"
         glowColor="255, 255, 255"
-        backgroundColor="rgba(0,0,0,0.85)"
+        backgroundColor="rgba(6,7,18,0.97)"
         borderRadius={5}
         spotlightRadius={300}
         enableTilt

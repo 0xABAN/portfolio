@@ -170,10 +170,30 @@ import React, {
         intervalRef.current = window.setInterval(swap, delay);
       };
 
-      swap();
-      intervalRef.current = window.setInterval(swap, delay);
+      const pause = () => {
+        tlRef.current?.pause();
+        clearInterval(intervalRef.current);
+      };
+      const resume = () => {
+        tlRef.current?.play();
+        restartInterval();
+      };
 
       const node = container.current!;
+
+      const visibility = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            if (intervalRef.current === 0) swap();
+            restartInterval();
+            tlRef.current?.play();
+          } else {
+            pause();
+          }
+        },
+        { rootMargin: '200px' }
+      );
+      visibility.observe(node);
 
       const handleClick = (e: MouseEvent) => {
         const frontEl = refs[order.current[0]].current;
@@ -185,17 +205,10 @@ import React, {
       node.addEventListener('click', handleClick);
 
       if (pauseOnHover) {
-        const pause = () => {
-          tlRef.current?.pause();
-          clearInterval(intervalRef.current);
-        };
-        const resume = () => {
-          tlRef.current?.play();
-          restartInterval();
-        };
         node.addEventListener('mouseenter', pause);
         node.addEventListener('mouseleave', resume);
         return () => {
+          visibility.disconnect();
           node.removeEventListener('click', handleClick);
           node.removeEventListener('mouseenter', pause);
           node.removeEventListener('mouseleave', resume);
@@ -204,6 +217,7 @@ import React, {
       }
 
       return () => {
+        visibility.disconnect();
         node.removeEventListener('click', handleClick);
         clearInterval(intervalRef.current);
       };

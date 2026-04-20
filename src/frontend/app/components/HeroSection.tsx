@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, type Variants } from "motion/react";
 import { useEffect, useRef } from "react";
 import { BioSection } from "./BioSection";
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (delay: number) => ({
     opacity: 1,
@@ -25,22 +25,23 @@ export function HeroSection() {
       }
     };
     tick();
-    const id = setInterval(tick, 100);
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
   return (
     <section
+      id="home"
       aria-label="Hero"
-      className="h-screen p-6 pt-20 md:p-16 md:pt-32 box-border flex flex-col md:flex-row gap-8 md:gap-12 relative z-[2]"
+      className="min-h-screen p-6 pt-24 lg:h-screen lg:min-h-0 lg:p-16 lg:pt-32 box-border flex flex-col lg:flex-row gap-8 lg:gap-12 relative z-[2]"
     >
       <BioSection />
 
       <div className="flex flex-col justify-start">
         <motion.h1
           variants={fadeUp} initial="hidden" animate="visible" custom={0.15}
-          className="m-0 font-bold"
-          style={{ fontSize: "clamp(3rem, 4.5vw, 5.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}
+          className="m-0 font-bold text-balance"
+          style={{ fontSize: "clamp(2.5rem, 8vw, 5.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}
         >
           Adam<br />
           <em className="font-normal italic" style={{ fontFamily: "var(--font-serif)" }}>

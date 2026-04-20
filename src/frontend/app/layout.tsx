@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif, Geist } from "next/font/google";
 import "./globals.css";
 import BlobCursor from "./components/BlobCursor/BlobCursor";
@@ -14,9 +14,16 @@ export const metadata: Metadata = {
   description: "Portfolio",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#060712",
+  colorScheme: "dark",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn(inter.variable, serif.variable, "font-sans", geist.variable)}>
+    <html lang="en" className={cn(inter.variable, serif.variable, "font-sans", geist.variable)} style={{ colorScheme: "dark" }}>
       <body>
         <BlobCursor blobType="circle" fillColor="#ffffff" />
         {children}

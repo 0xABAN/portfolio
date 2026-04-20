@@ -25,14 +25,22 @@ export const CardContainer = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMouseEntered, setIsMouseEntered] = useState(false);
+  const pendingFrameRef = useRef<number | null>(null);
+  const lastEventRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const { left, top, width, height } =
-      containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - left - width / 2) / 25;
-    const y = (e.clientY - top - height / 2) / 25;
-    containerRef.current.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+    lastEventRef.current = { x: e.clientX, y: e.clientY };
+    if (pendingFrameRef.current !== null) return;
+    pendingFrameRef.current = requestAnimationFrame(() => {
+      pendingFrameRef.current = null;
+      const el = containerRef.current;
+      const pos = lastEventRef.current;
+      if (!el || !pos) return;
+      const { left, top, width, height } = el.getBoundingClientRect();
+      const x = (pos.x - left - width / 2) / 25;
+      const y = (pos.y - top - height / 2) / 25;
+      el.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+    });
   };
 
   const handleMouseEnter = () => {
@@ -40,6 +48,10 @@ export const CardContainer = ({
   };
 
   const handleMouseLeave = () => {
+    if (pendingFrameRef.current !== null) {
+      cancelAnimationFrame(pendingFrameRef.current);
+      pendingFrameRef.current = null;
+    }
     if (!containerRef.current) return;
     setIsMouseEntered(false);
     containerRef.current.style.transform = `rotateY(0deg) rotateX(0deg)`;

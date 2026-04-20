@@ -1,7 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { CardBody, CardContainer, CardItem } from "./ThreeDCard";
+import ScrollVelocity from "./ScrollVelocity/ScrollVelocity";
+import { SectionFade } from "./SectionFade";
 import { StickyScroll, type StickyScrollItem } from "./StickyScrollReveal";
 
 type Project = {
@@ -19,55 +22,60 @@ type Project = {
   award: string;
 };
 
+type BadgeSpec = { label: string; color: string; logo?: string; logoColor?: string };
+
+const BADGES: Record<string, BadgeSpec> = {
+  "Next.js":    { label: "Next.js",    color: "000000", logo: "nextdotjs",    logoColor: "white" },
+  "Gemini":     { label: "Gemini",     color: "8E75B2", logo: "googlegemini", logoColor: "white" },
+  "Supabase":   { label: "Supabase",   color: "3ECF8E", logo: "supabase",     logoColor: "white" },
+  "tldraw":     { label: "tldraw",     color: "1E1E1E" },
+  "LangGraph":  { label: "LangGraph",  color: "1C3C3C", logo: "langgraph",    logoColor: "white" },
+  "Phaser":     { label: "Phaser",     color: "8B5CF6", logo: "phaser",       logoColor: "white" },
+  "FastAPI":    { label: "FastAPI",    color: "009688", logo: "fastapi",      logoColor: "white" },
+  "Socket.IO":  { label: "Socket.IO",  color: "010101", logo: "socketdotio",  logoColor: "white" },
+  "C#":         { label: "C#",         color: "239120", logo: "csharp",       logoColor: "white" },
+  "tModLoader": { label: "tModLoader", color: "2F4F4F" },
+  "xAI":        { label: "xAI",        color: "000000", logo: "x",            logoColor: "white" },
+  "TRIBEv2":    { label: "TRIBEv2",    color: "4B6CB7" },
+  "V-JEPA2":    { label: "V-JEPA2",    color: "0866FF", logo: "meta",         logoColor: "white" },
+};
+
+const shieldsEscape = (s: string) =>
+  s.replace(/-/g, "--").replace(/_/g, "__").replace(/ /g, "_").replace(/#/g, "%23");
+
+function badgeUrl(tech: string, style: "for-the-badge" | "flat-square" = "for-the-badge") {
+  const spec = BADGES[tech] ?? { label: tech, color: "333333" };
+  const params = new URLSearchParams({ style });
+  if (spec.logo) params.set("logo", spec.logo);
+  if (spec.logoColor) params.set("logoColor", spec.logoColor);
+  return `https://img.shields.io/badge/${shieldsEscape(spec.label)}-${spec.color}?${params.toString()}`;
+}
+
+function StackBadges({
+  items,
+  style = "for-the-badge",
+  height = 24,
+  className,
+}: {
+  items: string[];
+  style?: "for-the-badge" | "flat-square";
+  height?: number;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${className ?? ""}`}>
+      {items.map((tech) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={tech} src={badgeUrl(tech, style)} alt={tech} style={{ height }} />
+      ))}
+    </div>
+  );
+}
+
 const projects: Project[] = [
   {
-    id: "nexdraw",
-    index: "Nº 01",
-    year: "2026",
-    role: "Solo build",
-    stack: ["Next.js", "Gemini", "Supabase", "tldraw"],
-    titleRoman: "",
-    titleItalic: "nexdraw",
-    blurb: (
-      <>
-        cursor but for artists, basically. you sketch, gemini reads the canvas, it
-        edits back. i built it <strong>solo</strong>{" "}for nexhacks &rsquo;26 and
-        somehow came out of 1500 entries with <strong>2nd place</strong>. tldraw
-        handles the drawing, supabase handles the memory.
-      </>
-    ),
-    image:
-      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=2560&auto=format&fit=crop",
-    accent: "#d7b6ff",
-    href: "https://github.com/AdamPSU/maestro",
-    award: "NexHacks '26 · ByteDance 2nd place",
-  },
-  {
-    id: "simulacra",
-    index: "Nº 02",
-    year: "2026",
-    role: "Hackathon build",
-    stack: ["LangGraph", "Phaser", "FastAPI", "Socket.IO"],
-    titleRoman: "",
-    titleItalic: "simulacra",
-    blurb: (
-      <>
-        pixel-art policy sim where <strong>100 llm agents</strong>{" "}react to whatever
-        rules you throw at them. each agent gets a 6-trait persona and one of 8 roles.
-        langgraph fans them out in parallel over socket.io, so the round doesn&rsquo;t
-        wait on a slow call. fifteen rounds per run. took the{" "}
-        <strong>k2 think v2 track at yhack &rsquo;26</strong>.
-      </>
-    ),
-    image:
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2560&auto=format&fit=crop",
-    accent: "#a4e0c2",
-    href: "https://github.com/AdamPSU/simulacra",
-    award: "YHack '26 · K2 Think V2 track winner",
-  },
-  {
     id: "terrar-ai",
-    index: "Nº 03",
+    index: "Nº 01",
     year: "2025",
     role: "Team build",
     stack: ["C#", "tModLoader", "xAI"],
@@ -82,17 +90,59 @@ const projects: Project[] = [
         tmodloader.
       </>
     ),
-    image:
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto=format&fit=crop",
+    image: "/Projects/chop_wood.webm",
     accent: "#e8b67a",
     href: "https://github.com/SlothfulDreams/terrar.ai",
     award: "HackPrinceton '25 · xAI 1st place",
   },
   {
+    id: "nexdraw",
+    index: "Nº 02",
+    year: "2026",
+    role: "Solo build",
+    stack: ["Next.js", "Gemini", "Supabase", "tldraw"],
+    titleRoman: "",
+    titleItalic: "nexdraw",
+    blurb: (
+      <>
+        cursor but for artists, basically. you sketch, gemini reads the canvas, it
+        edits back. i built it <strong>solo</strong>{" "}for nexhacks &rsquo;26 and
+        somehow came out of 1500 entries with <strong>2nd place</strong>. tldraw
+        handles the drawing, supabase handles the memory.
+      </>
+    ),
+    image: "/Projects/nexdraw.gif",
+    accent: "#d7b6ff",
+    href: "https://github.com/AdamPSU/maestro",
+    award: "NexHacks '26 · ByteDance 2nd place",
+  },
+  {
+    id: "simulacra",
+    index: "Nº 03",
+    year: "2026",
+    role: "Hackathon build",
+    stack: ["LangGraph", "Phaser", "FastAPI", "Socket.IO"],
+    titleRoman: "",
+    titleItalic: "simulacra",
+    blurb: (
+      <>
+        pixel-art policy sim where <strong>100 llm agents</strong>{" "}react to whatever
+        rules you throw at them. each agent gets a 6-trait persona and one of 8 roles.
+        langgraph fans them out in parallel over socket.io, so the round doesn&rsquo;t
+        wait on a slow call. fifteen rounds per run. took the{" "}
+        <strong>k2 think v2 track at yhack &rsquo;26</strong>.
+      </>
+    ),
+    image: "/Projects/simulacra.png",
+    accent: "#a4e0c2",
+    href: "https://github.com/AdamPSU/simulacra",
+    award: "YHack '26 · K2 Think V2 track winner",
+  },
+  {
     id: "fit-check",
     index: "Nº 04",
     year: "2026",
-    role: "Side project",
+    role: "Solo build",
     stack: ["Next.js", "FastAPI", "TRIBEv2", "V-JEPA2"],
     titleRoman: "",
     titleItalic: "fit-check",
@@ -101,13 +151,12 @@ const projects: Project[] = [
         record a 360&deg; spin of your outfit in the browser. the backend runs it
         through <strong>TRIBEv2 video-only inference</strong>{" "}and returns an mp4 of
         your predicted <strong>brain activity</strong>{" "}rendered on a cortical surface.
-        v-jepa2 does the encoding, so the first request takes about a minute. built it
-        for a hackathon, didn&rsquo;t win. i just wanted to see what my brain does
-        when it looks at clothes.
+        v-jepa2 does the encoding, so the first request takes about a minute. built it{" "}
+        <strong>solo</strong>{" "}for a hackathon, didn&rsquo;t win. i just wanted to see
+        what my brain does when it looks at clothes.
       </>
     ),
-    image:
-      "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2560&auto=format&fit=crop",
+    image: "/Projects/fit-check.gif",
     accent: "#7cc9e8",
     href: "https://github.com/AdamPSU/fit-check",
     award: "Hackathon entry · April 2026",
@@ -129,12 +178,27 @@ function ProjectCard({ project }: { project: Project }) {
         >
           <CardItem translateZ={80} className="relative block w-full">
             <div className="relative aspect-[4/5] w-full overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={project.image}
-                alt={project.titleItalic}
-                className="h-full w-full scale-105 object-cover transition-transform duration-700 group-hover/card:scale-110"
-              />
+              {/\.(webm|mp4)$/i.test(project.image) ? (
+                <video
+                  src={project.image}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full scale-105 object-cover transition-transform duration-700 group-hover/card:scale-110"
+                />
+              ) : (
+                <Image
+                  src={project.image}
+                  alt={project.titleItalic}
+                  fill
+                  loading="lazy"
+                  unoptimized
+                  sizes="(min-width: 1024px) 448px, 60vw"
+                  className="scale-105 object-cover transition-transform duration-700 group-hover/card:scale-110"
+                />
+              )}
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{
@@ -196,7 +260,7 @@ function ProjectCard({ project }: { project: Project }) {
             </div>
           </CardItem>
 
-          <div className="relative flex items-center justify-between gap-4 border-t border-white/5 px-5 py-4">
+          <div className="relative flex items-center border-t border-white/5 px-5 py-4">
             <CardItem
               translateZ={40}
               as="span"
@@ -204,14 +268,6 @@ function ProjectCard({ project }: { project: Project }) {
               style={{ fontFamily: "var(--font-sans)" }}
             >
               {project.role.toUpperCase()}
-            </CardItem>
-            <CardItem
-              translateZ={40}
-              as="span"
-              className="text-[10px] tracking-[0.28em] text-white/35"
-              style={{ fontFamily: "var(--font-sans)" }}
-            >
-              {project.stack.join(" · ").toUpperCase()}
             </CardItem>
           </div>
         </div>
@@ -225,7 +281,7 @@ const scrollContent: StickyScrollItem[] = projects.map((project) => ({
   index: project.index,
   year: project.year,
   role: project.role,
-  stack: project.stack,
+  stack: <StackBadges items={project.stack} height={28} />,
   title: (
     <>
       {project.titleRoman}
@@ -252,7 +308,8 @@ export function ProjectsSection() {
         position: "relative",
         zIndex: 5,
         background: "#060712",
-        padding: "6rem 0 4rem",
+        padding: "4rem 0 4rem",
+        overflow: "visible",
       }}
     >
       <div
@@ -275,7 +332,23 @@ export function ProjectsSection() {
           }}
         />
       </div>
+      <div
+        className="relative mx-auto w-full max-w-[1440px] border-b border-white/10 pb-6"
+        style={{ padding: "2rem 0 1.5rem" }}
+      >
+        <ScrollVelocity
+          texts={[
+            <>selected <em>work</em></>,
+            <><em>proyectos</em> recent builds</>,
+          ]}
+          velocity={80}
+          damping={45}
+          stiffness={350}
+          scrollerClassName="scroller projects-marquee"
+        />
+      </div>
       <StickyScroll content={scrollContent} />
+      <SectionFade edge="bottom" height="24vh" />
     </section>
   );
 }

@@ -9,7 +9,13 @@ body {
   color: #fff;
   margin: 0;
   font-family: var(--font-inter), sans-serif;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='white' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+@media (hover: none), (pointer: coarse) {
+  body { cursor: auto; }
 }
 
 .bio-border-glow,
@@ -24,6 +30,33 @@ body {
 
 .about-card-glow {
   overflow: visible;
+}
+
+.contact-envelope-glow.bento-glow--tilt.active {
+  transform: perspective(900px) translateZ(0)
+    rotateX(calc(var(--rotate-y) * 0.3))
+    rotateY(calc(var(--rotate-x) * 0.3));
+}
+
+.scroller.projects-marquee {
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: -0.02em;
+}
+@media (min-width: 768px) {
+  .scroller.projects-marquee {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 .liquid-glass {

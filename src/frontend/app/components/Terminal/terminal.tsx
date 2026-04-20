@@ -21,7 +21,7 @@ import {
 
 import { cn } from "@/lib/utils"
 
-const IN_VIEW_OPTIONS = { amount: 0.3, once: true } as const
+const IN_VIEW_OPTIONS = { amount: 0.3 } as const
 
 interface SequenceContextValue {
   completeItem: (index: number) => void
@@ -255,6 +255,13 @@ export const Terminal = ({
   useEffect(() => () => {
     if (loopTimeoutRef.current !== null) clearTimeout(loopTimeoutRef.current)
   }, [])
+
+  useEffect(() => {
+    if (!isInView && loopTimeoutRef.current !== null) {
+      clearTimeout(loopTimeoutRef.current)
+      loopTimeoutRef.current = null
+    }
+  }, [isInView])
 
   const childrenArray = useMemo(() => Children.toArray(children), [children])
   const childCount = childrenArray.length

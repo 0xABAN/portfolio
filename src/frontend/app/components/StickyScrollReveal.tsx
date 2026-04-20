@@ -8,7 +8,7 @@ export type StickyScrollItem = {
   index: string;
   year: string;
   role: string;
-  stack: string[];
+  stack: ReactNode;
   title: ReactNode;
   description: ReactNode;
   content: ReactNode;
@@ -45,7 +45,7 @@ export const StickyScroll = ({
     <section
       ref={sectionRef}
       className="relative"
-      style={{ minHeight: `${(cardLength + 1) * 100}vh` }}
+      style={{ minHeight: `${(cardLength + 0.5) * 100}vh` }}
     >
       <div className="sticky top-0 flex h-[100svh] flex-col">
         <div
@@ -175,19 +175,13 @@ export const StickyScroll = ({
                     {active.title}
                   </h3>
                   <div
-                    className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] tracking-[0.22em] text-white/50"
+                    className="mt-6 flex flex-col gap-3 text-[11px] tracking-[0.22em] text-white/50"
                     style={{ fontFamily: "var(--font-sans)" }}
                   >
                     <span>
                       ROLE · <span className="text-white/75">{active.role.toUpperCase()}</span>
                     </span>
-                    <span className="hidden h-px w-6 bg-white/15 sm:block" />
-                    <span>
-                      STACK ·{" "}
-                      <span className="text-white/75">
-                        {active.stack.join(" / ").toUpperCase()}
-                      </span>
-                    </span>
+                    {active.stack}
                   </div>
                   <p
                     className="mt-6 max-w-lg text-[1.05rem] leading-relaxed text-white/65 [&_strong]:font-medium [&_strong]:text-white"
@@ -219,7 +213,7 @@ export const StickyScroll = ({
               </AnimatePresence>
             </div>
 
-            <div className={cn("relative hidden shrink-0 lg:block", contentClassName)}>
+            <div className={cn("relative hidden shrink-0 md:block md:scale-[0.7] md:origin-top-right lg:scale-100", contentClassName)}>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={active.id}

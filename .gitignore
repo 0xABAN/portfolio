@@ -5,6 +5,7 @@ src/frontend/node_modules/
 src/frontend/.pnp
 src/frontend/.pnp.*
 src/frontend/.yarn/*
+src/frontend/public/ 
 !src/frontend/.yarn/patches
 !src/frontend/.yarn/plugins
 !src/frontend/.yarn/releases
@@ -57,3 +58,4 @@ src/backend/*.egg-info/
 tasks/
 
 .playwright-cli
+

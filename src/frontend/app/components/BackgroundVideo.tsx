@@ -11,11 +11,27 @@ export function BackgroundVideo() {
     if (ref.current) ref.current.playbackRate = 1;
   }, []);
 
+  useEffect(() => {
+    const video = ref.current;
+    const hero = document.getElementById("home");
+    if (!video || !hero) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) video.play().catch(() => {});
+        else video.pause();
+      },
+      { rootMargin: "200px", threshold: 0 },
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <>
       <video
         ref={ref}
-        autoPlay loop muted playsInline
+        loop muted playsInline preload="auto"
         style={{ position: "fixed", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: -1 }}
       >
         <source src="/background.mp4" type="video/mp4" />
