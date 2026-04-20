@@ -3,6 +3,7 @@
 import { motion, type Variants } from "motion/react";
 import { useEffect, useRef } from "react";
 import { BioSection } from "./BioSection";
+import { ViewCounter } from "./ViewCounter";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -53,6 +54,12 @@ export function HeroSection() {
           className="mt-[0.4rem] text-white text-sm tabular-nums"
         >
           approx. <span ref={ageRef} /> years old
+        </motion.p>
+        <motion.p
+          variants={fadeUp} initial="hidden" animate="visible" custom={0.45}
+          className="mt-[0.2rem] text-white text-sm tabular-nums"
+        >
+          <ViewCounter />
         </motion.p>
       </div>
     </section>
