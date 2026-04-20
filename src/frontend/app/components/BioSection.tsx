@@ -16,22 +16,28 @@ import BentoGlow from "./BentoGlow/BentoGlow";
 import LightRays from "./LightRays/LightRays";
 import SpotlightCard from "./SpotlightCard/SpotlightCard";
 
-const cornerStyles: Record<string, CSSProperties> = {
-  tl: { top: -20, left: -20, borderTop: "3px solid #fff", borderLeft: "3px solid #fff" },
-  tr: { top: -20, right: -20, borderTop: "3px solid #fff", borderRight: "3px solid #fff" },
-  bl: { bottom: -20, left: -20, borderBottom: "3px solid #fff", borderLeft: "3px solid #fff" },
-  br: { bottom: -20, right: -20, borderBottom: "3px solid #fff", borderRight: "3px solid #fff" },
-};
+function buildCornerStyles(offset: number, thickness: string): Record<string, CSSProperties> {
+  return {
+    tl: { top: offset, left: offset, borderTop: `${thickness} solid #fff`, borderLeft: `${thickness} solid #fff` },
+    tr: { top: offset, right: offset, borderTop: `${thickness} solid #fff`, borderRight: `${thickness} solid #fff` },
+    bl: { bottom: offset, left: offset, borderBottom: `${thickness} solid #fff`, borderLeft: `${thickness} solid #fff` },
+    br: { bottom: offset, right: offset, borderBottom: `${thickness} solid #fff`, borderRight: `${thickness} solid #fff` },
+  };
+}
 
-function Corners() {
+function Corners({ compact = false }: { compact?: boolean }) {
+  const offset = compact ? -8 : -20;
+  const size = compact ? 14 : 28;
+  const thickness = compact ? "2px" : "3px";
+  const styles = buildCornerStyles(offset, thickness);
   return (
     <motion.div
       style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
       animate={{ scale: [1, 1.03, 1] }}
       transition={{ duration: 3.5, ease: "easeInOut", repeat: Infinity }}
     >
-      {Object.values(cornerStyles).map((style, i) => (
-        <div key={i} style={{ position: "absolute", width: 28, height: 28, zIndex: 10, ...style }} />
+      {Object.values(styles).map((style, i) => (
+        <div key={i} style={{ position: "absolute", width: size, height: size, zIndex: 10, ...style }} />
       ))}
     </motion.div>
   );
@@ -69,6 +75,14 @@ export function BioSection() {
   const textLayerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [fragments, setFragments] = useState<PositionedFragment[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check, { passive: true });
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const [measurement, setMeasurement] = useState<BoxMeasurement | null>(null);
   const [textFont, setTextFont] = useState<string>("");
 
@@ -153,7 +167,7 @@ export function BioSection() {
     if (cursorPosRef.current) circles.push({ ...cursorPosRef.current, radius: 52 });
 
     const nextFragments = layoutFragmentsFromFrame(preparedText, measurement, frame, {
-      minSlotWidth: 100,
+      minSlotWidth: isMobile ? 60 : 100,
       cursorCircles: circles.length > 0 ? circles : undefined,
     });
     setFragments((previous) => (fragmentsEqual(previous, nextFragments) ? previous : nextFragments));
@@ -163,31 +177,39 @@ export function BioSection() {
     if (measurement === null || preparedText === null) return;
 
     const video = videoRef.current as VideoWithFrameCallback | null;
-    if (video === null || typeof video.requestVideoFrameCallback !== "function") return;
+    if (video === null) return;
 
     let active = true;
-    let videoFrameId = 0;
+    let handle = 0;
 
-    const schedule = () => {
-      if (!active) return;
-      videoFrameId = video.requestVideoFrameCallback(() => { computeTextLayout(); schedule(); });
-    };
-
-    schedule();
-
-    return () => {
-      active = false;
-      if (videoFrameId !== 0 && typeof video.cancelVideoFrameCallback === "function") {
-        video.cancelVideoFrameCallback(videoFrameId);
-      }
-    };
+    if (typeof video.requestVideoFrameCallback === "function") {
+      const schedule = () => {
+        if (!active) return;
+        handle = video.requestVideoFrameCallback!(() => { computeTextLayout(); schedule(); });
+      };
+      schedule();
+      return () => {
+        active = false;
+        if (handle !== 0 && typeof video.cancelVideoFrameCallback === "function") {
+          video.cancelVideoFrameCallback(handle);
+        }
+      };
+    } else {
+      const tick = () => {
+        if (!active) return;
+        computeTextLayout();
+        handle = requestAnimationFrame(tick);
+      };
+      handle = requestAnimationFrame(tick);
+      return () => { active = false; cancelAnimationFrame(handle); };
+    }
   }, [computeTextLayout, measurement, preparedText]);
 
   return (
     <motion.div
       ref={containerRef}
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
-      className="relative self-start w-full h-[55vh] lg:flex-[0_0_51%] lg:h-[85%]"
+      className="relative self-start w-full aspect-video lg:aspect-auto lg:flex-[0_0_51%] lg:h-[85%]"
       onMouseMove={(e) => {
         const rect = containerRectRef.current;
         if (rect) {
@@ -206,7 +228,7 @@ export function BioSection() {
         spotlightRadius={300}
         enableTilt
       >
-      <Corners />
+      <Corners compact={isMobile} />
       <SpotlightCard
         className="bio-spotlight"
         spotlightColor="rgba(255, 255, 255, 0.25)"
@@ -229,9 +251,10 @@ export function BioSection() {
         <div
           ref={textLayerRef}
           aria-label="hero copy wrapped around video"
+          className="text-[#9b9896] lg:text-[#5a5954]"
           style={{
-            position: "absolute", inset: 0, margin: 0, padding: "1rem",
-            color: "#5a5954", fontSize: "1.125rem", lineHeight: 1.6,
+            position: "absolute", inset: 0, margin: 0, padding: "0.5rem",
+            fontSize: isMobile ? "0.72rem" : "1.125rem", lineHeight: 1.5,
             overflow: "hidden", userSelect: "text",
           }}
         >

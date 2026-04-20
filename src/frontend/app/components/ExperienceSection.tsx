@@ -95,13 +95,13 @@ export function ExperienceSection() {
         <div className="absolute left-0 right-0 top-20 z-20 mx-auto flex max-w-[1440px] items-end justify-between border-b border-white/10 px-4 pb-4 sm:top-24 sm:px-8 sm:pb-6">
           <div>
             <span
-              className="block text-[11px] tracking-[0.28em] text-white/40"
+              className="block text-[11px] tracking-[0.28em] text-white/60"
               style={{ fontFamily: "var(--font-sans)" }}
             >
               EXPERIENCE — 2025 / 2026
             </span>
             <h2
-              className="mt-2 text-white/90"
+              className="mt-2 text-white"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontStyle: "italic",

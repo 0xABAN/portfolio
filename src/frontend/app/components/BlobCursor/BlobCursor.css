@@ -9,6 +9,12 @@
   filter: drop-shadow(0 0 40px rgba(107, 110, 191, 0.45));
 }
 
+@media (max-width: 1023px) {
+  .container {
+    display: none;
+  }
+}
+
 .main {
   position: absolute;
   inset: 0;

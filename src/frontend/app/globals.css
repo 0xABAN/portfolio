@@ -4,6 +4,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html {
+  position: relative;
+}
+
 body {
   background: #060712;
   color: #fff;

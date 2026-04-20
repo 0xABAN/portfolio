@@ -83,7 +83,14 @@ export function sampleVideoFrame(
   const drawRect = getContainDrawRect(video.videoWidth, video.videoHeight, width * drawScale, height * drawScale);
   context.drawImage(video, drawRect.x, drawRect.y, drawRect.width, drawRect.height);
 
-  const imageData = context.getImageData(0, 0, width, height);
+  let imageData: ImageData;
+  try {
+    imageData = context.getImageData(0, 0, width, height);
+  } catch {
+    // iOS Safari taints the canvas for IP-origin video — fall back to blank frame
+    // so text fills the full container without face-avoidance
+    imageData = new ImageData(width, height);
+  }
   const data = imageData.data;
   let opaquePixels = 0;
   const startX = Math.max(0, Math.floor(drawRect.x));
