@@ -112,7 +112,7 @@ export function AboutMe() {
         <p style={{ margin: "1.25rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(35ch + 5vw)", textAlign: "left", position: "relative", zIndex: 1 }}>
           i&apos;m interested in <strong>software engineering, ai</strong>, and the intersection between the two. i also like to watch tv shows (shout out to aot & got), listen to music, and hang out with my friends (sometimes).
           <br /><br />
-          in my time at penn state, i&apos;ve <strong>won 3 hackathons</strong>, building cool stuff beside some of the brightest people i know. i&apos;ve also held <strong>leadership positions</strong> at the biggest clubs on campus, including nittany ai, nittany data labs, and the newly founded claude builder club. these opportunities have sculpted me into the engineer i am today.
+          i&apos;ve <strong>won 3 hackathons</strong>: first at yhacks (yale), first at hackprinceton, and second solo at nexhacks (bytedance). at penn state, i&apos;ve held <strong>leadership positions</strong> at nittany ai, nittany data labs, and the claude builder club.
         </p>
         <video src="/Videos/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(35ch + 5vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
       </div>

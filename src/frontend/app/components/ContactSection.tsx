@@ -276,8 +276,7 @@ export function ContactSection() {
             style={{ fontFamily: "var(--font-inter)", fontSize: "1.05rem", lineHeight: 1.7 }}
           >
             send a note if you&rsquo;re building something interesting, hiring for
-            summer, or want to argue about a paper. i reply within a day. the rest
-            of the time i&rsquo;m at penn state or shipping.
+            summer, or want to argue about a paper. i reply within a day.
           </motion.p>
 
           <motion.div

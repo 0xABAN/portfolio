@@ -168,6 +168,7 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
 
       activeTarget = target;
       cursor.style.opacity = '1';
+      cursor.classList.toggle('target-cursor-on-nav', !!target.closest('nav'));
       const corners = Array.from(cornersRef.current);
       corners.forEach(corner => gsap.killTweensOf(corner));
       gsap.killTweensOf(cursorRef.current, 'rotation');
@@ -206,6 +207,7 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
         targetCornerPositionsRef.current = null;
         gsap.set(activeStrengthRef.current, { current: 0, overwrite: true });
         cursor.style.opacity = '0';
+        cursor.classList.remove('target-cursor-on-nav');
         activeTarget = null;
         if (cornersRef.current) {
           const corners = Array.from(cornersRef.current);

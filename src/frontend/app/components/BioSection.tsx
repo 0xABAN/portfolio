@@ -54,7 +54,7 @@ function highlight(text: string) {
   });
 }
 
-const HERO_COPY = "adam torres encarnacion goes to penn state and builds things that actually run. not side projects. ibm, amazon, a handful of hackathons he won (first at yhacks, first at hackprinceton, second at bytedance — that one solo). he sees something missing and makes it. ".repeat(15).trim();
+const HERO_COPY = "adam torres encarnacion. computer science at penn state. software engineering intern at amazon, summer 2026. ai engineering intern at ibm. previously machine learning intern at lockheed martin. founder of the claude builder club. director of epoch ai. born in puerto rico, raised in the dominican republic, based in pennsylvania. ".repeat(5).trim();
 
 type VideoWithFrameCallback = HTMLVideoElement & {
   requestVideoFrameCallback?: (callback: (now: number, metadata: unknown) => void) => number;

@@ -11,6 +11,10 @@
     opacity: 0;
   }
 
+  .target-cursor-wrapper.target-cursor-on-nav {
+    mix-blend-mode: normal;
+  }
+
   .cursor-target {
     cursor: none;
   }
