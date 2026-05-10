@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Renderer, Program, Triangle, Mesh } from 'ogl';
 import './LightRays.css';
 
-export type RaysOrigin =
+type RaysOrigin =
   | 'top-center'
   | 'top-left'
   | 'top-right'
@@ -139,12 +139,18 @@ const LightRays: React.FC<LightRaysProps> = ({
       cleanupFunctionRef.current = null;
     }
 
+    let cancelled = false;
+    let initTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const initializeWebGL = async () => {
       if (!containerRef.current) return;
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise<void>(resolve => {
+        initTimeout = setTimeout(() => resolve(), 10);
+      });
+      initTimeout = null;
 
-      if (!containerRef.current) return;
+      if (cancelled || !containerRef.current) return;
 
       const renderer = new Renderer({
         dpr: Math.min(window.devicePixelRatio, 2),
@@ -153,8 +159,7 @@ const LightRays: React.FC<LightRaysProps> = ({
       rendererRef.current = renderer;
 
       const gl = renderer.gl;
-      gl.canvas.style.width = '100%';
-      gl.canvas.style.height = '100%';
+      Object.assign(gl.canvas.style, { width: '100%', height: '100%' });
 
       while (containerRef.current.firstChild) {
         containerRef.current.removeChild(containerRef.current.firstChild);
@@ -374,6 +379,11 @@ void main() {
     initializeWebGL();
 
     return () => {
+      cancelled = true;
+      if (initTimeout) {
+        clearTimeout(initTimeout);
+        initTimeout = null;
+      }
       if (cleanupFunctionRef.current) {
         cleanupFunctionRef.current();
         cleanupFunctionRef.current = null;

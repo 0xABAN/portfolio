@@ -1,7 +1,6 @@
 import React, {
     Children,
     cloneElement,
-    forwardRef,
     isValidElement,
     ReactElement,
     ReactNode,
@@ -13,7 +12,7 @@ import React, {
   import gsap from 'gsap';
   import './CardSwap.css';
 
-  export interface CardSwapProps {
+  interface CardSwapProps {
     width?: number | string;
     height?: number | string;
     cardDistance?: number;
@@ -26,13 +25,14 @@ import React, {
     children: ReactNode;
   }
 
-  export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     customClass?: string;
+    ref?: React.Ref<HTMLDivElement>;
   }
 
-  export const Card = forwardRef<HTMLDivElement, CardProps>(({ customClass, ...rest }, ref) => (
+  export const Card = ({ customClass, ref, ...rest }: CardProps) => (
     <div ref={ref} {...rest} className={`card ${customClass ?? ''} ${rest.className ?? ''}`.trim()} />
-  ));
+  );
   Card.displayName = 'Card';
 
   type CardRef = RefObject<HTMLDivElement | null>;

@@ -3,7 +3,7 @@
 import {
   Children,
   createContext,
-  useContext,
+  use,
   useEffect,
   useMemo,
   useRef,
@@ -12,7 +12,7 @@ import {
   type RefAttributes,
 } from "react"
 import {
-  motion,
+  m as motion,
   useInView,
   type DOMMotionComponents,
   type HTMLMotionProps,
@@ -32,10 +32,10 @@ interface SequenceContextValue {
 
 const SequenceContext = createContext<SequenceContextValue | null>(null)
 
-const useSequence = () => useContext(SequenceContext)
+const useSequence = () => use(SequenceContext)
 
 const ItemIndexContext = createContext<number | null>(null)
-const useItemIndex = () => useContext(ItemIndexContext)
+const useItemIndex = () => use(ItemIndexContext)
 
 const motionElements = {
   article: motion.article,
@@ -289,7 +289,7 @@ export const Terminal = ({
   const wrappedChildren = useMemo(() => {
     if (!sequence) return children
     return childrenArray.map((child, index) => (
-      <ItemIndexContext.Provider key={index} value={index}>
+      <ItemIndexContext.Provider key={`item-${index}`} value={index}>
         {child as React.ReactNode}
       </ItemIndexContext.Provider>
     ))
@@ -305,9 +305,9 @@ export const Terminal = ({
     >
       <div className="border-border flex flex-col gap-y-2 border-b p-4">
         <div className="flex flex-row gap-x-2">
-          <div className="h-2 w-2 rounded-full bg-red-500"></div>
-          <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+          <div className="size-2 rounded-full bg-red-500"></div>
+          <div className="size-2 rounded-full bg-yellow-500"></div>
+          <div className="size-2 rounded-full bg-green-500"></div>
         </div>
       </div>
       <pre className="p-4 text-white">

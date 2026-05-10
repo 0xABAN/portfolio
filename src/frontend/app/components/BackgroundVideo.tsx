@@ -59,7 +59,7 @@ export function BackgroundVideo() {
           loop muted playsInline preload="auto"
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
         >
-          <source src="/background.mp4" type="video/mp4" />
+          <source src="/Videos/background.mp4" type="video/mp4" />
         </video>
         <div style={{
           position: "absolute", inset: 0, pointerEvents: "none",

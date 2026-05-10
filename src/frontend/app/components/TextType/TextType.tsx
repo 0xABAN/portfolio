@@ -1,8 +1,10 @@
 'use client';
 
-import { ElementType, useEffect, useRef, useState, createElement, useMemo, useCallback } from 'react';
+import { ElementType, useEffect, useEffectEvent, useRef, useState, createElement, useMemo, useCallback } from 'react';
 import { gsap } from 'gsap';
 import './TextType.css';
+
+const EMPTY_TEXT_COLORS: string[] = [];
 
 interface TextTypeProps {
   className?: string;
@@ -39,7 +41,7 @@ const TextType = ({
   cursorCharacter = '|',
   cursorClassName = '',
   cursorBlinkDuration = 0.5,
-  textColors = [],
+  textColors = EMPTY_TEXT_COLORS,
   variableSpeed,
   onSentenceComplete,
   startOnVisible = false,
@@ -98,6 +100,10 @@ const TextType = ({
     }
   }, [showCursor, cursorBlinkDuration]);
 
+  const notifySentenceComplete = useEffectEvent((sentence: string, index: number) => {
+    onSentenceComplete?.(sentence, index);
+  });
+
   useEffect(() => {
     if (!isVisible) return;
 
@@ -114,9 +120,7 @@ const TextType = ({
             return;
           }
 
-          if (onSentenceComplete) {
-            onSentenceComplete(textArray[currentTextIndex], currentTextIndex);
-          }
+          notifySentenceComplete(textArray[currentTextIndex], currentTextIndex);
 
           setCurrentTextIndex(prev => (prev + 1) % textArray.length);
           setCurrentCharIndex(0);
@@ -164,8 +168,7 @@ const TextType = ({
     initialDelay,
     isVisible,
     reverseMode,
-    variableSpeed,
-    onSentenceComplete
+    variableSpeed
   ]);
 
   const shouldHideCursor =

@@ -1,22 +1,14 @@
-"use client";
+import { headers } from "next/headers";
+import { recordView } from "@/lib/views";
+import { ViewCounterDisplay } from "./ViewCounterDisplay";
 
-import { useEffect, useState } from "react";
+export async function ViewCounter() {
+  const h = await headers();
+  const userAgent = h.get("user-agent") ?? "";
+  const isPrefetch = h.get("purpose") === "prefetch";
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
-function formatCount(n: number): string {
-  return new Intl.NumberFormat("en-US").format(n);
-}
+  const count = await recordView({ userAgent, ip, isPrefetch });
 
-export function ViewCounter() {
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch("/api/views", { method: "POST" })
-      .then((r) => r.json())
-      .then((d) => setCount(d.count))
-      .catch(() => {});
-  }, []);
-
-  if (count === null) return null;
-
-  return <span>{formatCount(count)} views</span>;
+  return <ViewCounterDisplay count={count} />;
 }

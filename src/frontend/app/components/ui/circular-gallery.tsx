@@ -20,25 +20,15 @@ export interface GalleryItem {
 
 interface CircularGalleryProps extends HTMLAttributes<HTMLDivElement> {
   items: GalleryItem[];
-  /** Controls how far the items are from the center. */
   radius?: number;
-  /** Controls the speed of auto-rotation when not scrolling. */
   autoRotateSpeed?: number;
-  /** Card width in pixels. */
   cardWidth?: number;
-  /** Card height in pixels. */
   cardHeight?: number;
-  /**
-   * Optional element whose scroll progress drives rotation.
-   * When provided, rotation starts at 0 when the element's top reaches the
-   * viewport top and reaches 360° when the element's bottom reaches the
-   * viewport bottom. Falls back to whole-page scroll when omitted.
-   */
   scrollTarget?: RefObject<HTMLElement | null>;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const CircularGallery = React.forwardRef<HTMLDivElement, CircularGalleryProps>(
-  ({ items, className, radius = 600, autoRotateSpeed = 0.02, cardWidth = 300, cardHeight = 400, scrollTarget, ...props }, ref) => {
+const CircularGallery = ({ items, className, radius = 600, autoRotateSpeed = 0.02, cardWidth = 300, cardHeight = 400, scrollTarget, ref, ...props }: CircularGalleryProps) => {
     const [rotation, setRotation] = useState(0);
     const [isScrolling, setIsScrolling] = useState(false);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,10 +108,6 @@ const CircularGallery = React.forwardRef<HTMLDivElement, CircularGalleryProps>(
         >
           {items.map((item, i) => {
             const itemAngle = i * anglePerItem;
-            const totalRotation = rotation % 360;
-            const relativeAngle = (itemAngle + totalRotation + 360) % 360;
-            const normalizedAngle = Math.abs(relativeAngle > 180 ? 360 - relativeAngle : relativeAngle);
-            const opacity = Math.max(0.3, 1 - (normalizedAngle / 180));
 
             return (
               <div
@@ -137,8 +123,6 @@ const CircularGallery = React.forwardRef<HTMLDivElement, CircularGalleryProps>(
                   top: '50%',
                   marginLeft: -cardWidth / 2,
                   marginTop: -cardHeight / 2,
-                  opacity: opacity,
-                  transition: 'opacity 0.3s linear'
                 }}
               >
                 <div className="relative w-full h-full rounded-lg shadow-2xl overflow-hidden group border border-border bg-card/70 dark:bg-card/30 backdrop-blur-lg">
@@ -146,24 +130,19 @@ const CircularGallery = React.forwardRef<HTMLDivElement, CircularGalleryProps>(
                     src={item.photo.url}
                     alt={item.photo.text}
                     fill
-                    loading="lazy"
+                    loading="eager"
                     sizes={`${cardWidth}px`}
                     className="object-cover"
                     style={{ objectPosition: item.photo.pos || 'center' }}
                   />
-                  <div className="absolute bottom-0 left-0 w-full p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                    <h2 className="text-base sm:text-lg md:text-xl font-bold leading-tight">{item.common}</h2>
-                    <em className="text-[11px] sm:text-xs md:text-sm italic opacity-80">{item.binomial}</em>
-                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
-    );
-  }
-);
+  );
+};
 
 CircularGallery.displayName = 'CircularGallery';
 

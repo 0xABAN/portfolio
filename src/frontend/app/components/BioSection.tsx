@@ -1,7 +1,7 @@
 "use client";
 
 import { prepareWithSegments } from "@chenglou/pretext";
-import { motion, type Variants } from "motion/react";
+import { m as motion, type Variants } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   fragmentsEqual,
@@ -36,19 +36,22 @@ function Corners({ compact = false }: { compact?: boolean }) {
       animate={{ scale: [1, 1.03, 1] }}
       transition={{ duration: 3.5, ease: "easeInOut", repeat: Infinity }}
     >
-      {Object.values(styles).map((style, i) => (
-        <div key={i} style={{ position: "absolute", width: size, height: size, zIndex: 10, ...style }} />
+      {Object.entries(styles).map(([corner, style]) => (
+        <div key={corner} style={{ position: "absolute", width: size, height: size, zIndex: 10, ...style }} />
       ))}
     </motion.div>
   );
 }
 
 function highlight(text: string) {
-  return text.split(/(adam|torres|encarnacion)/).map((part, i) =>
-    ["adam", "torres", "encarnacion"].includes(part)
-      ? <span key={i} style={{ color: "#6B6EBF" }}>{part}</span>
-      : part
-  );
+  let offset = 0;
+  return text.split(/(adam|torres|encarnacion)/).map((part) => {
+    const at = offset;
+    offset += part.length;
+    return ["adam", "torres", "encarnacion"].includes(part)
+      ? <span key={`${part}@${at}`} style={{ color: "#6B6EBF" }}>{part}</span>
+      : part;
+  });
 }
 
 const HERO_COPY = "adam torres encarnacion goes to penn state and builds things that actually run. not side projects. ibm, amazon, a handful of hackathons he won (first at yhacks, first at hackprinceton, second at bytedance — that one solo). he sees something missing and makes it. ".repeat(15).trim();
@@ -246,7 +249,7 @@ export function BioSection() {
           autoPlay loop muted playsInline
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "left top", transform: "scale(1.12)", transformOrigin: "left top" }}
         >
-          <source src="/asset1.webm" type="video/webm" />
+          <source src="/Videos/asset1.webm" type="video/webm" />
         </video>
         <div
           ref={textLayerRef}

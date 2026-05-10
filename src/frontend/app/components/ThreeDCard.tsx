@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import React, {
   createContext,
   useState,
-  useContext,
+  use,
   useRef,
   useEffect,
 } from "react";
@@ -152,9 +152,8 @@ export const CardItem = ({
   );
 };
 
-// Create a hook to use the context
-export const useMouseEnter = () => {
-  const context = useContext(MouseEnterContext);
+const useMouseEnter = () => {
+  const context = use(MouseEnterContext);
   if (context === undefined) {
     throw new Error("useMouseEnter must be used within a MouseEnterProvider");
   }

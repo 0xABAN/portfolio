@@ -76,7 +76,7 @@ export function AboutMe() {
       }} />
       <video
         ref={videoRef}
-        src="/aboutme.mp4"
+        src="/Videos/aboutme.mp4"
         loop
         muted
         playsInline
@@ -91,7 +91,7 @@ export function AboutMe() {
         className="relative z-[3] flex w-full flex-col items-start px-6 lg:ml-auto lg:w-auto lg:min-w-[calc(35ch+5vw)] lg:pl-0 lg:pr-[30px]"
         style={{ flex: "0 0 auto" }}
       >
-        <h2 style={{ margin: 0, fontSize: "clamp(3.75rem, 5.625vw, 6.875rem)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.05 }}>
+        <h2 style={{ margin: 0, fontSize: "clamp(3.75rem, 5.625vw, 6.875rem)", fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.05 }}>
           <em style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 400 }}>
             <TextType text={["about me", "sobre mi"]} as="span" typingSpeed={80} deletingSpeed={50} pauseDuration={2000} showCursor cursorCharacter="|" />
           </em>
@@ -114,14 +114,14 @@ export function AboutMe() {
           <br /><br />
           in my time at penn state, i&apos;ve <strong>won 3 hackathons</strong>, building cool stuff beside some of the brightest people i know. i&apos;ve also held <strong>leadership positions</strong> at the biggest clubs on campus, including nittany ai, nittany data labs, and the newly founded claude builder club. these opportunities have sculpted me into the engineer i am today.
         </p>
-        <video src="/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(35ch + 5vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
+        <video src="/Videos/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(35ch + 5vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
       </div>
       <div
         className="hidden lg:block"
-        style={{ flex: "0 0 50%", paddingLeft: "30px", paddingTop: "14vh", position: "relative", zIndex: 9999 }}
+        style={{ flex: "0 0 50%", paddingLeft: "30px", paddingTop: "14vh", position: "relative", zIndex: 50 }}
       >
         <CardSwap width={525} height={813} cardDistance={63} verticalDistance={75} pauseOnHover>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", display: "flex", flexDirection: "column" }}><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden" }}><Image src="/selfie.webp" alt="Adam" width={495} height={330} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden", marginTop: "0.94rem" }}><Image src="/win.webp" alt="" aria-hidden width={495} height={278} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ flex: 1, padding: "0.94rem", color: "white", fontSize: "1rem", lineHeight: 1.6, overflow: "hidden" }}>this is me at nittany ai, presenting to ~200 students. i think i was teaching CNNs? not sure. depending on the topic, public speaking can actually be pretty fun!</div></div></BentoGlow></Card>
+          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", display: "flex", flexDirection: "column" }}><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden" }}><Image src="/Photos/selfie.webp" alt="Adam" width={495} height={330} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden", marginTop: "0.94rem" }}><Image src="/Photos/win.webp" alt="" aria-hidden width={495} height={278} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ flex: 1, padding: "0.94rem", color: "white", fontSize: "1rem", lineHeight: 1.6, overflow: "hidden" }}>this is me at nittany ai, presenting to ~200 students. i think i was teaching CNNs? not sure. depending on the topic, public speaking can actually be pretty fun!</div></div></BentoGlow></Card>
           <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: "25px" }}><OrbitImages images={orbitImages} shape="ellipse" baseWidth={750} radiusX={188} radiusY={313} rotation={-27} duration={30} itemSize={125} responsive={true} radius={200} direction="normal" fill showPath pathColor="rgba(255,255,255,0.4)" paused={!isInView} /><div style={{ padding: "0 1.5625rem 1.25rem", color: "white", fontSize: "1rem", lineHeight: 1.6, textAlign: "left" }}>i&apos;m a huge music nerd. my top spotify wrapped artist for 2023, 2024, and 2025 was bad bunny. other artists include billie eilish, drake, newjeans, radiohead, etc. so, yeah, my taste can be pretty diverse. i recently find myself listening to chill indie music. it&apos;s fun to listen to while walking alone, especially late at night or early in the morning when i should be asleep. if we ever meet, i&apos;d love to have a conversation about our tastes, i&apos;m sure we&apos;ll find someone we both like. :)</div></div></BentoGlow></Card>
           <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", border: "3px solid white", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem", color: "white", fontSize: "1rem", lineHeight: 1.6, textAlign: "center" }}>lmk what to put here i actually don&apos;t know</div></BentoGlow></Card>
         </CardSwap>

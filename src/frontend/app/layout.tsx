@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif, Geist } from "next/font/google";
 import "./globals.css";
 import BlobCursor from "./components/BlobCursor/BlobCursor";
+import { MotionProvider } from "./components/MotionProvider";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -25,8 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={cn(inter.variable, serif.variable, "font-sans", geist.variable)} style={{ colorScheme: "dark" }}>
       <body>
-        <BlobCursor blobType="circle" fillColor="#ffffff" />
-        {children}
+        <MotionProvider>
+          <BlobCursor blobType="circle" fillColor="#ffffff" />
+          {children}
+        </MotionProvider>
       </body>
     </html>
   );

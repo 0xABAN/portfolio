@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
+import { AnimatePresence, m as motion, useMotionValueEvent, useScroll } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export type StickyScrollItem = {
@@ -61,7 +61,7 @@ export const StickyScroll = ({
               height: "80%",
               background:
                 "radial-gradient(closest-side, rgba(215,199,163,0.12), transparent 70%)",
-              filter: "blur(60px)",
+              filter: "blur(28px)",
             }}
           />
         </div>
@@ -72,7 +72,7 @@ export const StickyScroll = ({
                 className="block text-[11px] tracking-[0.28em] text-white/40"
                 style={{ fontFamily: "var(--font-sans)" }}
               >
-                SELECTED WORK — 2021 / 2026
+                SELECTED WORK : 2021 / 2026
               </span>
               <h2
                 className="mt-2 text-white/90"

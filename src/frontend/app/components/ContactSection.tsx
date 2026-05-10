@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "motion/react";
+import { m as motion, type Variants } from "motion/react";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import BentoGlow from "./BentoGlow/BentoGlow";
 import { SectionFade } from "./SectionFade";
@@ -27,8 +27,8 @@ const cornerStyles: Record<string, CSSProperties> = {
 function Corners() {
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }} aria-hidden>
-      {Object.values(cornerStyles).map((style, i) => (
-        <div key={i} style={{ position: "absolute", width: 18, height: 18, ...style }} />
+      {Object.entries(cornerStyles).map(([corner, style]) => (
+        <div key={corner} style={{ position: "absolute", width: 18, height: 18, ...style }} />
       ))}
     </div>
   );
@@ -177,7 +177,7 @@ export function ContactSection() {
             className="text-[11px] tracking-[0.32em] text-white/45"
             style={{ fontFamily: "var(--font-sans)" }}
           >
-            Nº 04 — CORRESPONDENCE
+            Nº 04 / CORRESPONDENCE
           </span>
           <span className="h-px w-10 bg-white/20" aria-hidden />
         </motion.div>
@@ -311,7 +311,7 @@ export function ContactSection() {
               className="text-white/45"
               style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "0.95rem" }}
             >
-              — adam, from his desk at penn state
+              adam, from his desk at penn state
             </span>
           </motion.div>
             </SpotlightCard>

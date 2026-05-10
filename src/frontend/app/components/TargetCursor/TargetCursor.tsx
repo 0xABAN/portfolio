@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useMemo, useState } from 'react';
 import { gsap } from 'gsap';
 import './TargetCursor.css';
 
-export interface TargetCursorProps {
+interface TargetCursorProps {
   targetSelector?: string;
   spinDuration?: number;
   hideDefaultCursor?: boolean;
@@ -39,10 +39,10 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
 
   const constants = useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
 
-  const moveCursor = useCallback((x: number, y: number) => {
+  const moveCursor = useEffectEvent((x: number, y: number) => {
     if (!cursorRef.current) return;
     gsap.to(cursorRef.current, { x, y, duration: 0.1, ease: 'power3.out' });
-  }, []);
+  });
 
   useEffect(() => {
     if (isMobile || !cursorRef.current) return;
@@ -267,7 +267,7 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
       targetCornerPositionsRef.current = null;
       activeStrengthRef.current.current = 0;
     };
-  }, [targetSelector, spinDuration, moveCursor, constants, hideDefaultCursor, isMobile, hoverDuration, parallaxOn]);
+  }, [targetSelector, spinDuration, constants, hideDefaultCursor, isMobile, hoverDuration, parallaxOn]);
 
   useEffect(() => {
     if (isMobile || !cursorRef.current || !spinTl.current) return;

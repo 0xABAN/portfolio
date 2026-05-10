@@ -1,9 +1,8 @@
 "use client";
 
-import { motion, type Variants } from "motion/react";
-import { useEffect, useRef } from "react";
+import { m as motion, type Variants } from "motion/react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { BioSection } from "./BioSection";
-import { ViewCounter } from "./ViewCounter";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -14,7 +13,7 @@ const fadeUp: Variants = {
   }),
 };
 
-export function HeroSection() {
+export function HeroSection({ viewCounter }: { viewCounter?: ReactNode }) {
   const ageRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -59,7 +58,7 @@ export function HeroSection() {
           variants={fadeUp} initial="hidden" animate="visible" custom={0.45}
           className="mt-[0.2rem] text-white text-sm tabular-nums"
         >
-          <ViewCounter />
+          {viewCounter}
         </motion.p>
       </div>
     </section>

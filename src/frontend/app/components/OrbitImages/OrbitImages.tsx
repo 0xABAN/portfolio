@@ -2,8 +2,11 @@
 // https://x.com/dominikkoch
 
 import { useMemo, useEffect, useRef, useState, ReactNode } from 'react';
-import { motion, useMotionValue, useTransform, animate, MotionValue } from 'motion/react';
+import { m as motion, useMotionValue, useTransform, animate, MotionValue } from 'motion/react';
+import Image from 'next/image';
 import './OrbitImages.css';
+
+const EMPTY_IMAGES: string[] = [];
 
 type OrbitShape =
   | 'ellipse'
@@ -148,7 +151,7 @@ function OrbitItem({ item, index, totalItems, path, itemSize, rotation, progress
 }
 
 export default function OrbitImages({
-  images = [],
+  images = EMPTY_IMAGES,
   altPrefix = 'Orbiting image',
   shape = 'ellipse',
   customPath,
@@ -236,12 +239,15 @@ export default function OrbitImages({
   const containerHeight = responsive ? 'auto' : (typeof height === 'number' ? height : (typeof width === 'number' ? width : 'auto'));
 
   const items = images.map((src, index) => (
-    <img
+    <Image
       key={src}
       src={src}
       alt={`${altPrefix} ${index + 1}`}
+      width={itemSize}
+      height={itemSize}
       draggable={false}
       className="orbit-image"
+      sizes={`${itemSize}px`}
     />
   ));
 
@@ -281,7 +287,7 @@ export default function OrbitImages({
 
           {items.map((item, index) => (
             <OrbitItem
-              key={index}
+              key={images[index] ?? `orbit-slot-${index}`}
               item={item}
               index={index}
               totalItems={items.length}

@@ -9,6 +9,7 @@ import { blobPositions } from './blobPositions';
 const fast = { tension: 1200, friction: 40 };
 const slow = { mass: 10, tension: 200, friction: 50 };
 const trans = (x, y) => `translate3d(${x}px,${y}px,0) translate3d(-50%,-50%,0)`;
+const TRAIL_KEYS = ['lead', 'mid', 'tail'];
 
 const BlobCursor = ({ blobType = 'circle', fillColor = '#6B6EBF' }) => {
   const containerRef = useRef(null);
@@ -45,7 +46,7 @@ const BlobCursor = ({ blobType = 'circle', fillColor = '#6B6EBF' }) => {
     };
 
     window.addEventListener('mousemove', handleMove);
-    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchmove', handleMove, { passive: true });
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('touchmove', handleMove);
@@ -63,7 +64,7 @@ const BlobCursor = ({ blobType = 'circle', fillColor = '#6B6EBF' }) => {
       <div className='main'>
         {trail.map((props, index) => (
           <animated.div
-            key={index}
+            key={TRAIL_KEYS[index]}
             style={{
               transform: props.xy.to(trans),
               borderRadius: blobType === 'circle' ? '50%' : '0%',

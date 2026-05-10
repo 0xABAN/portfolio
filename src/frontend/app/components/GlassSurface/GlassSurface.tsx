@@ -1,7 +1,27 @@
-import React, { useEffect, useRef, useState, useId } from 'react';
+import React, { useEffect, useRef, useId, useSyncExternalStore } from 'react';
 import './GlassSurface.css';
 
-export interface GlassSurfaceProps {
+const EMPTY_STYLE: React.CSSProperties = {};
+
+const detectSvgSupport = (): boolean => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+  const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+  const isFirefox = /Firefox/.test(navigator.userAgent);
+  if (isWebkit || isFirefox) return false;
+  const div = document.createElement('div');
+  div.style.backdropFilter = 'url(#__glass-test__)';
+  return div.style.backdropFilter !== '';
+};
+
+let cachedSvgSupport: boolean | null = null;
+const getSvgSupportSnapshot = (): boolean => {
+  if (cachedSvgSupport === null) cachedSvgSupport = detectSvgSupport();
+  return cachedSvgSupport;
+};
+const getSvgSupportServerSnapshot = (): boolean => false;
+const subscribeSvgSupport = () => () => {};
+
+interface GlassSurfaceProps {
   children?: React.ReactNode;
   width?: number | string;
   height?: number | string;
@@ -62,14 +82,18 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   yChannel = 'G',
   mixBlendMode = 'difference',
   className = '',
-  style = {}
+  style = EMPTY_STYLE
 }) => {
   const id = useId();
   const filterId = `glass-filter-${id}`;
   const redGradId = `red-grad-${id}`;
   const blueGradId = `blue-grad-${id}`;
 
-  const [svgSupported, setSvgSupported] = useState<boolean>(false);
+  const svgSupported = useSyncExternalStore(
+    subscribeSvgSupport,
+    getSvgSupportSnapshot,
+    getSvgSupportServerSnapshot
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const feImageRef = useRef<SVGFEImageElement>(null);
@@ -146,56 +170,24 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
     const resizeObserver = new ResizeObserver(() => {
-      setTimeout(updateDisplacementMap, 0);
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+      pendingTimeout = setTimeout(updateDisplacementMap, 0);
     });
 
     resizeObserver.observe(containerRef.current);
 
     return () => {
+      if (pendingTimeout) clearTimeout(pendingTimeout);
       resizeObserver.disconnect();
     };
   }, []);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      setTimeout(updateDisplacementMap, 0);
-    });
-
-    resizeObserver.observe(containerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    setTimeout(updateDisplacementMap, 0);
+    const id = setTimeout(updateDisplacementMap, 0);
+    return () => clearTimeout(id);
   }, [width, height]);
-
-  useEffect(() => {
-    setSvgSupported(supportsSVGFilters());
-  }, []);
-
-  const supportsSVGFilters = () => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return false;
-    }
-
-    const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-
-    if (isWebkit || isFirefox) {
-      return false;
-    }
-
-    const div = document.createElement('div');
-    div.style.backdropFilter = `url(#${filterId})`;
-
-    return div.style.backdropFilter !== '';
-  };
 
   const containerStyle: React.CSSProperties = {
     ...style,
@@ -222,10 +214,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
             <feColorMatrix
               in="dispRed"
               type="matrix"
-              values="1 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0"
+              values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"
               result="red"
             />
 
@@ -239,10 +228,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
             <feColorMatrix
               in="dispGreen"
               type="matrix"
-              values="0 0 0 0 0
-                      0 1 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0"
+              values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0"
               result="green"
             />
 
@@ -250,10 +236,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
             <feColorMatrix
               in="dispBlue"
               type="matrix"
-              values="0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 1 0 0
-                      0 0 0 1 0"
+              values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0"
               result="blue"
             />
 

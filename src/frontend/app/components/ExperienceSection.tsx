@@ -30,7 +30,7 @@ const experiences: GalleryItem[] = [
     common: "AMAZON",
     binomial: "Software Engineering Intern · Summer 2026",
     photo: {
-      url: "/Work/zon.jpg",
+      url: "/Work/amazon.jpg",
       text: "amazon",
       pos: "50% 50%",
       by: "AWS Infrastructure · Cupertino, CA",
@@ -40,7 +40,7 @@ const experiences: GalleryItem[] = [
     common: "IBM",
     binomial: "AI Engineering Intern · May 2025 — Present",
     photo: {
-      url: "/Work/ibm.webp",
+      url: "/Work/ibm.jpg",
       text: "ibm",
       pos: "50% 50%",
       by: "LLM Microservices · Remote",
@@ -50,7 +50,7 @@ const experiences: GalleryItem[] = [
     common: "LOCKHEED MARTIN",
     binomial: "Machine Learning Intern · Spring 2025",
     photo: {
-      url: "/Work/lockheed.jpg",
+      url: "/Work/lockheed_martin.jpg",
       text: "lockheed martin",
       pos: "50% 50%",
       by: "Virus Forecasting Research · University Park, PA",
@@ -60,7 +60,7 @@ const experiences: GalleryItem[] = [
     common: "CLAUDE BUILDER CLUB",
     binomial: "Founder · Aug 2025 — Jan 2026",
     photo: {
-      url: "/Work/anthropic.webp",
+      url: "/Work/anthropic.jpg",
       text: "claude builder club",
       pos: "50% 50%",
       by: "260+ Members · University Park, PA",
@@ -98,7 +98,7 @@ export function ExperienceSection() {
               className="block text-[11px] tracking-[0.28em] text-white/60"
               style={{ fontFamily: "var(--font-sans)" }}
             >
-              EXPERIENCE — 2025 / 2026
+              EXPERIENCE : 2025 / 2026
             </span>
             <h2
               className="mt-2 text-white"
