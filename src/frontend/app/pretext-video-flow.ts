@@ -29,6 +29,7 @@ type Interval = {
 type FrameAlphaSample = {
   imageData: ImageData;
   coverage: number;
+  scale: number;
 };
 
 type LayoutOptions = {
@@ -45,6 +46,7 @@ const DEFAULT_HORIZONTAL_PADDING = 12;
 const DEFAULT_MIN_SLOT_WIDTH = 52;
 const DEFAULT_SAMPLE_STEP = 2;
 const DEFAULT_VERTICAL_PADDING = 4;
+const MAX_CANVAS_LONG_EDGE = 200;
 
 export function measureBox(element: HTMLElement): BoxMeasurement {
   const rect = element.getBoundingClientRect();
@@ -66,11 +68,15 @@ export function sampleVideoFrame(
   measurement: BoxMeasurement,
   drawScale = 1,
 ): FrameAlphaSample | null {
-  const width = Math.max(1, Math.round(measurement.width));
-  const height = Math.max(1, Math.round(measurement.height));
-  if (width <= 0 || height <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) {
+  const layoutWidth = Math.max(1, Math.round(measurement.width));
+  const layoutHeight = Math.max(1, Math.round(measurement.height));
+  if (layoutWidth <= 0 || layoutHeight <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) {
     return null;
   }
+
+  const scale = Math.min(1, MAX_CANVAS_LONG_EDGE / Math.max(layoutWidth, layoutHeight));
+  const width = Math.max(1, Math.round(layoutWidth * scale));
+  const height = Math.max(1, Math.round(layoutHeight * scale));
 
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
@@ -110,6 +116,7 @@ export function sampleVideoFrame(
   return {
     imageData,
     coverage: opaquePixels / drawArea,
+    scale,
   };
 }
 
@@ -143,6 +150,7 @@ export function layoutFragmentsFromFrame(
   while (lineTop + measurement.lineHeight <= usableBottom) {
     const slots = getTextSlotsForBand(
       frame.imageData,
+      frame.scale,
       usableLeft,
       usableRight,
       lineTop,
@@ -220,6 +228,7 @@ function getContainDrawRect(
 
 function getTextSlotsForBand(
   imageData: ImageData,
+  scale: number,
   usableLeft: number,
   usableRight: number,
   bandTop: number,
@@ -233,6 +242,7 @@ function getTextSlotsForBand(
 ): Interval[] {
   const blocked = getBlockedIntervalForBand(
     imageData,
+    scale,
     bandTop,
     bandBottom,
     alphaThreshold,
@@ -250,8 +260,8 @@ function getTextSlotsForBand(
       if (dy < circle.radius) {
         const dx = Math.sqrt(circle.radius ** 2 - dy ** 2);
         allBlocked.push({
-          left: Math.max(0, circle.x - dx - horizontalPadding),
-          right: Math.min(imageData.width, circle.x + dx + horizontalPadding),
+          left: Math.max(usableLeft, circle.x - dx - horizontalPadding),
+          right: Math.min(usableRight, circle.x + dx + horizontalPadding),
         });
       }
     }
@@ -263,6 +273,7 @@ function getTextSlotsForBand(
 
 function getBlockedIntervalForBand(
   imageData: ImageData,
+  scale: number,
   bandTop: number,
   bandBottom: number,
   alphaThreshold: number,
@@ -271,8 +282,8 @@ function getBlockedIntervalForBand(
   verticalPadding: number,
 ): Interval | null {
   const { data, width, height } = imageData;
-  const sampleTop = Math.max(0, Math.floor(bandTop - verticalPadding));
-  const sampleBottom = Math.min(height - 1, Math.ceil(bandBottom + verticalPadding));
+  const sampleTop = Math.max(0, Math.floor((bandTop - verticalPadding) * scale));
+  const sampleBottom = Math.min(height - 1, Math.ceil((bandBottom + verticalPadding) * scale));
 
   let left = Infinity;
   let right = -Infinity;
@@ -288,9 +299,10 @@ function getBlockedIntervalForBand(
 
   if (!Number.isFinite(left) || !Number.isFinite(right)) return null;
 
+  const layoutWidth = width / scale;
   return {
-    left: Math.max(0, left - horizontalPadding),
-    right: Math.min(width, right + horizontalPadding),
+    left: Math.max(0, left / scale - horizontalPadding),
+    right: Math.min(layoutWidth, right / scale + horizontalPadding),
   };
 }
 

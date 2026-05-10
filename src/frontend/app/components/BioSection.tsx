@@ -12,6 +12,7 @@ import {
   type PositionedFragment,
 } from "../pretext-video-flow";
 import { blobPositions } from "./BlobCursor/blobPositions";
+import { useInView } from "../hooks/useInView";
 import BentoGlow from "./BentoGlow/BentoGlow";
 import LightRays from "./LightRays/LightRays";
 import SpotlightCard from "./SpotlightCard/SpotlightCard";
@@ -56,8 +57,9 @@ function highlight(text: string) {
 
 const HERO_COPY = "adam torres encarnacion. computer science at penn state. software engineering intern at amazon, summer 2026. ai engineering intern at ibm. previously machine learning intern at lockheed martin. founder of the claude builder club. director of epoch ai. born in puerto rico, raised in the dominican republic, based in pennsylvania. ".repeat(5).trim();
 
+type VideoFrameMetadata = { mediaTime: number; presentedFrames: number };
 type VideoWithFrameCallback = HTMLVideoElement & {
-  requestVideoFrameCallback?: (callback: (now: number, metadata: unknown) => void) => number;
+  requestVideoFrameCallback?: (callback: (now: number, metadata: VideoFrameMetadata) => void) => number;
   cancelVideoFrameCallback?: (handle: number) => void;
 };
 
@@ -77,8 +79,10 @@ export function BioSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastSignatureRef = useRef<string>("");
   const [fragments, setFragments] = useState<PositionedFragment[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const isInView = useInView(containerRef);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
@@ -151,9 +155,14 @@ export function BioSection() {
     return prepareWithSegments(HERO_COPY, textFont);
   }, [textFont]);
 
-  const computeTextLayout = useCallback(() => {
+  const computeTextLayout = useCallback((mediaTime: number) => {
     const video = videoRef.current;
     if (video === null || measurement === null || preparedText === null) return;
+
+    const cursor = cursorPosRef.current;
+    const signature = `${mediaTime}|${cursor === null ? "n" : `${cursor.x},${cursor.y}`}`;
+    if (lastSignatureRef.current === signature) return;
+    lastSignatureRef.current = signature;
 
     if (canvasRef.current === null) canvasRef.current = document.createElement("canvas");
 
@@ -167,17 +176,28 @@ export function BioSection() {
     const circles = rect
       ? blobPositions.map((b) => ({ x: b.x - rect.left, y: b.y - rect.top, radius: b.radius }))
       : [];
-    if (cursorPosRef.current) circles.push({ ...cursorPosRef.current, radius: 52 });
+    if (cursor) circles.push({ ...cursor, radius: 52 });
 
     const nextFragments = layoutFragmentsFromFrame(preparedText, measurement, frame, {
       minSlotWidth: isMobile ? 60 : 100,
       cursorCircles: circles.length > 0 ? circles : undefined,
     });
     setFragments((previous) => (fragmentsEqual(previous, nextFragments) ? previous : nextFragments));
-  }, [measurement, preparedText]);
+  }, [measurement, preparedText, isMobile]);
 
   useEffect(() => {
-    if (measurement === null || preparedText === null) return;
+    const video = videoRef.current as VideoWithFrameCallback | null;
+    if (video === null) return;
+
+    if (isInView) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isInView]);
+
+  useEffect(() => {
+    if (!isInView || measurement === null || preparedText === null) return;
 
     const video = videoRef.current as VideoWithFrameCallback | null;
     if (video === null) return;
@@ -188,7 +208,10 @@ export function BioSection() {
     if (typeof video.requestVideoFrameCallback === "function") {
       const schedule = () => {
         if (!active) return;
-        handle = video.requestVideoFrameCallback!(() => { computeTextLayout(); schedule(); });
+        handle = video.requestVideoFrameCallback!((_now, metadata) => {
+          computeTextLayout(metadata.mediaTime);
+          schedule();
+        });
       };
       schedule();
       return () => {
@@ -197,16 +220,16 @@ export function BioSection() {
           video.cancelVideoFrameCallback(handle);
         }
       };
-    } else {
-      const tick = () => {
-        if (!active) return;
-        computeTextLayout();
-        handle = requestAnimationFrame(tick);
-      };
-      handle = requestAnimationFrame(tick);
-      return () => { active = false; cancelAnimationFrame(handle); };
     }
-  }, [computeTextLayout, measurement, preparedText]);
+
+    const tick = () => {
+      if (!active) return;
+      if (!video.paused && !video.ended) computeTextLayout(video.currentTime);
+      handle = requestAnimationFrame(tick);
+    };
+    handle = requestAnimationFrame(tick);
+    return () => { active = false; cancelAnimationFrame(handle); };
+  }, [computeTextLayout, measurement, preparedText, isInView]);
 
   return (
     <motion.div

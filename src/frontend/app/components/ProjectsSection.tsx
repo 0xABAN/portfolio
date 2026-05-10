@@ -1,11 +1,36 @@
 "use client";
 
 import Image from "next/image";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { CardBody, CardContainer, CardItem } from "./ThreeDCard";
 import ScrollVelocity from "./ScrollVelocity/ScrollVelocity";
 import { SectionFade } from "./SectionFade";
 import { StickyScroll, type StickyScrollItem } from "./StickyScrollReveal";
+import { useInView } from "../hooks/useInView";
+
+function ProjectVideo({ src, className }: { src: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isInView = useInView(videoRef);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isInView) v.play().catch(() => {});
+    else v.pause();
+  }, [isInView]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      loop
+      muted
+      playsInline
+      preload="metadata"
+      className={className}
+    />
+  );
+}
 
 type Project = {
   id: string;
@@ -179,13 +204,8 @@ function ProjectCard({ project }: { project: Project }) {
           <CardItem translateZ={80} className="relative block w-full">
             <div className="relative aspect-[4/5] w-full overflow-hidden">
               {/\.(webm|mp4)$/i.test(project.image) ? (
-                <video
+                <ProjectVideo
                   src={project.image}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
                   className="absolute inset-0 h-full w-full scale-105 object-cover transition-transform duration-700 group-hover/card:scale-110"
                 />
               ) : (

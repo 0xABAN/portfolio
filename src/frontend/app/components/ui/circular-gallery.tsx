@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import React, { useState, useEffect, useRef, HTMLAttributes, type RefObject } from 'react';
+import { useInView } from '../../hooks/useInView';
 
 const cn = (...classes: (string | undefined | null | false)[]) => {
   return classes.filter(Boolean).join(' ');
@@ -33,8 +34,12 @@ const CircularGallery = ({ items, className, radius = 600, autoRotateSpeed = 0.0
     const [isScrolling, setIsScrolling] = useState(false);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const animationFrameRef = useRef<number | null>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(wrapperRef);
 
     useEffect(() => {
+      if (!isInView) return;
+
       const computeProgress = () => {
         const target = scrollTarget?.current;
         if (target) {
@@ -69,9 +74,11 @@ const CircularGallery = ({ items, className, radius = 600, autoRotateSpeed = 0.0
           clearTimeout(scrollTimeoutRef.current);
         }
       };
-    }, [scrollTarget]);
+    }, [scrollTarget, isInView]);
 
     useEffect(() => {
+      if (!isInView) return;
+
       const autoRotate = () => {
         if (!isScrolling) {
           setRotation(prev => prev + autoRotateSpeed);
@@ -86,13 +93,17 @@ const CircularGallery = ({ items, className, radius = 600, autoRotateSpeed = 0.0
           cancelAnimationFrame(animationFrameRef.current);
         }
       };
-    }, [isScrolling, autoRotateSpeed]);
+    }, [isScrolling, autoRotateSpeed, isInView]);
 
     const anglePerItem = 360 / items.length;
 
     return (
       <div
-        ref={ref}
+        ref={(node) => {
+          wrapperRef.current = node;
+          if (typeof ref === 'function') ref(node);
+          else if (ref && 'current' in ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }}
         role="region"
         aria-label="Circular 3D Gallery"
         className={cn("relative w-full h-full flex items-center justify-center", className)}

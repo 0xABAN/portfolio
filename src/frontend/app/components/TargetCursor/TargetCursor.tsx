@@ -251,6 +251,15 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
 
     window.addEventListener('mouseover', enterHandler as EventListener);
 
+    const visibilityHandler = () => {
+      if (document.hidden) {
+        spinTl.current?.pause();
+      } else if (!activeTarget) {
+        spinTl.current?.play();
+      }
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+
     return () => {
       if (tickerFnRef.current) {
         gsap.ticker.remove(tickerFnRef.current);
@@ -260,6 +269,7 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
       window.removeEventListener('scroll', scrollHandler);
       window.removeEventListener('mousedown', mouseDownHandler);
       window.removeEventListener('mouseup', mouseUpHandler);
+      document.removeEventListener('visibilitychange', visibilityHandler);
       if (activeTarget) {
         cleanupTarget(activeTarget);
       }

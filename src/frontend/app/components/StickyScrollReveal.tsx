@@ -68,14 +68,8 @@ export const StickyScroll = ({
         <div className="relative mx-auto flex h-full w-full max-w-[1440px] flex-col px-4 py-8 sm:px-8 sm:py-10">
           <header className="relative flex items-end justify-between border-b border-white/10 pb-6">
             <div>
-              <span
-                className="block text-[11px] tracking-[0.28em] text-white/40"
-                style={{ fontFamily: "var(--font-sans)" }}
-              >
-                SELECTED WORK : 2021 / 2026
-              </span>
               <h2
-                className="mt-2 text-white/90"
+                className="text-white/90"
                 style={{
                   fontFamily: "var(--font-serif)",
                   fontStyle: "italic",
