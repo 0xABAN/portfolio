@@ -47,7 +47,7 @@ export function Navbar() {
       >
         <GlassSurface
           width="100%"
-          height={56}
+          height={67}
           borderRadius={16}
           style={{
             background: "rgba(255,255,255,0.08)",
@@ -62,7 +62,7 @@ export function Navbar() {
                 <a
                   key={id}
                   href={`#${id}`}
-                  className="cursor-target relative flex h-14 flex-1 items-center justify-center text-xs transition-colors duration-[250ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:text-sm"
+                  className="cursor-target relative flex h-[67px] flex-1 items-center justify-center text-xs transition-colors duration-[250ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:text-sm"
                   style={{
                     color: isActive ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.55)",
                     textDecoration: "none",

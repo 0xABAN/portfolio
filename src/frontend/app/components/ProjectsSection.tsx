@@ -328,7 +328,7 @@ export function ProjectsSection() {
         position: "relative",
         zIndex: 5,
         background: "#060712",
-        padding: "4rem 0 4rem",
+        padding: "8rem 0 4rem",
         overflow: "visible",
       }}
     >

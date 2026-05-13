@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SectionFade } from "./SectionFade";
 import { CircularGallery, type GalleryItem } from "./ui/circular-gallery";
 
 function computeGallerySize(vw: number) {
@@ -86,26 +85,67 @@ export function ExperienceSection() {
     <section
       ref={sectionRef}
       id="experience"
-      className="relative w-full h-[220vh] md:h-[260vh] lg:h-[300vh]"
-      style={{ background: "#060712" }}
+      className="relative z-10 w-full h-[220vh] md:h-[260vh] lg:h-[300vh]"
+      style={{ background: "#FFFDF6" }}
     >
-      <SectionFade edge="top" height="18vh" />
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "1px",
+          zIndex: 7,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(to right, transparent 0%, rgba(25,21,18,0.10) 20%, rgba(25,21,18,0.10) 80%, transparent 100%)",
+        }}
+      />
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: "none",
+          mixBlendMode: "multiply",
+          opacity: 0.07,
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          backgroundSize: "220px 220px",
+        }}
+      />
+      <svg
+        aria-hidden
+        viewBox="0 0 1000 200"
+        preserveAspectRatio="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "14vh",
+          zIndex: 4,
+          pointerEvents: "none",
+          display: "block",
+        }}
+      >
+        <path
+          d="M0,0 L1000,0 L1000,160 C800,160 600,40 0,40 Z"
+          fill="#060712"
+        />
+      </svg>
 
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        <div className="absolute left-0 right-0 top-20 z-20 mx-auto flex max-w-[1440px] items-end justify-between border-b border-white/10 px-4 pb-4 sm:top-24 sm:px-8 sm:pb-6">
-          <div>
-            <span
-              className="block text-[11px] tracking-[0.28em] text-white/60"
-              style={{ fontFamily: "var(--font-sans)" }}
-            >
-              EXPERIENCE : 2025 / 2026
-            </span>
+        <div className="absolute left-0 right-0 top-20 z-20 mx-auto flex max-w-[1440px] items-end justify-between px-4 sm:top-24 sm:px-8">
+          <div className="border-b border-[#191512]/10 pb-4 sm:pb-6">
             <h2
-              className="mt-2 text-white"
+              className="text-[#191512]"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontStyle: "italic",
-                fontSize: "clamp(2.25rem, 4vw, 3.5rem)",
+                fontSize: "clamp(1.5rem, 2.5vw, 1.95rem)",
                 lineHeight: 0.95,
                 letterSpacing: "-0.02em",
               }}
@@ -113,27 +153,6 @@ export function ExperienceSection() {
               where i&rsquo;ve been
             </h2>
           </div>
-          <div
-            className="hidden shrink-0 items-baseline gap-2 text-white/60 sm:flex"
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            <span className="text-[11px] tracking-[0.28em]">ROLES</span>
-            <span className="text-sm text-white/80">
-              {String(experiences.length).padStart(2, "0")}
-            </span>
-          </div>
-        </div>
-
-        <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2 text-center">
-          <span
-            className="block text-[10px] tracking-[0.32em] text-white/40"
-            style={{ fontFamily: "var(--font-sans)" }}
-          >
-            SCROLL TO ROTATE
-          </span>
         </div>
 
         <CircularGallery
@@ -147,7 +166,20 @@ export function ExperienceSection() {
         />
       </div>
 
-      <SectionFade edge="bottom" height="18vh" />
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "1px",
+          zIndex: 7,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(to right, transparent 0%, rgba(25,21,18,0.10) 20%, rgba(25,21,18,0.10) 80%, transparent 100%)",
+        }}
+      />
     </section>
   );
 }

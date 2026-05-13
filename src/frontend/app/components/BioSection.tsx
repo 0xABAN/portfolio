@@ -2,7 +2,7 @@
 
 import { prepareWithSegments } from "@chenglou/pretext";
 import { m as motion, type Variants } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fragmentsEqual,
   layoutFragmentsFromFrame,
@@ -17,45 +17,34 @@ import BentoGlow from "./BentoGlow/BentoGlow";
 import LightRays from "./LightRays/LightRays";
 import SpotlightCard from "./SpotlightCard/SpotlightCard";
 
-function buildCornerStyles(offset: number, thickness: string): Record<string, CSSProperties> {
-  return {
-    tl: { top: offset, left: offset, borderTop: `${thickness} solid #fff`, borderLeft: `${thickness} solid #fff` },
-    tr: { top: offset, right: offset, borderTop: `${thickness} solid #fff`, borderRight: `${thickness} solid #fff` },
-    bl: { bottom: offset, left: offset, borderBottom: `${thickness} solid #fff`, borderLeft: `${thickness} solid #fff` },
-    br: { bottom: offset, right: offset, borderBottom: `${thickness} solid #fff`, borderRight: `${thickness} solid #fff` },
-  };
-}
-
-function Corners({ compact = false }: { compact?: boolean }) {
-  const offset = compact ? -8 : -20;
-  const size = compact ? 14 : 28;
-  const thickness = compact ? "2px" : "3px";
-  const styles = buildCornerStyles(offset, thickness);
-  return (
-    <motion.div
-      style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-      animate={{ scale: [1, 1.03, 1] }}
-      transition={{ duration: 3.5, ease: "easeInOut", repeat: Infinity }}
-    >
-      {Object.entries(styles).map(([corner, style]) => (
-        <div key={corner} style={{ position: "absolute", width: size, height: size, zIndex: 10, ...style }} />
-      ))}
-    </motion.div>
-  );
-}
+const NAME_WORDS = new Set(["adam", "torres", "encarnacion"]);
+const PLACE_WORDS = new Set(["puerto", "rico", "dominican", "republic", "pennsylvania"]);
+const HIGHLIGHT_PATTERN = /(adam|torres|encarnacion|puerto|rico|dominican|republic|pennsylvania)/g;
 
 function highlight(text: string) {
   let offset = 0;
-  return text.split(/(adam|torres|encarnacion)/).map((part) => {
+  return text.split(HIGHLIGHT_PATTERN).map((part) => {
     const at = offset;
     offset += part.length;
-    return ["adam", "torres", "encarnacion"].includes(part)
-      ? <span key={`${part}@${at}`} style={{ color: "#6B6EBF" }}>{part}</span>
-      : part;
+    if (NAME_WORDS.has(part)) {
+      return (
+        <span key={`n-${part}@${at}`} style={{ color: "#F5E9D3", fontWeight: 600 }}>
+          {part}
+        </span>
+      );
+    }
+    if (PLACE_WORDS.has(part)) {
+      return (
+        <span key={`p-${part}@${at}`} style={{ color: "#9FB5D8", fontStyle: "italic" }}>
+          {part}
+        </span>
+      );
+    }
+    return part;
   });
 }
 
-const HERO_COPY = "adam torres encarnacion. computer science at penn state. software engineering intern at amazon, summer 2026. ai engineering intern at ibm. previously machine learning intern at lockheed martin. founder of the claude builder club. director of epoch ai. born in puerto rico, raised in the dominican republic, based in pennsylvania. ".repeat(5).trim();
+const HERO_COPY = "adam torres encarnacion. data science + stats at penn state. software engineering intern at amazon, summer 2026. ai engineering intern at ibm. previously machine learning intern at lockheed martin. founder of the claude builder club. director of epoch ai. born in puerto rico, raised in the dominican republic, based in pennsylvania. ".repeat(5).trim();
 
 type VideoFrameMetadata = { mediaTime: number; presentedFrames: number };
 type VideoWithFrameCallback = HTMLVideoElement & {
@@ -236,6 +225,7 @@ export function BioSection() {
       ref={containerRef}
       variants={fadeUp} initial="hidden" animate="visible" custom={0}
       className="relative self-start w-full aspect-video lg:aspect-auto lg:flex-[0_0_51%] lg:h-[85%]"
+      style={{ zIndex: 20 }}
       onMouseMove={(e) => {
         const rect = containerRectRef.current;
         if (rect) {
@@ -249,12 +239,11 @@ export function BioSection() {
       <BentoGlow
         className="bio-border-glow"
         glowColor="255, 255, 255"
-        backgroundColor="rgba(6,7,18,0.97)"
-        borderRadius={5}
+        backgroundColor="#070713"
+        borderRadius={16}
         spotlightRadius={300}
         enableTilt
       >
-      <Corners compact={isMobile} />
       <SpotlightCard
         className="bio-spotlight"
         spotlightColor="rgba(255, 255, 255, 0.25)"
@@ -263,7 +252,7 @@ export function BioSection() {
           inset: 0,
           padding: 0,
           border: "none",
-          borderRadius: 5,
+          borderRadius: 16,
           backgroundColor: "transparent",
         }}
       >
@@ -279,8 +268,8 @@ export function BioSection() {
           aria-label="hero copy wrapped around video"
           className="text-[#9b9896] lg:text-[#5a5954]"
           style={{
-            position: "absolute", inset: 0, margin: 0, padding: "0.5rem",
-            fontSize: isMobile ? "0.72rem" : "1.125rem", lineHeight: 1.5,
+            position: "absolute", inset: 0, margin: 0, padding: "1.5rem 1.75rem 1.75rem 1.5rem",
+            fontSize: isMobile ? "0.6rem" : "1rem", lineHeight: 1.5,
             overflow: "hidden", userSelect: "text",
           }}
         >
@@ -306,6 +295,21 @@ export function BioSection() {
             distortion={0.03}
           />
         </div>
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            width: 70,
+            height: 22,
+            background: "#FFFDF6",
+            borderTopLeftRadius: 10,
+            borderBottomRightRadius: 16,
+            zIndex: 11,
+            pointerEvents: "none",
+          }}
+        />
       </SpotlightCard>
       </BentoGlow>
     </motion.div>
