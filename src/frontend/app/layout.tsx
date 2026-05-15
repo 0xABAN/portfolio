@@ -3,7 +3,7 @@ import "./globals.css";
 import BlobCursor from "./components/BlobCursor/BlobCursor";
 import { MotionProvider } from "./components/MotionProvider";
 import { cn } from "@/lib/utils";
-import { ACTIVE_COMBO, FONT_COMBOS, clashDisplay } from "./fonts";
+import { ACTIVE_COMBO, FONT_COMBOS, clashDisplay, pencerio } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Portfolio",
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={cn(combo.sans.variable, combo.serif.variable, combo.inter.variable, clashDisplay.variable, "font-sans")}
+      className={cn(combo.sans.variable, combo.serif.variable, combo.inter.variable, clashDisplay.variable, pencerio.variable, "font-sans")}
       style={{ colorScheme: "dark" }}
     >
       <body>

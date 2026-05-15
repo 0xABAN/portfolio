@@ -12,12 +12,13 @@ interface PolaroidPoint {
   label: string;
   tilt: number;
   image?: string;
+  offsetPx?: { x: number; y: number };
 }
 
 const POINTS: PolaroidPoint[] = [
-  { id: "pr", location: [18.4655, -66.1057], label: "puerto rico", tilt: -5 },
-  { id: "dr", location: [18.4861, -69.9312], label: "dominican republic", tilt: 4 },
-  { id: "pa", location: [40.7934, -77.8600], label: "pennsylvania", tilt: -7 },
+  { id: "pr", location: [18.4655, -66.1057], label: "PR", tilt: -5, image: "/Locations/pr.png", offsetPx: { x: 24, y: -22 } },
+  { id: "dr", location: [18.4861, -69.9312], label: "DR", tilt: 4, image: "/Locations/dr.png", offsetPx: { x: 8, y: -10 } },
+  { id: "pa", location: [40.7934, -77.8600], label: "PA", tilt: -7, image: "/Locations/pa.png" },
 ];
 
 const BASE_PHI = 5.5;
@@ -154,7 +155,7 @@ export default function Globe({ size = 480 }: GlobeProps) {
             position: "absolute",
             left: "50%",
             top: "50%",
-            transform: `translate(-50%, -50%) rotate(${p.tilt}deg)`,
+            transform: `translate(calc(-50% + ${p.offsetPx?.x ?? 0}px), calc(-50% + ${p.offsetPx?.y ?? 0}px)) rotate(${p.tilt}deg)`,
             opacity: 0,
             pointerEvents: "none",
             background: "#fafaf7",

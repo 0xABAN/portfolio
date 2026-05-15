@@ -84,6 +84,13 @@ export const clashDisplay = localFont({
   variable: "--font-display",
   display: "swap",
 });
+export const pencerio = localFont({
+  src: [
+    { path: "../public/fonts/pencerio/Pencerio-Hairline.woff2", style: "normal", weight: "400" },
+  ],
+  variable: "--font-handwritten",
+  display: "swap",
+});
 
 // ───────── Body fonts (mapped to --font-sans) ─────────
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });

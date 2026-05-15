@@ -41,7 +41,13 @@ export function HeroSection({ viewCounter }: { viewCounter?: ReactNode }) {
         <motion.h1
           variants={fadeUp} initial="hidden" animate="visible" custom={0.15}
           className="m-0 text-balance"
-          style={{ fontSize: "clamp(2.5rem, 8vw, 5.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}
+          style={{
+            fontSize: "clamp(2.5rem, 8vw, 5.5rem)",
+            letterSpacing: "-0.03em",
+            lineHeight: 1.05,
+            borderLeft: "1.5px solid rgba(255, 255, 255, 0.6)",
+            paddingLeft: "clamp(0.75rem, 1.5vw, 1.25rem)",
+          }}
         >
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>Adam</span><br />
           <em className="font-normal italic" style={{ fontFamily: "var(--font-serif)" }}>
@@ -51,12 +57,14 @@ export function HeroSection({ viewCounter }: { viewCounter?: ReactNode }) {
         <motion.p
           variants={fadeUp} initial="hidden" animate="visible" custom={0.3}
           className="mt-[0.4rem] text-white text-sm tabular-nums"
+          style={{ paddingLeft: "clamp(0.75rem, 1.5vw, 1.25rem)" }}
         >
           approx. <span ref={ageRef} /> years old
         </motion.p>
         <motion.p
           variants={fadeUp} initial="hidden" animate="visible" custom={0.45}
           className="mt-[0.2rem] text-white text-sm tabular-nums"
+          style={{ paddingLeft: "clamp(0.75rem, 1.5vw, 1.25rem)" }}
         >
           {viewCounter}
         </motion.p>

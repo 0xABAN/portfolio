@@ -28,14 +28,14 @@ function highlight(text: string) {
     offset += part.length;
     if (NAME_WORDS.has(part)) {
       return (
-        <span key={`n-${part}@${at}`} style={{ color: "#F5E9D3", fontWeight: 600 }}>
+        <span key={`n-${part}@${at}`} style={{ color: "#C8C8C8", fontWeight: 700 }}>
           {part}
         </span>
       );
     }
     if (PLACE_WORDS.has(part)) {
       return (
-        <span key={`p-${part}@${at}`} style={{ color: "#9FB5D8", fontStyle: "italic" }}>
+        <span key={`p-${part}@${at}`} style={{ color: "#FFFFFF", fontStyle: "italic", fontWeight: 600 }}>
           {part}
         </span>
       );
@@ -146,7 +146,8 @@ export function BioSection() {
 
   const computeTextLayout = useCallback((mediaTime: number) => {
     const video = videoRef.current;
-    if (video === null || measurement === null || preparedText === null) return;
+    const textLayer = textLayerRef.current;
+    if (video === null || textLayer === null || measurement === null || preparedText === null) return;
 
     const cursor = cursorPosRef.current;
     const signature = `${mediaTime}|${cursor === null ? "n" : `${cursor.x},${cursor.y}`}`;
@@ -162,10 +163,17 @@ export function BioSection() {
     }
 
     const rect = containerRectRef.current;
+    const textRect = textLayer.getBoundingClientRect();
+    const offsetX = rect ? textRect.left - rect.left : 0;
+    const offsetY = rect ? textRect.top - rect.top : 0;
     const circles = rect
-      ? blobPositions.map((b) => ({ x: b.x - rect.left, y: b.y - rect.top, radius: b.radius }))
+      ? blobPositions.map((b) => ({
+          x: b.x - rect.left - offsetX,
+          y: b.y - rect.top - offsetY,
+          radius: b.radius,
+        }))
       : [];
-    if (cursor) circles.push({ ...cursor, radius: 52 });
+    if (cursor) circles.push({ x: cursor.x - offsetX, y: cursor.y - offsetY, radius: 52 });
 
     const nextFragments = layoutFragmentsFromFrame(preparedText, measurement, frame, {
       minSlotWidth: isMobile ? 60 : 100,
@@ -239,61 +247,144 @@ export function BioSection() {
       <BentoGlow
         className="bio-border-glow"
         glowColor="255, 255, 255"
-        backgroundColor="#070713"
-        borderRadius={16}
+        backgroundColor="#FFFDF6"
+        borderRadius={6}
         spotlightRadius={300}
         enableTilt
       >
       <SpotlightCard
         className="bio-spotlight"
-        spotlightColor="rgba(255, 255, 255, 0.25)"
+        spotlightColor="rgba(255, 250, 235, 0.35)"
         style={{
           position: "absolute",
           inset: 0,
           padding: 0,
           border: "none",
-          borderRadius: 16,
+          borderRadius: 6,
           backgroundColor: "transparent",
         }}
       >
-        <video
-          ref={videoRef}
-          autoPlay loop muted playsInline
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "left top", transform: "scale(1.12)", transformOrigin: "left top" }}
-        >
-          <source src="/Videos/asset1.webm" type="video/webm" />
-        </video>
         <div
-          ref={textLayerRef}
-          aria-label="hero copy wrapped around video"
-          className="text-[#9b9896] lg:text-[#5a5954]"
           style={{
-            position: "absolute", inset: 0, margin: 0, padding: "0.75rem 0.875rem",
-            fontSize: isMobile ? "0.6rem" : "1rem", lineHeight: 1.5,
-            overflow: "hidden", userSelect: "text",
+            position: "absolute",
+            top: "4.5%",
+            left: "4.5%",
+            right: "4.5%",
+            bottom: "17%",
+            overflow: "hidden",
+            backgroundImage: "url('/Photos/clouds.webp')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)",
           }}
         >
-          {fragments.map((fragment) => (
-            <span
-              key={fragment.key}
-              style={{ position: "absolute", left: fragment.x, top: fragment.y, whiteSpace: "pre" }}
-            >
-              {highlight(fragment.text)}
-            </span>
-          ))}
-        </div>
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "screen", opacity: 0.6 }}>
-          <LightRays
-            raysOrigin="top-center"
-            raysColor="#ffffff"
-            raysSpeed={1}
-            lightSpread={0.8}
-            rayLength={1.2}
-            followMouse
-            mouseInfluence={0.1}
-            noiseAmount={0.08}
-            distortion={0.03}
+          <video
+            ref={videoRef}
+            autoPlay loop muted playsInline
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "left top", transform: "scale(1.12)", transformOrigin: "left top" }}
+          >
+            <source src="/Videos/asset1.webm" type="video/webm" />
+          </video>
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              background:
+                "linear-gradient(to right, transparent 20%, rgba(0,0,0,0.35) 100%)",
+            }}
           />
+          <div
+            ref={textLayerRef}
+            aria-label="hero copy wrapped around video"
+            className="text-white"
+            style={{
+              position: "absolute", inset: 0, margin: 0, padding: "0.75rem 0.875rem",
+              fontSize: isMobile ? "0.6rem" : "1rem", lineHeight: 1.5,
+              overflow: "hidden", userSelect: "text",
+            }}
+          >
+            {fragments.map((fragment) => (
+              <span
+                key={fragment.key}
+                style={{ position: "absolute", left: fragment.x, top: fragment.y, whiteSpace: "pre" }}
+              >
+                {highlight(fragment.text)}
+              </span>
+            ))}
+          </div>
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "screen", opacity: 0.6 }}>
+            <LightRays
+              raysOrigin="top-center"
+              raysColor="#ffffff"
+              raysSpeed={1}
+              lightSpread={0.8}
+              rayLength={1.2}
+              followMouse
+              mouseInfluence={0.1}
+              noiseAmount={0.08}
+              distortion={0.03}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            left: "4.5%",
+            right: "4.5%",
+            bottom: 0,
+            height: "17%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            paddingRight: "calc(6% - 15px)",
+            fontFamily: "var(--font-handwritten)",
+            fontWeight: 400,
+            color: "#0A1F44",
+            fontSize: "clamp(0.9rem, 1.6vw, 1.4rem)",
+            letterSpacing: "0.01em",
+            pointerEvents: "none",
+          }}
+        >
+          <span
+            style={{
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "center",
+              lineHeight: 1,
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                transform: "rotate(-5deg)",
+                transformOrigin: "center",
+                fontFamily: "var(--font-display)",
+                fontWeight: 700,
+                fontSize: "0.55rem",
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                color: "#0A1F44",
+                marginBottom: "-0.1rem",
+                WebkitTextStroke: "0",
+              }}
+            >
+              signed by
+            </span>
+            <span
+              style={{
+                display: "inline-block",
+                transform: "rotate(-5deg)",
+                transformOrigin: "center",
+                fontWeight: 700,
+                WebkitTextStroke: "0.5px currentColor",
+              }}
+            >
+              adam torres encarnacion
+            </span>
+          </span>
         </div>
       </SpotlightCard>
       </BentoGlow>
