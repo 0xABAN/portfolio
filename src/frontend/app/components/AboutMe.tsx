@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, type ReactNode } from "react";
 import CardSwap, { Card } from "./CardSwap/CardSwap";
 import TextType from "./TextType/TextType";
-import { Terminal, AnimatedSpan, TypingAnimation } from "./Terminal/terminal";
 import BentoGlow from "./BentoGlow/BentoGlow";
 import OrbitImages from "./OrbitImages/OrbitImages";
 import { SectionFade } from "./SectionFade";
@@ -20,7 +19,6 @@ const GLOW_BASE = {
 }
 
 const CARD_GLOW_PROPS = { ...GLOW_BASE, borderRadius: 0 }
-const TERMINAL_GLOW_PROPS = { ...GLOW_BASE, borderRadius: 6 }
 
 function PolaroidFrame({ children, caption }: { children: ReactNode; caption?: ReactNode }) {
   return (
@@ -114,6 +112,89 @@ const CARD_INNER_STYLE = {
   gap: "14px",
   boxSizing: "border-box" as const,
 };
+
+const TIMELINE_LABEL_COL_WIDTH = "164px";
+
+function TimelineRow({
+  label,
+  imageSrc,
+  imageAlt = "",
+  children,
+}: {
+  label: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  children: ReactNode;
+}) {
+  const hasImage = Boolean(imageSrc);
+  return (
+    <article style={{ position: "relative", overflow: "hidden" }}>
+      {imageSrc && (
+        <>
+          <Image
+            src={imageSrc}
+            alt={imageAlt}
+            fill
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            style={{ objectFit: "cover" }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(6,7,18,0.92)",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
+      <div
+        style={{
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: `${TIMELINE_LABEL_COL_WIDTH} 1fr`,
+          padding: "32px 0",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontStyle: "italic",
+            fontWeight: 400,
+            fontSize: "clamp(1.4rem, 1.85vw, 1.8rem)",
+            letterSpacing: "-0.005em",
+            lineHeight: 1.05,
+            color: "rgba(255,255,255,0.96)",
+            paddingTop: "0.15rem",
+            paddingRight: "22px",
+            textAlign: "right",
+            whiteSpace: "nowrap",
+            textShadow: hasImage ? "0 1px 3px rgba(0,0,0,0.5)" : "none",
+          }}
+        >
+          {label}
+        </div>
+        <div style={{ paddingLeft: "26px" }}>
+          <p
+            className="[&_strong]:text-white"
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-sans)",
+              fontSize: "1rem",
+              lineHeight: 1.62,
+              color: "rgba(255,255,255,0.82)",
+              maxWidth: "44ch",
+              textShadow: hasImage ? "0 1px 2px rgba(0,0,0,0.45)" : "none",
+            }}
+          >
+            {children}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 
 export function AboutMe() {
@@ -210,24 +291,39 @@ export function AboutMe() {
             />
           </em>
         </h2>
-        <p style={{ margin: "0.5rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(42ch + 6vw)", textAlign: "left" }}>
-          hey, i&apos;m <strong>adam</strong>. puerto-rican born, dominican bred, and usa based. fun fact, i have an <strong>identical twin</strong>. we both live in pennsylvania.
-        </p>
-        <div style={{ marginTop: "1.875rem", filter: "drop-shadow(0 15px 50px rgba(0,0,0,0.9)) drop-shadow(0 5px 15px rgba(0,0,0,0.7))", width: "100%", maxWidth: "calc(42ch + 6vw)", minHeight: "13.75rem" }}>
-        <BentoGlow className="w-full max-w-lg" {...TERMINAL_GLOW_PROPS}>
-        <Terminal className="border-0 bg-transparent w-full" loop loopDelay={1500}>
-          <TypingAnimation>&gt; echo &quot;Hi. I&apos;m Adam.&quot; &gt; greeting.txt</TypingAnimation>
-          <AnimatedSpan className="text-blue-500">ℹ Updated 1 file: greeting.txt</AnimatedSpan>
-          <TypingAnimation>&gt; cat greeting.txt</TypingAnimation>
-          <AnimatedSpan className="text-muted-foreground">Hi. I&apos;m Adam.</AnimatedSpan>
-        </Terminal>
-        </BentoGlow>
+        <div
+          style={{
+            position: "relative",
+            marginTop: "1.5rem",
+            width: "100%",
+            maxWidth: "calc(42ch + 6vw)",
+          }}
+        >
+          <TimelineRow label="origins" imageSrc="/Photos/islands.webp" imageAlt="">
+            hey, i&apos;m <strong>adam</strong>. puerto-rican born, dominican bred, and usa based. fun fact, i have an <strong>identical twin</strong>. we both live in pennsylvania.
+          </TimelineRow>
+          <TimelineRow label="interests">
+            i&apos;m interested in <strong>software engineering, ai</strong>, and the intersection between the two. i also like to watch tv shows (shout out to aot &amp; got), listen to music, and hang out with my friends (sometimes).
+          </TimelineRow>
+          <TimelineRow label="highlights" imageSrc="/Photos/cityscape.webp" imageAlt="">
+            i&apos;ve <strong>won 3 hackathons</strong>: first at yhacks (yale), first at hackprinceton, and second solo at nexhacks (bytedance).
+          </TimelineRow>
+          <TimelineRow label="career">
+            i&apos;ve interned at companies like <strong>amazon</strong> and <strong>ibm</strong>. at penn state, i&apos;ve held <strong>leadership positions</strong> at nittany ai, nittany data labs, and the claude builder club.
+          </TimelineRow>
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: TIMELINE_LABEL_COL_WIDTH,
+              top: 0,
+              bottom: 0,
+              width: "1px",
+              background: "rgba(255,255,255,0.20)",
+              pointerEvents: "none",
+            }}
+          />
         </div>
-        <p style={{ margin: "1.25rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(42ch + 6vw)", textAlign: "left", position: "relative", zIndex: 1 }}>
-          i&apos;m interested in <strong>software engineering, ai</strong>, and the intersection between the two. i also like to watch tv shows (shout out to aot & got), listen to music, and hang out with my friends (sometimes).
-          <br /><br />
-          i&apos;ve <strong>won 3 hackathons</strong>: first at yhacks (yale), first at hackprinceton, and second solo at nexhacks (bytedance). at penn state, i&apos;ve held <strong>leadership positions</strong> at nittany ai, nittany data labs, and the claude builder club.
-        </p>
       </div>
       <div
         className="hidden lg:block"
