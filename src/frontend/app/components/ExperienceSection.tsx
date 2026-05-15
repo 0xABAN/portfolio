@@ -27,7 +27,8 @@ function useGallerySize() {
 const experiences: GalleryItem[] = [
   {
     common: "AMAZON",
-    binomial: "Software Engineering Intern · Summer 2026",
+    binomial: "Software Engineering Intern · May 2026 — Aug 2026",
+    icon: "/Photos/Icons/amazon.webp",
     photo: {
       url: "/Work/amazon.jpg",
       text: "amazon",
@@ -37,7 +38,8 @@ const experiences: GalleryItem[] = [
   },
   {
     common: "IBM",
-    binomial: "AI Engineering Intern · May 2025 — Present",
+    binomial: "AI Engineering Intern · May 2025 — May 2026",
+    icon: "/Photos/Icons/ibm.webp",
     photo: {
       url: "/Work/ibm.jpg",
       text: "ibm",
@@ -47,7 +49,8 @@ const experiences: GalleryItem[] = [
   },
   {
     common: "LOCKHEED MARTIN",
-    binomial: "Machine Learning Intern · Spring 2025",
+    binomial: "Machine Learning Intern · Jan 2025 — May 2025",
+    icon: "/Photos/Icons/lockheed.webp",
     photo: {
       url: "/Work/lockheed_martin.jpg",
       text: "lockheed martin",
@@ -57,7 +60,8 @@ const experiences: GalleryItem[] = [
   },
   {
     common: "CLAUDE BUILDER CLUB",
-    binomial: "Founder · Aug 2025 — Jan 2026",
+    binomial: "Club Founder · Aug 2025 — Jan 2026",
+    icon: "/Photos/Icons/claude.webp",
     photo: {
       url: "/Work/anthropic.jpg",
       text: "claude builder club",
@@ -67,7 +71,8 @@ const experiences: GalleryItem[] = [
   },
   {
     common: "EPOCH AI",
-    binomial: "Director · Jan 2025 — Jan 2026",
+    binomial: "Club Director · Jan 2025 — Jan 2026",
+    icon: "/Photos/Icons/pennstate.webp",
     photo: {
       url: "/Work/epoch.jpg",
       text: "epoch ai",
