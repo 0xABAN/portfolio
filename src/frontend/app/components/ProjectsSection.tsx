@@ -322,8 +322,8 @@ export function ProjectsSection() {
         />
       </div>
       <div
-        className="relative mx-auto w-full max-w-[1440px] border-b border-white/10 pb-6"
-        style={{ padding: "2rem 0 1.5rem" }}
+        className="relative mx-auto w-full max-w-[1440px]"
+        style={{ padding: "2rem 0 0.25rem" }}
       >
         <ScrollVelocity
           texts={[

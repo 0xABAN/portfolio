@@ -28,7 +28,7 @@ function highlight(text: string) {
     offset += part.length;
     if (NAME_WORDS.has(part)) {
       return (
-        <span key={`n-${part}@${at}`} style={{ color: "#C8C8C8", fontWeight: 700 }}>
+        <span key={`n-${part}@${at}`} style={{ color: "#FFFFFF", fontWeight: 700 }}>
           {part}
         </span>
       );

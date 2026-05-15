@@ -97,20 +97,6 @@ export function ExperienceSection() {
         aria-hidden
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "1px",
-          zIndex: 7,
-          pointerEvents: "none",
-          background:
-            "linear-gradient(to right, transparent 0%, rgba(25,21,18,0.10) 20%, rgba(25,21,18,0.10) 80%, transparent 100%)",
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
           inset: 0,
           zIndex: 1,
           pointerEvents: "none",
@@ -127,10 +113,10 @@ export function ExperienceSection() {
         preserveAspectRatio="none"
         style={{
           position: "absolute",
-          top: 0,
+          top: "-2px",
           left: 0,
           width: "100%",
-          height: "14vh",
+          height: "calc(14vh + 2px)",
           zIndex: 4,
           pointerEvents: "none",
           display: "block",

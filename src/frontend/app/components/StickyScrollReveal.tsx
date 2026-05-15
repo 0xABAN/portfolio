@@ -78,16 +78,7 @@ export const StickyScroll = ({
                   letterSpacing: "-0.02em",
                 }}
               >
-                projects i&rsquo;ve{" "}
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 600,
-                    fontStyle: "normal",
-                  }}
-                >
-                  made
-                </span>
+                my projects
               </h2>
             </div>
             <div
