@@ -78,14 +78,23 @@ export const StickyScroll = ({
                   letterSpacing: "-0.02em",
                 }}
               >
-                a dossier of recent work
+                projects i&rsquo;ve{" "}
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 600,
+                    fontStyle: "normal",
+                  }}
+                >
+                  made
+                </span>
               </h2>
             </div>
             <div
               className="hidden shrink-0 items-baseline gap-2 text-white/60 sm:flex"
               style={{ fontFamily: "var(--font-sans)", fontVariantNumeric: "tabular-nums" }}
             >
-              <span className="text-[11px] tracking-[0.28em]">INDEX</span>
+              <span className="text-[11px] tracking-[0.28em]">PROJECT</span>
               <motion.span
                 key={activeCard}
                 initial={{ opacity: 0, y: -6 }}
@@ -104,7 +113,13 @@ export const StickyScroll = ({
               aria-hidden
               className="relative hidden h-[clamp(16rem,36vh,26rem)] w-10 shrink-0 lg:block"
             >
-              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
+              <div
+                className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.10) 10%, rgba(255,255,255,0.10) 90%, transparent 100%)",
+                }}
+              />
               {content.map((item, i) => {
                 const pct = (i / Math.max(cardLength - 1, 1)) * 100;
                 const isActive = i === activeCard;
@@ -148,16 +163,8 @@ export const StickyScroll = ({
                   transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                   className="max-w-xl"
                 >
-                  <div
-                    className="flex items-baseline gap-3 text-[11px] tracking-[0.28em] text-white/40"
-                    style={{ fontFamily: "var(--font-sans)" }}
-                  >
-                    <span>{active.index}</span>
-                    <span className="h-px w-8 bg-white/20" />
-                    <span>{active.year}</span>
-                  </div>
                   <h3
-                    className="mt-3 text-white"
+                    className="text-white"
                     style={{
                       fontFamily: "var(--font-serif)",
                       fontStyle: "italic",
@@ -172,14 +179,11 @@ export const StickyScroll = ({
                     className="mt-6 flex flex-col gap-3 text-[11px] tracking-[0.22em] text-white/50"
                     style={{ fontFamily: "var(--font-sans)" }}
                   >
-                    <span>
-                      ROLE · <span className="text-white/75">{active.role.toUpperCase()}</span>
-                    </span>
                     {active.stack}
                   </div>
                   <p
                     className="mt-6 max-w-lg text-[1.05rem] leading-relaxed text-white/65 [&_strong]:font-medium [&_strong]:text-white"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-sans)" }}
                   >
                     {active.description}
                   </p>

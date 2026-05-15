@@ -11,29 +11,39 @@ const LINKS = [
   { label: "Contact", id: "contact" },
 ];
 
+const LIGHT_BG_IDS = new Set(["experience"]);
+
 export function Navbar() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isOnLight, setIsOnLight] = useState(false);
 
   useEffect(() => {
-    const updateActive = () => {
-      const probe = window.innerHeight / 2;
+    const update = () => {
+      const probeMiddle = window.innerHeight / 2;
+      const probeNav = 50;
+      let activeFound = false;
+      let lightFound = false;
       for (const { id } of LINKS) {
         const el = document.getElementById(id);
         if (!el) continue;
         const rect = el.getBoundingClientRect();
-        if (rect.top <= probe && rect.bottom > probe) {
+        if (!activeFound && rect.top <= probeMiddle && rect.bottom > probeMiddle) {
           setActiveId(id);
-          return;
+          activeFound = true;
+        }
+        if (!lightFound && rect.top <= probeNav && rect.bottom > probeNav && LIGHT_BG_IDS.has(id)) {
+          lightFound = true;
         }
       }
+      setIsOnLight(lightFound);
     };
 
-    updateActive();
-    window.addEventListener("scroll", updateActive, { passive: true });
-    window.addEventListener("resize", updateActive);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("scroll", updateActive);
-      window.removeEventListener("resize", updateActive);
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
     };
   }, []);
 
@@ -64,7 +74,9 @@ export function Navbar() {
                   href={`#${id}`}
                   className="cursor-target relative flex h-[67px] flex-1 items-center justify-center text-xs transition-colors duration-[250ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:text-sm"
                   style={{
-                    color: isActive ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.55)",
+                    color: isOnLight
+                      ? (isActive ? "#191512" : "rgba(25,21,18,0.55)")
+                      : (isActive ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.55)"),
                     textDecoration: "none",
                   }}
                 >
@@ -78,9 +90,9 @@ export function Navbar() {
                       width: 4,
                       height: 4,
                       borderRadius: "50%",
-                      background: "#fff",
+                      background: isOnLight ? "#191512" : "#fff",
                       transform: `translateX(-50%) scale(${isActive ? 1 : 0})`,
-                      transition: "transform 0.25s ease",
+                      transition: "transform 0.25s ease, background 0.25s ease",
                     }}
                   />
                 </a>

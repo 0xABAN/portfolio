@@ -100,7 +100,7 @@ function StackBadges({
 const projects: Project[] = [
   {
     id: "terrar-ai",
-    index: "Nº 01",
+    index: "#1",
     year: "2025",
     role: "Team build",
     stack: ["C#", "tModLoader", "xAI"],
@@ -122,7 +122,7 @@ const projects: Project[] = [
   },
   {
     id: "nexdraw",
-    index: "Nº 02",
+    index: "#2",
     year: "2026",
     role: "Solo build",
     stack: ["Next.js", "Gemini", "Supabase", "tldraw"],
@@ -143,7 +143,7 @@ const projects: Project[] = [
   },
   {
     id: "simulacra",
-    index: "Nº 03",
+    index: "#3",
     year: "2026",
     role: "Hackathon build",
     stack: ["LangGraph", "Phaser", "FastAPI", "Socket.IO"],
@@ -165,7 +165,7 @@ const projects: Project[] = [
   },
   {
     id: "fit-check",
-    index: "Nº 04",
+    index: "#4",
     year: "2026",
     role: "Solo build",
     stack: ["Next.js", "FastAPI", "TRIBEv2", "V-JEPA2"],
@@ -184,7 +184,7 @@ const projects: Project[] = [
     image: "/Projects/fit-check.webm",
     accent: "#7cc9e8",
     href: "https://github.com/AdamPSU/fit-check",
-    award: "Hackathon entry · April 2026",
+    award: "BitCamp '26",
   },
 ];
 
@@ -234,27 +234,6 @@ function ProjectCard({ project }: { project: Project }) {
               />
 
               <CardItem
-                translateZ={120}
-                className="absolute left-5 top-5 flex items-center gap-3 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 backdrop-blur"
-              >
-                <span
-                  className="block rounded-full"
-                  style={{
-                    width: 8,
-                    height: 8,
-                    background: project.accent,
-                    boxShadow: `0 0 10px ${project.accent}`,
-                  }}
-                />
-                <span
-                  className="text-[10px] tracking-[0.28em] text-white/80"
-                  style={{ fontFamily: "var(--font-sans)" }}
-                >
-                  {project.index} · {project.year}
-                </span>
-              </CardItem>
-
-              <CardItem
                 translateZ={140}
                 className="absolute bottom-6 left-6 right-6"
               >
@@ -280,16 +259,6 @@ function ProjectCard({ project }: { project: Project }) {
             </div>
           </CardItem>
 
-          <div className="relative flex items-center border-t border-white/5 px-5 py-4">
-            <CardItem
-              translateZ={40}
-              as="span"
-              className="text-[10px] tracking-[0.28em] text-white/50"
-              style={{ fontFamily: "var(--font-sans)" }}
-            >
-              {project.role.toUpperCase()}
-            </CardItem>
-          </div>
         </div>
       </CardBody>
     </CardContainer>

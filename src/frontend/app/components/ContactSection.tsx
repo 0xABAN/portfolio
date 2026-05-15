@@ -106,7 +106,7 @@ function ChannelRow({ channel, delay }: { channel: Channel; delay: number }) {
       </span>
       <span
         className="min-w-0 truncate text-white/85 transition-colors duration-300"
-        style={{ gridArea: "handle", fontFamily: "var(--font-inter)", fontSize: "0.95rem", fontVariantNumeric: "tabular-nums" }}
+        style={{ gridArea: "handle", fontFamily: "var(--font-sans)", fontSize: "0.95rem", fontVariantNumeric: "tabular-nums" }}
       >
         {channel.handle}
       </span>
@@ -168,20 +168,6 @@ export function ContactSection() {
       <SectionFade edge="top" height="24vh" />
 
       <div className="relative mx-auto w-full max-w-[820px]">
-        <motion.div
-          variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-120px" }} custom={0}
-          className="mb-10 flex items-center justify-center gap-4"
-        >
-          <span className="h-px w-10 bg-white/20" aria-hidden />
-          <span
-            className="text-[11px] tracking-[0.32em] text-white/45"
-            style={{ fontFamily: "var(--font-sans)" }}
-          >
-            Nº 04 / CORRESPONDENCE
-          </span>
-          <span className="h-px w-10 bg-white/20" aria-hidden />
-        </motion.div>
-
         <motion.div
           variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-120px" }} custom={0.08}
           className="relative mx-auto max-w-[780px]"
@@ -247,7 +233,7 @@ export function ContactSection() {
                 </span>
                 <span
                   className="text-white/80"
-                  style={{ fontFamily: "var(--font-inter)", fontSize: "0.9rem", fontVariantNumeric: "tabular-nums" }}
+                  style={{ fontFamily: "var(--font-sans)", fontSize: "0.9rem", fontVariantNumeric: "tabular-nums" }}
                   suppressHydrationWarning={row.label === "DATE"}
                 >
                   {row.value}
@@ -273,7 +259,7 @@ export function ContactSection() {
           <motion.p
             variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-120px" }} custom={0.22}
             className="mt-6 max-w-[54ch] text-white/65"
-            style={{ fontFamily: "var(--font-inter)", fontSize: "1.05rem", lineHeight: 1.7 }}
+            style={{ fontFamily: "var(--font-sans)", fontSize: "1.05rem", lineHeight: 1.7 }}
           >
             send a note if you&rsquo;re building something interesting, hiring for
             summer, or want to argue about a paper. i reply within a day.
