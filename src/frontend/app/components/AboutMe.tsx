@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import CardSwap, { Card } from "./CardSwap/CardSwap";
 import TextType from "./TextType/TextType";
 import { Terminal, AnimatedSpan, TypingAnimation } from "./Terminal/terminal";
@@ -20,7 +20,52 @@ const GLOW_BASE = {
 }
 
 const CARD_GLOW_PROPS = { ...GLOW_BASE, borderRadius: 0 }
-const TERMINAL_GLOW_PROPS = { ...GLOW_BASE, borderRadius: 12 }
+const TERMINAL_GLOW_PROPS = { ...GLOW_BASE, borderRadius: 6 }
+
+function PolaroidFrame({ children, caption }: { children: ReactNode; caption?: ReactNode }) {
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          top: "4.5%",
+          left: "4.5%",
+          right: "4.5%",
+          bottom: "17%",
+          overflow: "hidden",
+        }}
+      >
+        {children}
+      </div>
+      {caption !== undefined && (
+        <div
+          style={{
+            position: "absolute",
+            left: "4.5%",
+            right: "4.5%",
+            bottom: 0,
+            height: "17%",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "flex-start",
+            padding: "10px 26px 0",
+            fontFamily: "var(--font-sans)",
+            fontWeight: 400,
+            color: "#000000",
+            fontSize: "0.78rem",
+            lineHeight: 1.4,
+            letterSpacing: "0.005em",
+            textAlign: "left",
+            pointerEvents: "none",
+            boxSizing: "border-box",
+          }}
+        >
+          {caption}
+        </div>
+      )}
+    </>
+  );
+}
 
 const orbitImages = [
   "/BadBunny/dtmf.webp",
@@ -30,6 +75,46 @@ const orbitImages = [
   "/BadBunny/x100pre.webp",
   "/BadBunny/yhlqmdlg.webp",
 ];
+
+function CardLabel({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: "14px" }}>
+      <span
+        style={{
+          fontFamily: "var(--font-serif)",
+          fontStyle: "italic",
+          fontWeight: 400,
+          fontSize: "1.15rem",
+          letterSpacing: "-0.005em",
+          lineHeight: 1,
+          color: "#fff",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {children}
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: "1px",
+          transform: "translateY(-3px)",
+          background: "linear-gradient(to right, rgba(255,255,255,0.25), rgba(255,255,255,0))",
+        }}
+      />
+    </div>
+  );
+}
+
+const CARD_INNER_STYLE = {
+  position: "absolute" as const,
+  inset: 0,
+  padding: "22px 26px 22px",
+  display: "flex" as const,
+  flexDirection: "column" as const,
+  gap: "14px",
+  boxSizing: "border-box" as const,
+};
+
 
 export function AboutMe() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -143,16 +228,108 @@ export function AboutMe() {
           <br /><br />
           i&apos;ve <strong>won 3 hackathons</strong>: first at yhacks (yale), first at hackprinceton, and second solo at nexhacks (bytedance). at penn state, i&apos;ve held <strong>leadership positions</strong> at nittany ai, nittany data labs, and the claude builder club.
         </p>
-        <video src="/Videos/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(42ch + 6vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
       </div>
       <div
         className="hidden lg:block"
         style={{ flex: "0 0 50%", paddingLeft: "30px", paddingTop: "14vh", position: "relative", zIndex: 50 }}
       >
         <CardSwap width={630} height={650} cardDistance={63} verticalDistance={75} pauseOnHover>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", display: "flex", flexDirection: "column" }}><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden" }}><Image src="/Photos/win.webp" alt="" aria-hidden width={495} height={278} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ flex: 1, padding: "0.94rem", color: "white", fontSize: "1rem", lineHeight: 1.6, overflow: "hidden" }}>this is me at nittany ai, presenting to ~200 students. i think i was teaching CNNs? not sure. depending on the topic, public speaking can actually be pretty fun!</div></div></BentoGlow></Card>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: "25px" }}><div style={{ width: 580 }}><OrbitImages images={orbitImages} shape="ellipse" baseWidth={500} radiusX={200} radiusY={100} rotation={-12} duration={30} itemSize={95} responsive={true} height={350} radius={120} direction="normal" fill showPath pathColor="rgba(255,255,255,0.4)" paused={!isInView} /></div><div style={{ marginTop: "auto", padding: "0 1.5625rem 1.25rem", color: "white", fontSize: "1rem", lineHeight: 1.6, textAlign: "left" }}>i&apos;m a huge music nerd. my top spotify wrapped artist for 2023, 2024, and 2025 was bad bunny. other artists include billie eilish, drake, newjeans, radiohead, etc. so, yeah, my taste can be pretty diverse. i recently find myself listening to chill indie music. it&apos;s fun to listen to while walking alone, especially late at night or early in the morning when i should be asleep. if we ever meet, i&apos;d love to have a conversation about our tastes, i&apos;m sure we&apos;ll find someone we both like. :)</div></div></BentoGlow></Card>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Globe size={580} /></div></BentoGlow></Card>
+          <Card>
+            <PolaroidFrame
+              caption="speaking to ~200 students at nittany ai. surprisingly, public speaking can be kind of fun."
+            >
+              <BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}>
+                <div style={CARD_INNER_STYLE}>
+                  <CardLabel>penn state</CardLabel>
+                  <div
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <div style={{ border: "1px solid rgba(255,255,255,0.65)", boxSizing: "border-box", overflow: "hidden", width: "100%" }}>
+                      <Image src="/Photos/win.webp" alt="" aria-hidden width={495} height={278} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} />
+                    </div>
+                  </div>
+                </div>
+              </BentoGlow>
+            </PolaroidFrame>
+          </Card>
+          <Card>
+            <PolaroidFrame
+              caption={
+                <>
+                  bad bunny has been my #1 artist on spotify wrapped for 3 years straight. but i also like billie eilish, drake, newjeans, and radiohead. let&apos;s make a spotify jam!
+                </>
+              }
+            >
+              <BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}>
+                <div style={CARD_INNER_STYLE}>
+                  <CardLabel>music</CardLabel>
+                  <div
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ width: "100%", maxWidth: 528 }}>
+                      <OrbitImages
+                        images={orbitImages}
+                        shape="ellipse"
+                        baseWidth={500}
+                        radiusX={170}
+                        radiusY={80}
+                        rotation={-12}
+                        duration={30}
+                        itemSize={72}
+                        responsive
+                        height={312}
+                        radius={120}
+                        direction="normal"
+                        fill
+                        showPath
+                        pathColor="rgba(255,255,255,0.32)"
+                        paused={!isInView}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </BentoGlow>
+            </PolaroidFrame>
+          </Card>
+          <Card>
+            <PolaroidFrame
+              caption={
+                <>
+                  up until i was seven years old, i lived in puerto rico. i&apos;ve been living in pennsylvania ever since.
+                </>
+              }
+            >
+              <BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}>
+                <div style={CARD_INNER_STYLE}>
+                  <CardLabel>where i&apos;ve lived</CardLabel>
+                  <div
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Globe size={460} />
+                  </div>
+                </div>
+              </BentoGlow>
+            </PolaroidFrame>
+          </Card>
         </CardSwap>
       </div>
     </section>

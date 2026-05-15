@@ -150,7 +150,7 @@ export function ExperienceSection() {
                 letterSpacing: "-0.02em",
               }}
             >
-              where{" "}
+              where i&rsquo;ve{" "}
               <span
                 style={{
                   fontFamily: "var(--font-display)",
@@ -158,9 +158,8 @@ export function ExperienceSection() {
                   fontStyle: "normal",
                 }}
               >
-                i&rsquo;ve
-              </span>{" "}
-              been
+                been
+              </span>
             </h2>
           </div>
         </div>

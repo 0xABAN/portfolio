@@ -8,15 +8,15 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    border-radius: 0;
-    border: 1px solid #fff;
-    background: #fff;
+    border-radius: 6px;
+    border: none;
+    background: #FFFDF6;
     overflow: hidden;
 
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.85), 0 6px 16px rgba(0,0,0,0.7);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.55), 0 8px 20px rgba(0,0,0,0.4);
   }
 
   @media (max-width: 768px) {
