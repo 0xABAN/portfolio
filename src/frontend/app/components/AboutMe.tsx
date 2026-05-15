@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import CardSwap, { Card } from "./CardSwap/CardSwap";
 import TextType from "./TextType/TextType";
@@ -9,6 +10,8 @@ import BentoGlow from "./BentoGlow/BentoGlow";
 import OrbitImages from "./OrbitImages/OrbitImages";
 import { SectionFade } from "./SectionFade";
 import { useInView } from "../hooks/useInView";
+
+const Globe = dynamic(() => import("./Globe/Globe"), { ssr: false });
 
 const GLOW_BASE = {
   glowColor: "255, 255, 255",
@@ -88,18 +91,44 @@ export function AboutMe() {
         background: "radial-gradient(ellipse 60% 55% at center, transparent 0%, #060712cc 50%, #060712 90%)",
       }} />
       <div
-        className="relative z-[3] flex w-full flex-col items-start px-6 lg:ml-auto lg:w-auto lg:min-w-[calc(35ch+5vw)] lg:pl-0 lg:pr-[30px]"
+        className="relative z-[3] flex w-full flex-col items-start px-6 lg:ml-auto lg:w-auto lg:min-w-[calc(42ch+6vw)] lg:pl-0 lg:pr-[30px]"
         style={{ flex: "0 0 auto" }}
       >
         <h2 style={{ margin: 0, fontSize: "clamp(3.75rem, 5.625vw, 6.875rem)", fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.05 }}>
           <em style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 400 }}>
-            <TextType text={["about me", "sobre mi"]} as="span" typingSpeed={80} deletingSpeed={50} pauseDuration={2000} showCursor cursorCharacter="|" />
+            <TextType
+              text={["about me", "sobre mi"]}
+              as="span"
+              typingSpeed={80}
+              deletingSpeed={50}
+              pauseDuration={2000}
+              showCursor
+              cursorCharacter="|"
+              renderText={(displayed) => {
+                const splitAt = displayed.startsWith("sobre ")
+                  ? 6
+                  : displayed.startsWith("about ")
+                    ? 6
+                    : -1;
+                if (splitAt > 0 && displayed.length > splitAt) {
+                  return (
+                    <>
+                      {displayed.slice(0, splitAt)}
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontStyle: "normal" }}>
+                        {displayed.slice(splitAt)}
+                      </span>
+                    </>
+                  );
+                }
+                return displayed;
+              }}
+            />
           </em>
         </h2>
-        <p style={{ margin: "0.5rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(35ch + 5vw)", textAlign: "left" }}>
+        <p style={{ margin: "0.5rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(42ch + 6vw)", textAlign: "left" }}>
           hey, i&apos;m <strong>adam</strong>. puerto-rican born, dominican bred, and usa based. fun fact, i have an <strong>identical twin</strong>. we both live in pennsylvania.
         </p>
-        <div style={{ marginTop: "1.875rem", filter: "drop-shadow(0 15px 50px rgba(0,0,0,0.9)) drop-shadow(0 5px 15px rgba(0,0,0,0.7))", width: "100%", maxWidth: "calc(35ch + 5vw)", minHeight: "13.75rem" }}>
+        <div style={{ marginTop: "1.875rem", filter: "drop-shadow(0 15px 50px rgba(0,0,0,0.9)) drop-shadow(0 5px 15px rgba(0,0,0,0.7))", width: "100%", maxWidth: "calc(42ch + 6vw)", minHeight: "13.75rem" }}>
         <BentoGlow className="w-full max-w-lg" {...TERMINAL_GLOW_PROPS}>
         <Terminal className="border-0 bg-transparent w-full" loop loopDelay={1500}>
           <TypingAnimation>&gt; echo &quot;Hi. I&apos;m Adam.&quot; &gt; greeting.txt</TypingAnimation>
@@ -109,21 +138,21 @@ export function AboutMe() {
         </Terminal>
         </BentoGlow>
         </div>
-        <p style={{ margin: "1.25rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(35ch + 5vw)", textAlign: "left", position: "relative", zIndex: 1 }}>
+        <p style={{ margin: "1.25rem 0 0", color: "#fff", fontSize: "1.09rem", lineHeight: 1.6, maxWidth: "calc(42ch + 6vw)", textAlign: "left", position: "relative", zIndex: 1 }}>
           i&apos;m interested in <strong>software engineering, ai</strong>, and the intersection between the two. i also like to watch tv shows (shout out to aot & got), listen to music, and hang out with my friends (sometimes).
           <br /><br />
           i&apos;ve <strong>won 3 hackathons</strong>: first at yhacks (yale), first at hackprinceton, and second solo at nexhacks (bytedance). at penn state, i&apos;ve held <strong>leadership positions</strong> at nittany ai, nittany data labs, and the claude builder club.
         </p>
-        <video src="/Videos/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(35ch + 5vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
+        <video src="/Videos/ascii_cat.webm" aria-hidden autoPlay loop muted playsInline style={{ marginTop: "1.25rem", width: "100%", maxWidth: "calc(42ch + 6vw)", height: 106, objectFit: "cover", display: "block", border: "5px solid gray", boxSizing: "border-box" }} />
       </div>
       <div
         className="hidden lg:block"
         style={{ flex: "0 0 50%", paddingLeft: "30px", paddingTop: "14vh", position: "relative", zIndex: 50 }}
       >
-        <CardSwap width={525} height={813} cardDistance={63} verticalDistance={75} pauseOnHover>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", display: "flex", flexDirection: "column" }}><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden" }}><Image src="/Photos/selfie.webp" alt="Adam" width={495} height={330} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden", marginTop: "0.94rem" }}><Image src="/Photos/win.webp" alt="" aria-hidden width={495} height={278} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ flex: 1, padding: "0.94rem", color: "white", fontSize: "1rem", lineHeight: 1.6, overflow: "hidden" }}>this is me at nittany ai, presenting to ~200 students. i think i was teaching CNNs? not sure. depending on the topic, public speaking can actually be pretty fun!</div></div></BentoGlow></Card>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: "25px" }}><OrbitImages images={orbitImages} shape="ellipse" baseWidth={750} radiusX={188} radiusY={313} rotation={-27} duration={30} itemSize={125} responsive={true} radius={200} direction="normal" fill showPath pathColor="rgba(255,255,255,0.4)" paused={!isInView} /><div style={{ padding: "0 1.5625rem 1.25rem", color: "white", fontSize: "1rem", lineHeight: 1.6, textAlign: "left" }}>i&apos;m a huge music nerd. my top spotify wrapped artist for 2023, 2024, and 2025 was bad bunny. other artists include billie eilish, drake, newjeans, radiohead, etc. so, yeah, my taste can be pretty diverse. i recently find myself listening to chill indie music. it&apos;s fun to listen to while walking alone, especially late at night or early in the morning when i should be asleep. if we ever meet, i&apos;d love to have a conversation about our tastes, i&apos;m sure we&apos;ll find someone we both like. :)</div></div></BentoGlow></Card>
-          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", border: "3px solid white", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem", color: "white", fontSize: "1rem", lineHeight: 1.6, textAlign: "center" }}>lmk what to put here i actually don&apos;t know</div></BentoGlow></Card>
+        <CardSwap width={630} height={650} cardDistance={63} verticalDistance={75} pauseOnHover>
+          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: "0.94rem", display: "flex", flexDirection: "column" }}><div style={{ border: "3px solid white", boxSizing: "border-box", overflow: "hidden" }}><Image src="/Photos/win.webp" alt="" aria-hidden width={495} height={278} loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} /></div><div style={{ flex: 1, padding: "0.94rem", color: "white", fontSize: "1rem", lineHeight: 1.6, overflow: "hidden" }}>this is me at nittany ai, presenting to ~200 students. i think i was teaching CNNs? not sure. depending on the topic, public speaking can actually be pretty fun!</div></div></BentoGlow></Card>
+          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: "25px" }}><div style={{ width: 580 }}><OrbitImages images={orbitImages} shape="ellipse" baseWidth={500} radiusX={200} radiusY={100} rotation={-12} duration={30} itemSize={95} responsive={true} height={350} radius={120} direction="normal" fill showPath pathColor="rgba(255,255,255,0.4)" paused={!isInView} /></div><div style={{ marginTop: "auto", padding: "0 1.5625rem 1.25rem", color: "white", fontSize: "1rem", lineHeight: 1.6, textAlign: "left" }}>i&apos;m a huge music nerd. my top spotify wrapped artist for 2023, 2024, and 2025 was bad bunny. other artists include billie eilish, drake, newjeans, radiohead, etc. so, yeah, my taste can be pretty diverse. i recently find myself listening to chill indie music. it&apos;s fun to listen to while walking alone, especially late at night or early in the morning when i should be asleep. if we ever meet, i&apos;d love to have a conversation about our tastes, i&apos;m sure we&apos;ll find someone we both like. :)</div></div></BentoGlow></Card>
+          <Card><BentoGlow className="h-full w-full about-card-glow" {...CARD_GLOW_PROPS}><div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Globe size={580} /></div></BentoGlow></Card>
         </CardSwap>
       </div>
     </section>

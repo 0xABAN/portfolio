@@ -13,6 +13,7 @@
     "@react-spring/web": "^10.0.3",
     "@upstash/redis": "^1.37.0",
     "clsx": "^2.1.1",
+    "cobe": "^2.0.1",
     "gsap": "^3.14.2",
     "motion": "^12.38.0",
     "next": "16.2.1",

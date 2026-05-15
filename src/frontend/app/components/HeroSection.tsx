@@ -40,10 +40,10 @@ export function HeroSection({ viewCounter }: { viewCounter?: ReactNode }) {
       <div className="flex flex-col justify-start">
         <motion.h1
           variants={fadeUp} initial="hidden" animate="visible" custom={0.15}
-          className="m-0 font-bold text-balance"
+          className="m-0 text-balance"
           style={{ fontSize: "clamp(2.5rem, 8vw, 5.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}
         >
-          Adam<br />
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>Adam</span><br />
           <em className="font-normal italic" style={{ fontFamily: "var(--font-serif)" }}>
             Torres Encarnacion
           </em>

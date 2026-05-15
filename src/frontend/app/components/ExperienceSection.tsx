@@ -138,19 +138,29 @@ export function ExperienceSection() {
       </svg>
 
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        <div className="absolute left-0 right-0 top-20 z-20 mx-auto flex max-w-[1440px] items-end justify-between px-4 sm:top-24 sm:px-8">
+        <div className="absolute left-0 right-0 top-[105px] z-20 mx-auto flex max-w-[1440px] items-end justify-between px-4 sm:top-[121px] sm:px-8">
           <div className="border-b border-[#191512]/10 pb-4 sm:pb-6">
             <h2
               className="text-[#191512]"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontStyle: "italic",
-                fontSize: "clamp(1.5rem, 2.5vw, 1.95rem)",
+                fontSize: "clamp(2.25rem, 4vw, 3.5rem)",
                 lineHeight: 0.95,
                 letterSpacing: "-0.02em",
               }}
             >
-              where i&rsquo;ve been
+              where{" "}
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 600,
+                  fontStyle: "normal",
+                }}
+              >
+                i&rsquo;ve
+              </span>{" "}
+              been
             </h2>
           </div>
         </div>

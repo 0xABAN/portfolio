@@ -236,7 +236,9 @@ export default function OrbitImages({
   }, [progress, duration, easing, direction, paused]);
 
   const containerWidth = responsive ? '100%' : (typeof width === 'number' ? width : '100%');
-  const containerHeight = responsive ? 'auto' : (typeof height === 'number' ? height : (typeof width === 'number' ? width : 'auto'));
+  const containerHeight = responsive
+    ? (typeof height === 'number' ? height : 'auto')
+    : (typeof height === 'number' ? height : (typeof width === 'number' ? width : 'auto'));
 
   const items = images.map((src, index) => (
     <Image
@@ -258,7 +260,7 @@ export default function OrbitImages({
       style={{
         width: containerWidth,
         height: containerHeight,
-        aspectRatio: responsive ? '1 / 1' : undefined,
+        aspectRatio: responsive && typeof height !== 'number' ? '1 / 1' : undefined,
       }}
       aria-hidden="true"
     >

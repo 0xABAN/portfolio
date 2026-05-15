@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif, Geist } from "next/font/google";
 import "./globals.css";
 import BlobCursor from "./components/BlobCursor/BlobCursor";
 import { MotionProvider } from "./components/MotionProvider";
 import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
+import { ACTIVE_COMBO, FONT_COMBOS, clashDisplay } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Portfolio",
@@ -23,8 +18,13 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const combo = FONT_COMBOS[ACTIVE_COMBO];
   return (
-    <html lang="en" className={cn(inter.variable, serif.variable, "font-sans", geist.variable)} style={{ colorScheme: "dark" }}>
+    <html
+      lang="en"
+      className={cn(combo.sans.variable, combo.serif.variable, combo.inter.variable, clashDisplay.variable, "font-sans")}
+      style={{ colorScheme: "dark" }}
+    >
       <body>
         <MotionProvider>
           <BlobCursor blobType="circle" fillColor="#ffffff" />

@@ -25,6 +25,7 @@ interface TextTypeProps {
   onSentenceComplete?: (sentence: string, index: number) => void;
   startOnVisible?: boolean;
   reverseMode?: boolean;
+  renderText?: (displayed: string) => React.ReactNode;
 }
 
 const TextType = ({
@@ -46,6 +47,7 @@ const TextType = ({
   onSentenceComplete,
   startOnVisible = false,
   reverseMode = false,
+  renderText,
   ...props
 }: TextTypeProps & React.HTMLAttributes<HTMLElement>) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -182,7 +184,7 @@ const TextType = ({
       ...props
     },
     <span className="text-type__content" style={{ color: getCurrentTextColor() || 'inherit' }}>
-      {displayedText}
+      {renderText ? renderText(displayedText) : displayedText}
     </span>,
     showCursor && (
       <span

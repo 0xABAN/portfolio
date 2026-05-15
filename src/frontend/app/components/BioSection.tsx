@@ -268,7 +268,7 @@ export function BioSection() {
           aria-label="hero copy wrapped around video"
           className="text-[#9b9896] lg:text-[#5a5954]"
           style={{
-            position: "absolute", inset: 0, margin: 0, padding: "1.5rem 1.75rem 1.75rem 1.5rem",
+            position: "absolute", inset: 0, margin: 0, padding: "0.75rem 0.875rem",
             fontSize: isMobile ? "0.6rem" : "1rem", lineHeight: 1.5,
             overflow: "hidden", userSelect: "text",
           }}
@@ -295,21 +295,6 @@ export function BioSection() {
             distortion={0.03}
           />
         </div>
-        <span
-          aria-hidden
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            width: 70,
-            height: 22,
-            background: "#FFFDF6",
-            borderTopLeftRadius: 10,
-            borderBottomRightRadius: 16,
-            zIndex: 11,
-            pointerEvents: "none",
-          }}
-        />
       </SpotlightCard>
       </BentoGlow>
     </motion.div>
