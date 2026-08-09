@@ -1,13 +1,15 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { WIN_H, WIN_W } from "../windows";
 import "./window.css";
 
 type Props = {
 	title: string;
 	x: number;
 	y: number;
+	w: number;
+	h: number;
+	z: number;
 	onClose: () => void;
 	onMove: (x: number, y: number) => void;
 	children?: ReactNode;
@@ -20,7 +22,17 @@ type DragOrigin = {
 	originY: number;
 };
 
-export function Window({ title, x, y, onClose, onMove, children }: Props) {
+export function Window({
+	title,
+	x,
+	y,
+	w,
+	h,
+	z,
+	onClose,
+	onMove,
+	children,
+}: Props) {
 	const drag = useRef<DragOrigin | null>(null);
 
 	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
@@ -55,7 +67,7 @@ export function Window({ title, x, y, onClose, onMove, children }: Props) {
 		<section
 			className="win"
 			aria-label={title}
-			style={{ left: x, top: y, width: WIN_W, height: WIN_H }}
+			style={{ left: x, top: y, width: w, height: h, zIndex: z }}
 		>
 			<header
 				className="win-titlebar"

@@ -1,6 +1,5 @@
 .win {
 	position: absolute;
-	z-index: 5;
 	display: flex;
 	flex-direction: column;
 	box-sizing: border-box;
@@ -64,9 +63,29 @@
 }
 
 .win__client {
+	position: relative;
 	flex: 1;
 	min-height: 0;
 	margin: 2px;
-	overflow: auto;
-	background: #111;
+	overflow: hidden;
+	background: #000;
+}
+
+.win-fill {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	pointer-events: none;
+	user-select: none;
+}
+
+.win-fill-crop {
+	position: absolute;
+	max-width: none;
+	max-height: none;
+	object-fit: fill;
+	pointer-events: none;
+	user-select: none;
 }

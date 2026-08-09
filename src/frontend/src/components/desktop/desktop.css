@@ -54,14 +54,6 @@
 	flex: 1;
 }
 
-.taskbar__tasks {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	min-width: 0;
-	flex: 1;
-}
-
 .taskbar__tray {
 	display: flex;
 	align-items: center;
@@ -82,28 +74,23 @@
 	color: var(--chrome-text);
 }
 
-.start-btn,
-.task-btn {
+.start-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	gap: 6px;
 	height: 28px;
 	margin: 0;
-	padding: 0 10px;
+	padding: 0 8px;
 	background: var(--chrome-btn);
 	color: var(--chrome-text);
 	font: inherit;
 	font-size: 12px;
+	font-weight: 700;
 	line-height: 1;
+	flex-shrink: 0;
 	cursor: default;
 	user-select: none;
-}
-
-.start-btn {
-	gap: 6px;
-	flex-shrink: 0;
-	font-weight: 700;
-	padding: 0 8px;
 }
 
 .start-btn__logo {
@@ -118,25 +105,7 @@
 	letter-spacing: 0.02em;
 }
 
-.task-btn {
-	justify-content: center;
-	min-width: 120px;
-	max-width: 200px;
-	padding: 0 10px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	text-align: center;
-}
-
-.task-btn--active {
-	background: #111;
-	font-weight: 700;
-	box-shadow: inset 1px 1px 0 var(--chrome-lo);
-}
-
-.start-btn:focus-visible,
-.task-btn:focus-visible {
+.start-btn:focus-visible {
 	outline: 1px dotted var(--chrome-text);
 	outline-offset: -4px;
 }
