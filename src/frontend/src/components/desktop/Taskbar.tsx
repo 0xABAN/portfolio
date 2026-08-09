@@ -1,5 +1,5 @@
 import { StartButton } from "./StartButton";
-import { GITHUB_URL, GITHUB_USER } from "./windows";
+import { GITHUB_URL } from "./windows";
 
 const LINKS = [
 	{
@@ -9,9 +9,15 @@ const LINKS = [
 		icon: "/icons/github.svg",
 	},
 	{
+		id: "linkedin",
+		label: "LinkedIn",
+		href: "https://www.linkedin.com/in/adam-torres-encarnacion/",
+		icon: "/icons/linkedin.svg",
+	},
+	{
 		id: "x",
 		label: "X",
-		href: `https://x.com/${GITHUB_USER}`,
+		href: "https://x.com/0xABANN",
 		icon: "/icons/x.svg",
 	},
 	{
