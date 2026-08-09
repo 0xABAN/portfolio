@@ -1,32 +1,38 @@
 ---
 title: Overview
-description: Design wiki for the portfolio overhaul — retro TUI, black/red/white.
+description: Design wiki for the portfolio — retro mock desktop UI.
 date: 2026-08-09
 tags: [overview, portfolio, design]
 ---
 
-Personal portfolio site. Stack: **Next.js + React + Bun** under `src/frontend`. Direction: **retro / TUI / early-2000s terminal**, not clean SaaS.
+Personal portfolio as a **mock desktop OS** — windows, icons, taskbar, **drag physics** — with a retro feel. Not a standard marketing page.
+
+Stack: **Next.js + React + Bun** under `src/frontend`.
 
 ## Locked direction
 
 | Axis | Decision |
 | --- | --- |
-| Aesthetic | Retro TUI + 2000s net-art / boot-screen energy |
-| Palette | Black / red / white only |
-| Media | Real images + ASCII art coexisting |
-| Stack | Next.js App Router, Bun, Tailwind (minimal chrome) |
+| Shell | Mock desktop UI (icons, windows, taskbar) |
+| Interaction | Real desktop behavior: drag, focus/z-order, min/max/close |
+| Aesthetic | Retro (classic OS / early web energy) |
+| Palette | Desktop `#af0000` (powerline red); dock dark gray/black; light gray for future windows |
+| Content | Portfolio pieces live *inside* windows/apps |
 
 ## Page index
 
 | Page | What it covers |
 | --- | --- |
-| [Aesthetic](design/aesthetic.md) | Vibe, references, do/don't |
-| [Color](design/color.md) | Black / red / white tokens + usage |
-| [Layout](design/layout.md) | Screen structure, panels, chrome |
-| [Content](design/content.md) | Sections, copy tone, media mix |
-| [Moodboard 01](raw/moodboard-01.md) | OUTER poster ref |
-| [Moodboard 02](raw/moodboard-02.md) | BIOS / ASCII dual-panel ref |
+| [Aesthetic](design/aesthetic.md) | Vibe, do/don't, ref map |
+| [Color](design/color.md) | Black / light gray / red (+ extras) |
+| [Desktop shell](design/desktop-shell.md) | Icons, windows, taskbar, interaction |
+| [Content](design/content.md) | What each “app” holds |
+| [Lib research](design/research-desktop-libs.md) | Build vs buy for the shell |
+| [Moodboard](raw/moodboard-desktop.md) | Primary desktop-UI ref |
 
 ## Recent
 
-- 2026-08-09 — Init wiki; capture direction + two Pinterest refs.
+- 2026-08-09 — Color locked: desktop `#af0000`; dock dark tokens in [color](design/color.md).
+- 2026-08-09 — Research: no full DE; prefer `react-rnd` + custom shell ([notes](design/research-desktop-libs.md)).
+- 2026-08-09 — Interaction locked: drag physics + full window chrome behavior.
+- 2026-08-09 — Direction set: retro mock desktop; palette black/light-gray/red.

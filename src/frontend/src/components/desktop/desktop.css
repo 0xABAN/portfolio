@@ -1,0 +1,148 @@
+.desktop {
+	--desktop-bg: #af0000;
+	--taskbar-bg: #1a1a1a;
+	--taskbar-face: #242424;
+	--taskbar-hi: #5a5a5a;
+	--taskbar-lo: #000000;
+	--taskbar-text: #f0f0f0;
+	--taskbar-red: #af0000;
+
+	position: relative;
+	min-height: 100dvh;
+	width: 100%;
+	background: var(--desktop-bg);
+	overflow: hidden;
+	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
+}
+
+/* Full-width Win9x-style taskbar — dark theme, hard bevels */
+.taskbar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+	height: 36px;
+	padding: 3px 4px;
+	box-sizing: border-box;
+	background: var(--taskbar-bg);
+	border-top: 2px solid var(--taskbar-hi);
+	color: var(--taskbar-text);
+}
+
+.taskbar__left {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	flex: 1;
+}
+
+.taskbar__tasks {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	flex: 1;
+}
+
+.taskbar__tray {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	height: 28px;
+	padding: 0 8px;
+	background: var(--taskbar-face);
+	border-top: 2px solid var(--taskbar-lo);
+	border-left: 2px solid var(--taskbar-lo);
+	border-right: 2px solid var(--taskbar-hi);
+	border-bottom: 2px solid var(--taskbar-hi);
+}
+
+.taskbar__clock {
+	font-size: 12px;
+	line-height: 1;
+	white-space: nowrap;
+	color: var(--taskbar-text);
+}
+
+/* Raised control */
+.start-btn,
+.task-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 28px;
+	margin: 0;
+	padding: 0 10px;
+	border-top: 2px solid var(--taskbar-hi);
+	border-left: 2px solid var(--taskbar-hi);
+	border-right: 2px solid var(--taskbar-lo);
+	border-bottom: 2px solid var(--taskbar-lo);
+	background: var(--taskbar-face);
+	color: var(--taskbar-text);
+	font: inherit;
+	font-size: 12px;
+	line-height: 1;
+	cursor: default;
+	user-select: none;
+}
+
+.start-btn {
+	gap: 6px;
+	flex-shrink: 0;
+	font-weight: 700;
+	padding: 0 8px;
+}
+
+.start-btn__logo {
+	display: block;
+	width: 16px;
+	height: 14px;
+	flex-shrink: 0;
+	object-fit: contain;
+	image-rendering: auto;
+}
+
+.start-btn__label {
+	letter-spacing: 0.02em;
+}
+
+.task-btn {
+	justify-content: center;
+	min-width: 120px;
+	max-width: 200px;
+	padding: 0 10px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: center;
+}
+
+/* Sunken = active task (ref: new age) */
+.task-btn--active {
+	border-top: 2px solid var(--taskbar-lo);
+	border-left: 2px solid var(--taskbar-lo);
+	border-right: 2px solid var(--taskbar-hi);
+	border-bottom: 2px solid var(--taskbar-hi);
+	background: #111;
+	font-weight: 700;
+	box-shadow: inset 1px 1px 0 var(--taskbar-lo);
+}
+
+.start-btn:focus-visible,
+.task-btn:focus-visible {
+	outline: 1px dotted var(--taskbar-text);
+	outline-offset: -4px;
+}
+
+.start-btn:active {
+	border-top: 2px solid var(--taskbar-lo);
+	border-left: 2px solid var(--taskbar-lo);
+	border-right: 2px solid var(--taskbar-hi);
+	border-bottom: 2px solid var(--taskbar-hi);
+}
