@@ -7,6 +7,7 @@ import { Notepad } from "./Notepad";
 import { Paint } from "./paint/Paint";
 import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
+import { Terminal } from "./Terminal";
 import { Window } from "./window/Window";
 import {
 	altCropStyle,
@@ -52,6 +53,10 @@ function windowBody(
 
 	if (w.kind === "notepad") {
 		return <Notepad segments={w.segments} src={w.src} />;
+	}
+
+	if (w.kind === "terminal") {
+		return <Terminal />;
 	}
 
 	if (w.src) {

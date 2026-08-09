@@ -13,7 +13,7 @@ export type DesktopWindow = {
 	z: number;
 	src?: string;
 	segments?: readonly NoteSegment[];
-	kind?: "error" | "paint" | "github" | "notepad";
+	kind?: "error" | "paint" | "github" | "notepad" | "terminal";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -99,39 +99,39 @@ export function clampToParent(
 	};
 }
 
-function layoutSquareWindow(
-	vw: number,
-	vh: number,
+function layoutBeepBoop(
+	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
-	const client = Math.round(
-		Math.min(360, Math.max(200, Math.min(vw, vh) * 0.28)),
-	);
+	const client = 96;
 	const w = client + CHROME_X;
 	const h = client + CHROME_Y;
+	// Left of Paint (toolbox clear), sits above notepad stack
 	return {
 		w,
 		h,
-		x: MARGIN,
-		y: Math.round(vh - TASKBAR_H - h - MARGIN),
+		x: Math.round(anchor.x - w - 14),
+		y: Math.round(anchor.y + anchor.h * 0.3 + 40),
 	};
 }
 
 const ERR_W = 260;
 const ERR_H = 128;
 const ERR_CASCADE = 16;
-const ERR_COUNT = 6;
-const ERR_Y_NUDGE = 100;
+const ERR_COUNT = 7;
 
 function layoutErrorStack(
 	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+	vh: number,
 ): DesktopWindow[] {
-	const baseX = anchor.x + Math.round(anchor.w * 0.52);
-	const baseY = anchor.y + Math.round(anchor.h * 0.55) + ERR_Y_NUDGE;
+	// Inside terminal horizontally; last dialog half-tucked under taskbar (z < 10)
+	const baseX = anchor.x + Math.round(anchor.w * 0.42);
+	const lastY = (ERR_COUNT - 1) * ERR_CASCADE;
+	const baseY = Math.round(vh - TASKBAR_H - ERR_H / 2 - lastY - 28);
 	return Array.from({ length: ERR_COUNT }, (_, i) => ({
 		id: `sysmsg-${i}`,
 		title: "System message",
 		kind: "error" as const,
-		x: baseX + i * ERR_CASCADE,
+		x: baseX - i * ERR_CASCADE,
 		y: baseY + i * ERR_CASCADE,
 		w: ERR_W,
 		h: ERR_H,
@@ -142,12 +142,20 @@ function layoutErrorStack(
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	const me = {
 		id: "me",
-		title: "untitled - Paint",
+		title: "adam",
 		z: 2,
 		kind: "paint" as const,
 		src: "/photos/street.jpg",
 		icon: "/paint/icon-16.png",
 		...layoutMeWindow(vw, vh),
+	};
+	const terminal = {
+		id: "terminal",
+		title: "pi — Command Prompt",
+		z: 12,
+		kind: "terminal" as const,
+		icon: "/icons/terminal.svg",
+		...layoutTerminalWindow(me),
 	};
 	return [
 		me,
@@ -162,18 +170,19 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			id: "new",
 			title: "beep boop",
 			z: 4,
-			src: "/photos/new.png",
-			...layoutSquareWindow(vw, vh),
+			src: "/photos/beep-boop.gif",
+			...layoutBeepBoop(me),
 		},
+		terminal,
 		{
 			id: "github",
 			title: `github - ${GITHUB_USER}`,
-			z: 5,
+			z: 13,
 			kind: "github" as const,
-			...layoutGitHubWindow(me),
+			...layoutGitHubWindow(terminal),
 		},
 		...layoutNotepadStack(me, vh),
-		...layoutErrorStack(me),
+		...layoutErrorStack(terminal, vh),
 	];
 }
 
@@ -245,20 +254,29 @@ function layoutNotepadStack(
 	}));
 }
 
+function layoutTerminalWindow(
+	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+	const w = Math.round(anchor.w * 1.3 * 0.85);
+	const h = Math.round(anchor.h * 0.7);
+	const { x, y } = clampWindowPos(
+		anchor.x + anchor.w,
+		Math.round(anchor.y + (anchor.h - h) / 2),
+		w,
+	);
+	return { x, y, w, h };
+}
+
 function layoutGitHubWindow(
 	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
 	// ~13 weeks visible; full year scrolls horizontally
 	const w = 320;
 	const h = 200;
-	// Dangle off the right edge of Paint, vertically centered
-	const overlap = 48;
-	return {
-		w,
-		h,
-		x: Math.round(anchor.x + anchor.w - overlap),
-		y: Math.round(anchor.y + (anchor.h - h) / 2),
-	};
+	// Upper-right of terminal: right-aligned, hangs off the top edge
+	const x = Math.round(anchor.x + anchor.w - w - 12 - 20);
+	const y = Math.round(anchor.y - h * 0.4 - 20);
+	return { w, h, x, y };
 }
 
 export function altCropStyle(
