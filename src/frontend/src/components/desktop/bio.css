@@ -1,0 +1,32 @@
+.bio {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	padding: 12px 14px;
+	overflow: auto;
+	background: var(--chrome-face);
+	color: var(--chrome-text);
+	font:
+		12px / 1.4 Tahoma,
+		"MS Sans Serif",
+		sans-serif;
+}
+
+.bio__section {
+	margin: 0 0 14px;
+}
+
+.bio__section:last-child {
+	margin-bottom: 0;
+}
+
+.bio__h {
+	margin: 0 0 4px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.bio__p {
+	margin: 0;
+	white-space: pre-wrap;
+}

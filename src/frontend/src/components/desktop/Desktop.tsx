@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Bio } from "./Bio";
 import { GitHubGraph } from "./GitHubGraph";
 import { Neko } from "./Neko";
 import { Notepad } from "./Notepad";
@@ -14,6 +15,7 @@ import {
 	clampToParent,
 	clampWindowPos,
 	layoutDesktop,
+	makeBioWindow,
 	type DesktopWindow,
 } from "./windows";
 import "./desktop.css";
@@ -61,6 +63,13 @@ const DESK_ICONS = [
 		src: "/icons/games/persona-5-royal.png",
 		cell: "desk-icon-cell--c2r2",
 	},
+	{
+		id: "bio",
+		label: "bio.txt",
+		src: "/icons/notepad.svg",
+		cell: "desk-icon-cell--c2r3",
+		open: "bio" as const,
+	},
 ] as const;
 
 function windowBody(
@@ -86,6 +95,10 @@ function windowBody(
 
 	if (w.kind === "terminal") {
 		return <Terminal />;
+	}
+
+	if (w.kind === "bio") {
+		return <Bio />;
 	}
 
 	if (w.src) {
@@ -121,6 +134,17 @@ export function Desktop() {
 
 	function closeWindow(id: string) {
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
+	}
+
+	function openBio() {
+		setWindows((prev) => {
+			const maxZ = prev.reduce((z, w) => Math.max(z, w.z), 0);
+			const existing = prev.find((w) => w.id === "bio");
+			if (existing) {
+				return prev.map((w) => (w.id === "bio" ? makeBioWindow(maxZ + 1) : w));
+			}
+			return [...prev, makeBioWindow(maxZ + 1)];
+		});
 	}
 
 	function moveWindow(id: string, x: number, y: number) {
@@ -172,7 +196,14 @@ export function Desktop() {
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.map((icon) => (
 					<li key={icon.id} className={icon.cell}>
-						<button type="button" className="desk-icon" title={icon.label}>
+						<button
+							type="button"
+							className="desk-icon"
+							title={icon.label}
+							onClick={
+								"open" in icon && icon.open === "bio" ? openBio : undefined
+							}
+						>
 							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img
 								className="desk-icon__img"

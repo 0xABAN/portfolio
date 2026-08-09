@@ -13,7 +13,7 @@ export type DesktopWindow = {
 	z: number;
 	src?: string;
 	segments?: readonly NoteSegment[];
-	kind?: "error" | "paint" | "github" | "notepad" | "terminal";
+	kind?: "error" | "paint" | "github" | "notepad" | "terminal" | "bio";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -252,6 +252,33 @@ function layoutNotepadStack(
 		h: NOTE_H,
 		z: 6 + i,
 	}));
+}
+
+const BIO_W = 572;
+const BIO_H = 420;
+
+/** Centered bio.txt window (opened from desk icon, not on load). */
+export function layoutBioWindow(
+	vw = typeof window !== "undefined" ? window.innerWidth : 1440,
+	vh = typeof window !== "undefined" ? window.innerHeight : 900,
+): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+	return {
+		w: BIO_W,
+		h: BIO_H,
+		x: Math.round((vw - BIO_W) / 2),
+		y: Math.round((vh - TASKBAR_H - BIO_H) / 2),
+	};
+}
+
+export function makeBioWindow(z: number): DesktopWindow {
+	return {
+		id: "bio",
+		title: "bio.txt",
+		kind: "bio",
+		icon: "/icons/notepad.svg",
+		z,
+		...layoutBioWindow(),
+	};
 }
 
 function layoutTerminalWindow(

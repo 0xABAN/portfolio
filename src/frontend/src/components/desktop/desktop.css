@@ -76,6 +76,10 @@
 	grid-column: 2;
 	grid-row: 2;
 }
+.desk-icon-cell--c2r3 {
+	grid-column: 2;
+	grid-row: 3;
+}
 
 .desk-icon {
 	display: flex;
