@@ -45,7 +45,7 @@
 
 .paint__menu-item {
 	padding: 2px 6px 3px;
-	cursor: default;
+	cursor: crosshair;
 }
 
 .paint__menu-hot {
@@ -87,7 +87,7 @@
 	border-right: 1px solid var(--chrome-lo);
 	border-bottom: 1px solid var(--chrome-lo);
 	background: var(--chrome-btn);
-	cursor: default;
+	cursor: crosshair;
 }
 
 .paint__tool::before {
@@ -251,7 +251,7 @@
 	margin: 0;
 	padding: 0;
 	box-shadow: inset 1px 1px 0 var(--chrome-lo);
-	cursor: default;
+	cursor: crosshair;
 }
 
 .paint__status {

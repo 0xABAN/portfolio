@@ -12,6 +12,7 @@
 	background: var(--desktop-bg);
 	overflow: hidden;
 	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
+	cursor: crosshair;
 }
 
 .desktop__deco {
@@ -38,7 +39,8 @@
 
 .desktop__icons {
 	position: absolute;
-	top: 50%;
+	top: auto;
+	bottom: 52px;
 	left: 10px;
 	z-index: 2;
 	display: flex;
@@ -48,7 +50,6 @@
 	margin: 0;
 	padding: 0;
 	list-style: none;
-	transform: translateY(-50%);
 }
 
 .desk-icon {
@@ -63,7 +64,7 @@
 	background: transparent;
 	color: var(--chrome-text);
 	font: inherit;
-	cursor: default;
+	cursor: crosshair;
 	user-select: none;
 }
 
@@ -131,7 +132,7 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	z-index: 10;
+	z-index: 100;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -177,7 +178,7 @@
 	font-size: 12px;
 	line-height: 1;
 	text-decoration: none;
-	cursor: default;
+	cursor: crosshair;
 	user-select: none;
 	overflow: hidden;
 }
@@ -230,7 +231,7 @@
 	font-weight: 700;
 	line-height: 1;
 	flex-shrink: 0;
-	cursor: default;
+	cursor: crosshair;
 	user-select: none;
 }
 
