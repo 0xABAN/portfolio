@@ -10,7 +10,7 @@ tags: [design, layout, desktop, interaction]
 ```
 ┌─ desktop wallpaper ────────────────────────────────┐
 │  [icons]     ┌─ window ─┐   ┌─ window ─┐           │
-│   About      │ title  _□✕│   │          │           │
+│   About      │ title    ✕│   │          │           │
 │   Work       │ content   │   └──────────┘           │
 │   Projects   └───────────┘                          │
 │   Contact                                           │
@@ -31,11 +31,18 @@ tags: [design, layout, desktop, interaction]
 
 ## Window rules
 
-- Title bar with real controls: drag handle, minimize, maximize/restore, close
+- Title bar controls: drag handle + **close (✕) only** — no minimize, no maximize
 - One focused window (stronger border / red cue); click-to-front
 - Overlap expected and encouraged
 - Clamp position so title bars stay reachable
 - Mobile: stack / full-screen apps; simplify drag (touch-drag OK if it feels good)
+
+### Close behavior
+
+- Every window chrome includes an **X** control (no chrome without it)
+- Close → remove or hide that window instance from the manager list
+- Taskbar task for that id goes away (or stays “reopen” only if we add that later — default: gone)
+- Reopen only via icon / Start / explicit spawn — not a ghost window
 
 ## Interaction (locked — not optional)
 
@@ -47,10 +54,10 @@ Full desktop physics/behavior is part of the product, not a polish pass.
 | Resize | Edges/corners where it helps content |
 | Focus / z-order | Click window or taskbar → front |
 | Open | Icon or Start → spawn or focus window |
-| Close | Hide; reopen via icon/taskbar |
-| Minimize | To taskbar; restore on click |
-| Maximize | Fill desktop area above taskbar |
+| Close | **Always available (X)**; destroy/hide instance; reopen via icon/Start |
 | Drag icons | Reposition on desktop (persist if easy) |
+
+No minimize / maximize controls or behavior in v1 (and not planned for chrome).
 
 ### Motion / physics notes
 

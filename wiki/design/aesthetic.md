@@ -13,13 +13,13 @@ The site **is a desktop**: wallpaper, icons, overlapping windows, taskbar. Retro
 
 1. **Desktop as IA** — sections are apps/windows, not scroll sections only.
 2. **Retro chrome** — title bars, window controls, icon grid, start/task affordances.
-3. **Living shell** — drag, stack, min/max/close; the desktop moves, it isn’t a poster.
+3. **Living shell** — drag, stack, close; the desktop moves, it isn’t a poster.
 4. **Layered mess (controlled)** — intentional overlap and depth; still usable.
 5. **Portfolio payload** — real bio/work/projects inside the windows.
 
 ## Do
 
-- Classic window frames (title bar, min/max/close affordances)
+- Classic window frames (title bar + close only)
 - Desktop icons that open content
 - Taskbar / start-style entry point
 - Hard-ish UI geometry; pixel or near-pixel borders OK

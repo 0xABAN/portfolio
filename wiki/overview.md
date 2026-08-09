@@ -14,7 +14,7 @@ Stack: **Next.js + React + Bun** under `src/frontend`.
 | Axis | Decision |
 | --- | --- |
 | Shell | Mock desktop UI (icons, windows, taskbar) |
-| Interaction | Real desktop behavior: drag, focus/z-order, min/max/close |
+| Interaction | Real desktop behavior: drag, focus/z-order, close (no min/max) |
 | Aesthetic | Retro (classic OS / early web energy) |
 | Palette | Desktop `#af0000` (powerline red); dock dark gray/black; light gray for future windows |
 | Content | Portfolio pieces live *inside* windows/apps |

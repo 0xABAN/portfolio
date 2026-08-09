@@ -1,5 +1,11 @@
 Chronological record of ingests, queries, and maintenance passes.
 
+## [2026-08-09] query | Window abstraction + always-on close
+
+- Window = shared chrome + children body + manager list (geometry/focus)
+- **Close (X) only** on every window; no min/max controls
+- Updated: [desktop-shell](design/desktop-shell.md)
+
 ## [2026-08-09] query | Color tokens from v0 desktop
 
 - Locked desktop bg **`#af0000`** (powerline red A)
@@ -15,7 +21,7 @@ Chronological record of ingests, queries, and maintenance passes.
 
 ## [2026-08-09] query | Drag physics locked in
 
-- Interaction is **required**, not later polish: window drag, focus/z-order, resize, min/max/close, icon open/reposition
+- Interaction is **required**, not later polish: window drag, focus/z-order, resize, close, icon open/reposition
 - Updated: [desktop-shell](design/desktop-shell.md), [overview](overview.md), [aesthetic](design/aesthetic.md)
 
 ## [2026-08-09] ingest | Retro mock desktop direction
