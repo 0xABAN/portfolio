@@ -24,14 +24,43 @@ const DECOS = [
 ] as const;
 
 const DESK_ICONS = [
+	// col 1 (4) · col 2 (2 personas beside HK / Silksong)
 	{
 		id: "hollow-knight",
 		label: "Hollow Knight",
 		src: "/icons/games/hollow-knight.png",
+		cell: "desk-icon-cell--c1r1",
 	},
-	{ id: "silksong", label: "Silksong", src: "/icons/games/silksong.png" },
-	{ id: "terraria", label: "Terraria", src: "/icons/games/terraria.png" },
-	{ id: "roblox", label: "Roblox", src: "/icons/games/roblox.png" },
+	{
+		id: "silksong",
+		label: "Silksong",
+		src: "/icons/games/silksong.png",
+		cell: "desk-icon-cell--c1r2",
+	},
+	{
+		id: "terraria",
+		label: "Terraria",
+		src: "/icons/games/terraria.png",
+		cell: "desk-icon-cell--c1r3",
+	},
+	{
+		id: "roblox",
+		label: "Roblox",
+		src: "/icons/games/roblox.png",
+		cell: "desk-icon-cell--c1r4",
+	},
+	{
+		id: "persona-3-reload",
+		label: "Persona 3 Reload",
+		src: "/icons/games/persona-3-reload.png",
+		cell: "desk-icon-cell--c2r1",
+	},
+	{
+		id: "persona-5-royal",
+		label: "Persona 5 Royal",
+		src: "/icons/games/persona-5-royal.png",
+		cell: "desk-icon-cell--c2r2",
+	},
 ] as const;
 
 function windowBody(
@@ -142,7 +171,7 @@ export function Desktop() {
 			))}
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.map((icon) => (
-					<li key={icon.id}>
+					<li key={icon.id} className={icon.cell}>
 						<button type="button" className="desk-icon" title={icon.label}>
 							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img

@@ -43,13 +43,38 @@
 	bottom: 52px;
 	left: 10px;
 	z-index: 2;
-	display: flex;
-	flex-direction: column;
-	gap: 14px;
-	width: 96px;
+	display: grid;
+	grid-template-columns: 96px 96px;
+	grid-template-rows: repeat(4, auto);
+	gap: 14px 8px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
+}
+
+.desk-icon-cell--c1r1 {
+	grid-column: 1;
+	grid-row: 1;
+}
+.desk-icon-cell--c1r2 {
+	grid-column: 1;
+	grid-row: 2;
+}
+.desk-icon-cell--c1r3 {
+	grid-column: 1;
+	grid-row: 3;
+}
+.desk-icon-cell--c1r4 {
+	grid-column: 1;
+	grid-row: 4;
+}
+.desk-icon-cell--c2r1 {
+	grid-column: 2;
+	grid-row: 1;
+}
+.desk-icon-cell--c2r2 {
+	grid-column: 2;
+	grid-row: 2;
 }
 
 .desk-icon {
