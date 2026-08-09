@@ -1,0 +1,301 @@
+/* Paint layout (classic dims/icons) on desktop chrome palette */
+.paint {
+	--paint-menu-h: 18px;
+	--paint-toolbox-w: 56px;
+	--paint-colors-h: 48px;
+	--paint-status-h: 22px;
+
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--chrome-face);
+	color: var(--chrome-text);
+	font:
+		11px / 1 Tahoma,
+		"MS Sans Serif",
+		sans-serif;
+	user-select: none;
+}
+
+.paint-dither {
+	background-color: #111;
+	background-image:
+		linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+		linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+		linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+	background-size: 2px 2px;
+	background-position:
+		0 0,
+		0 1px,
+		1px -1px,
+		-1px 0;
+}
+
+.paint__menu {
+	display: flex;
+	flex-shrink: 0;
+	height: var(--paint-menu-h);
+	padding: 1px 2px 0;
+	align-items: center;
+	gap: 0;
+	background: var(--chrome-face);
+}
+
+.paint__menu-item {
+	padding: 2px 6px 3px;
+	cursor: default;
+}
+
+.paint__menu-hot {
+	text-decoration: underline;
+}
+
+.paint__main {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+}
+
+.paint__tools-col {
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	width: var(--paint-toolbox-w);
+	padding: 2px 3px 0 4px;
+	align-items: center;
+	box-sizing: border-box;
+}
+
+.paint__tools {
+	display: flex;
+	flex-flow: row wrap;
+	width: 50px;
+	height: 200px;
+}
+
+.paint__tool {
+	position: relative;
+	box-sizing: border-box;
+	width: 25px;
+	height: 25px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-right: 1px solid var(--chrome-lo);
+	border-bottom: 1px solid var(--chrome-lo);
+	background: var(--chrome-btn);
+	cursor: default;
+}
+
+.paint__tool::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-top: 1px solid var(--chrome-hi);
+	border-left: 1px solid var(--chrome-hi);
+	border-right: 1px solid var(--chrome-lo);
+	border-bottom: 1px solid var(--chrome-lo);
+	pointer-events: none;
+}
+
+.paint__tool--selected {
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-hi);
+	border-bottom: 1px solid var(--chrome-hi);
+}
+
+.paint__tool--selected::before {
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-face);
+	border-bottom: 1px solid var(--chrome-face);
+}
+
+.paint__tool-icon {
+	display: block;
+	position: absolute;
+	left: 4px;
+	top: 4px;
+	width: 16px;
+	height: 16px;
+	background-image: url("/paint/tools.png");
+	background-repeat: no-repeat;
+	background-position: calc(-16px * var(--icon-index, 0)) 0;
+	image-rendering: pixelated;
+	pointer-events: none;
+}
+
+.paint__tool--selected .paint__tool-icon {
+	left: 5px;
+	top: 5px;
+}
+
+.paint__tool-options {
+	display: flex;
+	align-items: center;
+	justify-content: space-evenly;
+	width: 41px;
+	height: 66px;
+	margin-top: 3px;
+	box-sizing: border-box;
+	border: 1px solid var(--chrome-hi);
+	border-top-color: var(--chrome-lo);
+	border-left-color: var(--chrome-lo);
+}
+
+.paint__pen-dot {
+	display: block;
+	border-radius: 50%;
+	background: var(--chrome-text);
+}
+
+.paint__pen-dot--sm {
+	width: 1px;
+	height: 1px;
+}
+
+.paint__pen-dot--md {
+	width: 3px;
+	height: 3px;
+}
+
+.paint__pen-dot--lg {
+	width: 5px;
+	height: 5px;
+}
+
+.paint__pen-dot--on {
+	outline: 1px dotted var(--chrome-text);
+	outline-offset: 2px;
+}
+
+.paint__canvas-wrap {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	margin: 2px 2px 2px 0;
+	overflow: hidden;
+	background: #0a0a0a;
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-hi);
+	border-bottom: 1px solid var(--chrome-hi);
+}
+
+.paint__canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: fill;
+	pointer-events: none;
+	image-rendering: auto;
+}
+
+.paint__colors {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	height: var(--paint-colors-h);
+	padding: 4px 6px;
+	gap: 6px;
+	box-sizing: border-box;
+}
+
+.paint__current {
+	position: relative;
+	flex-shrink: 0;
+	width: 30px;
+	height: 31px;
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-face);
+	border-bottom: 1px solid var(--chrome-face);
+	box-shadow:
+		1px 1px 0 var(--chrome-hi),
+		inset 1px 1px 0 var(--chrome-lo);
+}
+
+.paint__swatch {
+	position: absolute;
+	width: 15px;
+	height: 15px;
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-hi);
+	border-bottom: 1px solid var(--chrome-hi);
+	box-shadow: inset 1px 1px 0 var(--chrome-lo);
+}
+
+.paint__swatch--bg {
+	right: 3px;
+	bottom: 3px;
+	background: #fff;
+}
+
+.paint__swatch--fg {
+	left: 2px;
+	top: 4px;
+	background: #000;
+	z-index: 1;
+}
+
+.paint__palette {
+	display: flex;
+	flex-flow: row wrap;
+	width: 224px; /* 14 * 16 */
+	height: 32px;
+}
+
+.paint__color {
+	box-sizing: border-box;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	padding: 0;
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-hi);
+	border-bottom: 1px solid var(--chrome-hi);
+	box-shadow: inset 1px 1px 0 var(--chrome-lo);
+	cursor: default;
+}
+
+.paint__status {
+	display: flex;
+	flex-shrink: 0;
+	align-items: stretch;
+	height: var(--paint-status-h);
+	padding: 2px;
+	gap: 2px;
+	box-sizing: border-box;
+	background: var(--chrome-face);
+}
+
+.paint__status-text,
+.paint__status-coords {
+	display: flex;
+	align-items: center;
+	padding: 0 4px;
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-hi);
+	border-bottom: 1px solid var(--chrome-hi);
+	overflow: hidden;
+	white-space: nowrap;
+	font-size: 11px;
+	line-height: 1;
+}
+
+.paint__status-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.paint__status-coords {
+	flex: 0 0 72px;
+	justify-content: flex-start;
+}

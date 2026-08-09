@@ -14,6 +14,28 @@
 	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
 }
 
+.desktop__deco {
+	position: absolute;
+	height: auto;
+	pointer-events: none;
+	user-select: none;
+}
+
+.desktop__branch {
+	top: -18%;
+	left: -22%;
+	width: min(720px, 62vw);
+	z-index: 0;
+}
+
+.desktop__thorn {
+	top: -32%;
+	left: -26%;
+	width: min(1280px, 110vw);
+	transform: rotate(10deg);
+	z-index: 1;
+}
+
 .chrome-raised {
 	border-top: 2px solid var(--chrome-hi);
 	border-left: 2px solid var(--chrome-hi);

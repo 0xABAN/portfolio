@@ -6,6 +6,9 @@ export type DesktopWindow = {
 	w: number;
 	h: number;
 	z: number;
+	src?: string;
+	kind?: "error" | "paint";
+	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
 };
@@ -16,6 +19,12 @@ export const TITLE_H = 22;
 /** pad+border+client margin — keep in sync with window.css */
 export const CHROME_X = 12;
 export const CHROME_Y = TITLE_H + 12;
+
+/** Paint chrome inside client — keep in sync with paint.css vars */
+const PAINT_INNER_X = 56;
+const PAINT_INNER_Y = 18;
+const PAINT_INNER_BOTTOM = 70;
+
 const STREET_RATIO = 2725 / 1539;
 const MARGIN = 24;
 const ALT_SIDE_FRAC = 0.42;
@@ -26,6 +35,15 @@ const ALT_FACE_CY = 0.32;
 const ALT_FACE_IN_BOX_X = 0.72;
 const ALT_FACE_IN_BOX_Y = 0.7;
 
+function paintCanvasSize(parent: Pick<DesktopWindow, "w" | "h">) {
+	return {
+		w: parent.w - CHROME_X - PAINT_INNER_X,
+		h: parent.h - CHROME_Y - PAINT_INNER_Y - PAINT_INNER_BOTTOM,
+		insetX: PAINT_INNER_X,
+		insetY: PAINT_INNER_Y,
+	};
+}
+
 function layoutMeWindow(
 	vw: number,
 	vh: number,
@@ -33,15 +51,17 @@ function layoutMeWindow(
 	const maxH = vh - TASKBAR_H - MARGIN * 2;
 	const maxW = vw - MARGIN * 2;
 
-	let clientH = maxH - CHROME_Y;
-	let clientW = clientH / STREET_RATIO;
-	if (clientW + CHROME_X > maxW) {
-		clientW = maxW - CHROME_X;
-		clientH = clientW * STREET_RATIO;
+	const chromeY = CHROME_Y + PAINT_INNER_Y + PAINT_INNER_BOTTOM;
+	const chromeX = CHROME_X + PAINT_INNER_X;
+	let canvasH = maxH - chromeY;
+	let canvasW = canvasH / STREET_RATIO;
+	if (canvasW + chromeX > maxW) {
+		canvasW = maxW - chromeX;
+		canvasH = canvasW * STREET_RATIO;
 	}
 
-	const w = Math.round(clientW + CHROME_X);
-	const h = Math.round(clientH + CHROME_Y);
+	const w = Math.round(canvasW + chromeX);
+	const h = Math.round(canvasH + chromeY);
 	const x = Math.round((vw - w) / 2);
 	const y = Math.round(MARGIN + (vh - TASKBAR_H - MARGIN * 2 - h) / 2);
 
@@ -73,8 +93,56 @@ export function clampToParent(
 	};
 }
 
-export function layoutPhotoStack(vw: number, vh: number): DesktopWindow[] {
-	const me = { id: "me", title: "me", z: 2, ...layoutMeWindow(vw, vh) };
+function layoutSquareWindow(
+	vw: number,
+	vh: number,
+): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+	const client = Math.round(
+		Math.min(360, Math.max(200, Math.min(vw, vh) * 0.28)),
+	);
+	const w = client + CHROME_X;
+	const h = client + CHROME_Y;
+	return {
+		w,
+		h,
+		x: MARGIN,
+		y: Math.round(vh - TASKBAR_H - h - MARGIN),
+	};
+}
+
+const ERR_W = 260;
+const ERR_H = 128;
+const ERR_CASCADE = 16;
+const ERR_COUNT = 6;
+const ERR_Y_NUDGE = 100;
+
+function layoutErrorStack(
+	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+): DesktopWindow[] {
+	const baseX = anchor.x + Math.round(anchor.w * 0.52);
+	const baseY = anchor.y + Math.round(anchor.h * 0.55) + ERR_Y_NUDGE;
+	return Array.from({ length: ERR_COUNT }, (_, i) => ({
+		id: `sysmsg-${i}`,
+		title: "System message",
+		kind: "error" as const,
+		x: baseX + i * ERR_CASCADE,
+		y: baseY + i * ERR_CASCADE,
+		w: ERR_W,
+		h: ERR_H,
+		z: 20 + i,
+	}));
+}
+
+export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
+	const me = {
+		id: "me",
+		title: "untitled - Paint",
+		z: 2,
+		kind: "paint" as const,
+		src: "/photos/street.jpg",
+		icon: "/paint/icon-16.png",
+		...layoutMeWindow(vw, vh),
+	};
 	return [
 		me,
 		{
@@ -84,6 +152,14 @@ export function layoutPhotoStack(vw: number, vh: number): DesktopWindow[] {
 			parentId: "me",
 			...layoutAltOnParent(me),
 		},
+		{
+			id: "new",
+			title: "beep boop",
+			z: 4,
+			src: "/photos/new.png",
+			...layoutSquareWindow(vw, vh),
+		},
+		...layoutErrorStack(me),
 	];
 }
 
@@ -91,11 +167,12 @@ export function altCropStyle(
 	child: Pick<DesktopWindow, "x" | "y">,
 	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ) {
+	const { w, h, insetX, insetY } = paintCanvasSize(parent);
 	return {
-		width: parent.w - CHROME_X,
-		height: parent.h - CHROME_Y,
-		left: parent.x - child.x,
-		top: parent.y - child.y,
+		width: w,
+		height: h,
+		left: parent.x - child.x + insetX,
+		top: parent.y - child.y + insetY,
 	};
 }
 

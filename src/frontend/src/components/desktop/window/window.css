@@ -13,7 +13,6 @@
 .win-titlebar {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	gap: 4px;
 	flex-shrink: 0;
 	height: 22px;
@@ -25,7 +24,17 @@
 	touch-action: none;
 }
 
+.win-titlebar__icon {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	image-rendering: pixelated;
+	pointer-events: none;
+}
+
 .win-titlebar__text {
+	flex: 1;
+	min-width: 0;
 	overflow: hidden;
 	font-weight: 700;
 	line-height: 1;

@@ -5,6 +5,7 @@ import "./window.css";
 
 type Props = {
 	title: string;
+	icon?: string;
 	x: number;
 	y: number;
 	w: number;
@@ -24,6 +25,7 @@ type DragOrigin = {
 
 export function Window({
 	title,
+	icon,
 	x,
 	y,
 	w,
@@ -76,6 +78,15 @@ export function Window({
 				onPointerUp={onTitlePointerUp}
 				onPointerCancel={onTitlePointerUp}
 			>
+				{icon ? (
+					// eslint-disable-next-line @next/next/no-img-element
+					<img
+						className="win-titlebar__icon"
+						src={icon}
+						alt=""
+						draggable={false}
+					/>
+				) : null}
 				<span className="win-titlebar__text">{title}</span>
 				<button
 					type="button"

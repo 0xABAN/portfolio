@@ -1,0 +1,68 @@
+.sysmsg {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 12px;
+	box-sizing: border-box;
+	padding: 14px 16px 12px;
+	background: var(--chrome-face);
+	color: var(--chrome-text);
+}
+
+.sysmsg__row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sysmsg__icon {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: #c00;
+	color: #fff;
+	font:
+		700 18px / 1 Tahoma,
+		"MS Sans Serif",
+		sans-serif;
+}
+
+.sysmsg__text {
+	font-size: 12px;
+	line-height: 1.3;
+}
+
+.sysmsg__actions {
+	display: flex;
+	justify-content: center;
+}
+
+.sysmsg__ok {
+	min-width: 72px;
+	height: 24px;
+	margin: 0;
+	padding: 0 14px;
+	background: var(--chrome-btn);
+	color: var(--chrome-text);
+	font: inherit;
+	font-size: 12px;
+	line-height: 1;
+	cursor: default;
+}
+
+.sysmsg__ok:active {
+	border-top-color: var(--chrome-lo);
+	border-left-color: var(--chrome-lo);
+	border-right-color: var(--chrome-hi);
+	border-bottom-color: var(--chrome-hi);
+}
+
+.sysmsg__ok:focus-visible {
+	outline: 1px dotted var(--chrome-text);
+	outline-offset: -4px;
+}
