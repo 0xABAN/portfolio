@@ -1,6 +1,8 @@
 export const GITHUB_USER = "0xABAN";
 export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
 
+export type NoteSegment = { t: string; href?: string };
+
 export type DesktopWindow = {
 	id: string;
 	title: string;
@@ -10,7 +12,8 @@ export type DesktopWindow = {
 	h: number;
 	z: number;
 	src?: string;
-	kind?: "error" | "paint" | "github";
+	segments?: readonly NoteSegment[];
+	kind?: "error" | "paint" | "github" | "notepad";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -169,8 +172,76 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			kind: "github" as const,
 			...layoutGitHubWindow(me),
 		},
+		...layoutNotepadStack(me, vh),
 		...layoutErrorStack(me),
 	];
+}
+
+const NOTE_W = 260;
+const NOTE_H = 280;
+/** Zig-zag offsets + content (left → right → left while stepping down) */
+const NOTES = [
+	{
+		title: "amazon.md",
+		src: "/photos/amazon.png",
+		segments: [{ t: "swe intern @ 'zon summer 2026" }],
+		x: 0,
+		y: 0,
+	},
+	{
+		title: "ibm.md",
+		src: "/photos/ibm.png",
+		segments: [{ t: "ai eng co-op 2025-2026" }],
+		x: 72,
+		y: 88,
+	},
+	{
+		title: "copycat.md",
+		segments: [
+			{ t: "mcp", href: `${GITHUB_URL}/copycat` },
+			{
+				t: " to copy sites' visuals as DESIGN.md's for later use. very useful :)",
+			},
+		],
+		x: 12,
+		y: 176,
+	},
+	{
+		title: "definitive_multiplayer.md",
+		src: "/photos/definitive-multiplayer.png",
+		segments: [
+			{
+				t: "terraria multiplayer add-on",
+				href: `${GITHUB_URL}/DefinitiveMultiplayer`,
+			},
+			{ t: " i built in a week, 1k+ downloads" },
+		],
+		x: 84,
+		y: 264,
+	},
+] as const;
+
+function layoutNotepadStack(
+	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+	vh: number,
+): DesktopWindow[] {
+	// Dangle into Paint from the left; last pad half-tucked under the taskbar
+	const last = NOTES[NOTES.length - 1]!;
+	const baseX = Math.round(anchor.x - NOTE_W);
+	const baseY = Math.round(vh - TASKBAR_H - NOTE_H / 2 - last.y);
+	return NOTES.map((note, i) => ({
+		id: `notepad-${i}`,
+		title: note.title,
+		segments: note.segments,
+		src: "src" in note ? note.src : undefined,
+		kind: "notepad" as const,
+		icon: "/icons/notepad.svg",
+		x: baseX + note.x,
+		y: baseY + note.y,
+		w: NOTE_W,
+		h: NOTE_H,
+		z: 6 + i,
+	}));
 }
 
 function layoutGitHubWindow(

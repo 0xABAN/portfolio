@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GitHubGraph } from "./GitHubGraph";
+import { Notepad } from "./Notepad";
 import { Paint } from "./paint/Paint";
 import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
@@ -46,6 +47,10 @@ function windowBody(
 
 	if (w.kind === "github") {
 		return <GitHubGraph />;
+	}
+
+	if (w.kind === "notepad") {
+		return <Notepad segments={w.segments} src={w.src} />;
 	}
 
 	if (w.src) {
