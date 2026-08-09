@@ -1,3 +1,6 @@
+export const GITHUB_USER = "0xABAN";
+export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
+
 export type DesktopWindow = {
 	id: string;
 	title: string;
@@ -74,7 +77,7 @@ function layoutAltOnParent(
 	const side = Math.round(Math.min(parent.w, parent.h) * ALT_SIDE_FRAC);
 	const faceX = parent.x + parent.w * ALT_FACE_CX;
 	const faceY = parent.y + parent.h * ALT_FACE_CY;
-	const x = Math.round(faceX - side * ALT_FACE_IN_BOX_X);
+	const x = Math.round(faceX - side * ALT_FACE_IN_BOX_X) + 40;
 	const y = Math.round(faceY - side * ALT_FACE_IN_BOX_Y);
 	return clampToParent({ x, y, w: side, h: side }, parent);
 }

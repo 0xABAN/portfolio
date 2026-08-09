@@ -54,15 +54,3 @@
 	line-height: 1;
 	cursor: default;
 }
-
-.sysmsg__ok:active {
-	border-top-color: var(--chrome-lo);
-	border-left-color: var(--chrome-lo);
-	border-right-color: var(--chrome-hi);
-	border-bottom-color: var(--chrome-hi);
-}
-
-.sysmsg__ok:focus-visible {
-	outline: 1px dotted var(--chrome-text);
-	outline-offset: -4px;
-}

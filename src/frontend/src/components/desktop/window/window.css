@@ -59,18 +59,6 @@
 	cursor: default;
 }
 
-.win-close:active {
-	border-top-color: var(--chrome-lo);
-	border-left-color: var(--chrome-lo);
-	border-right-color: var(--chrome-hi);
-	border-bottom-color: var(--chrome-hi);
-}
-
-.win-close:focus-visible {
-	outline: 1px dotted var(--chrome-text);
-	outline-offset: -3px;
-}
-
 .win__client {
 	position: relative;
 	flex: 1;

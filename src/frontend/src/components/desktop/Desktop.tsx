@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import { Paint } from "./paint/Paint";
 import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
@@ -17,6 +17,17 @@ import "./desktop.css";
 const DECOS = [
 	{ className: "desktop__deco desktop__branch", src: "/photos/branch.png" },
 	{ className: "desktop__deco desktop__thorn", src: "/photos/thorn.png" },
+] as const;
+
+const DESK_ICONS = [
+	{
+		id: "hollow-knight",
+		label: "Hollow Knight",
+		src: "/icons/games/hollow-knight.png",
+	},
+	{ id: "silksong", label: "Silksong", src: "/icons/games/silksong.png" },
+	{ id: "terraria", label: "Terraria", src: "/icons/games/terraria.png" },
+	{ id: "roblox", label: "Roblox", src: "/icons/games/roblox.png" },
 ] as const;
 
 function windowBody(
@@ -58,14 +69,10 @@ function windowBody(
 }
 
 export function Desktop() {
+	// page.tsx loads this with ssr:false, so window is available on first paint
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
-		layoutDesktop(1440, 900),
+		layoutDesktop(window.innerWidth, window.innerHeight),
 	);
-
-	useLayoutEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- measure window
-		setWindows(layoutDesktop(window.innerWidth, window.innerHeight));
-	}, []);
 
 	function closeWindow(id: string) {
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
@@ -117,6 +124,24 @@ export function Desktop() {
 					draggable={false}
 				/>
 			))}
+			<ul className="desktop__icons" aria-label="Desktop">
+				{DESK_ICONS.map((icon) => (
+					<li key={icon.id}>
+						<button type="button" className="desk-icon" title={icon.label}>
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img
+								className="desk-icon__img"
+								src={icon.src}
+								alt=""
+								width={64}
+								height={64}
+								draggable={false}
+							/>
+							<span className="desk-icon__label">{icon.label}</span>
+						</button>
+					</li>
+				))}
+			</ul>
 			{windows.map((w) => (
 				<Window
 					key={w.id}
