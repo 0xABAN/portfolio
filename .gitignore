@@ -58,3 +58,6 @@ tasks/
 
 .playwright-cli
 
+# llmwiki index (wiki/ is committed)
+.llmwiki/
+
