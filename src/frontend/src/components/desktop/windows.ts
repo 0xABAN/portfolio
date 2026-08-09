@@ -19,12 +19,12 @@ export type DesktopWindow = {
 	parentId?: string;
 };
 
-export const TASKBAR_H = 36;
-export const TITLE_H = 22;
+const TASKBAR_H = 36;
+const TITLE_H = 22;
 
 /** pad+border+client margin — keep in sync with window.css */
-export const CHROME_X = 12;
-export const CHROME_Y = TITLE_H + 12;
+const CHROME_X = 12;
+const CHROME_Y = TITLE_H + 12;
 
 /** Paint chrome inside client — keep in sync with paint.css vars */
 const PAINT_INNER_X = 56;
@@ -226,7 +226,8 @@ function layoutNotepadStack(
 	vh: number,
 ): DesktopWindow[] {
 	// Dangle into Paint from the left; last pad half-tucked under the taskbar
-	const last = NOTES[NOTES.length - 1]!;
+	const last = NOTES.at(-1);
+	if (!last) return [];
 	const baseX = Math.round(anchor.x - NOTE_W);
 	const baseY = Math.round(vh - TASKBAR_H - NOTE_H / 2 - last.y);
 	return NOTES.map((note, i) => ({

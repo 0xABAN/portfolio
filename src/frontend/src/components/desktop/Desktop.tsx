@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GitHubGraph } from "./GitHubGraph";
+import { Neko } from "./Neko";
 import { Notepad } from "./Notepad";
 import { Paint } from "./paint/Paint";
 import { SystemMessage } from "./SystemMessage";
@@ -162,13 +163,14 @@ export function Desktop() {
 					w={w.w}
 					h={w.h}
 					z={w.z}
-					onClose={() => closeWindow(w.id)}
-					onMove={(nx, ny) => moveWindow(w.id, nx, ny)}
+					onCloseAction={() => closeWindow(w.id)}
+					onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
 				>
 					{windowBody(w, windows, closeWindow)}
 				</Window>
 			))}
 			<Taskbar />
+			<Neko />
 		</div>
 	);
 }

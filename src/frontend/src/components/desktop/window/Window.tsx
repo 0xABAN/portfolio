@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import "./window.css";
 
 type Props = {
@@ -11,8 +11,9 @@ type Props = {
 	w: number;
 	h: number;
 	z: number;
-	onClose: () => void;
-	onMove: (x: number, y: number) => void;
+	/** Client callback — *Action suffix satisfies Next TS 71007 */
+	onCloseAction: () => void;
+	onMoveAction: (x: number, y: number) => void;
 	children?: ReactNode;
 };
 
@@ -31,11 +32,22 @@ export function Window({
 	w,
 	h,
 	z,
-	onClose,
-	onMove,
+	onCloseAction,
+	onMoveAction,
 	children,
 }: Props) {
+	const rootRef = useRef<HTMLElement>(null);
 	const drag = useRef<DragOrigin | null>(null);
+
+	useLayoutEffect(() => {
+		const el = rootRef.current;
+		if (!el) return;
+		el.style.left = `${x}px`;
+		el.style.top = `${y}px`;
+		el.style.width = `${w}px`;
+		el.style.height = `${h}px`;
+		el.style.zIndex = String(z);
+	}, [x, y, w, h, z]);
 
 	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
 		if ((e.target as HTMLElement).closest(".win-close")) return;
@@ -51,7 +63,7 @@ export function Window({
 	function onTitlePointerMove(e: React.PointerEvent<HTMLElement>) {
 		const d = drag.current;
 		if (!d) return;
-		onMove(
+		onMoveAction(
 			d.originX + (e.clientX - d.pointerX),
 			d.originY + (e.clientY - d.pointerY),
 		);
@@ -66,11 +78,7 @@ export function Window({
 	}
 
 	return (
-		<section
-			className="win"
-			aria-label={title}
-			style={{ left: x, top: y, width: w, height: h, zIndex: z }}
-		>
+		<section ref={rootRef} className="win" aria-label={title}>
 			<header
 				className="win-titlebar"
 				onPointerDown={onTitlePointerDown}
@@ -92,7 +100,7 @@ export function Window({
 					type="button"
 					className="win-close chrome-raised"
 					aria-label="Close"
-					onClick={onClose}
+					onClick={onCloseAction}
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					×

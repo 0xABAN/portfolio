@@ -97,7 +97,7 @@ export function Paint({ src }: Props) {
 					</div>
 				</div>
 
-				<div className="paint__canvas-wrap">
+				<div className="paint__canvas-wrap paint__sunken">
 					{/* eslint-disable-next-line @next/next/no-img-element */}
 					<img className="paint__canvas" src={src} alt="" draggable={false} />
 				</div>
@@ -105,15 +105,15 @@ export function Paint({ src }: Props) {
 
 			<div className="paint__colors" aria-label="Colors">
 				<div className="paint__current paint-dither" aria-hidden>
-					<span className="paint__swatch paint__swatch--bg" />
-					<span className="paint__swatch paint__swatch--fg" />
+					<span className="paint__swatch paint__swatch--bg paint__sunken" />
+					<span className="paint__swatch paint__swatch--fg paint__sunken" />
 				</div>
 				<div className="paint__palette">
 					{PALETTE.map((c) => (
 						<button
 							key={c}
 							type="button"
-							className="paint__color"
+							className="paint__color paint__sunken"
 							style={{ background: c }}
 							aria-label={c}
 						/>
@@ -122,10 +122,10 @@ export function Paint({ src }: Props) {
 			</div>
 
 			<div className="paint__status" role="status">
-				<span className="paint__status-text">
+				<span className="paint__status-text paint__sunken">
 					For Help, click Help Topics on the Help Menu.
 				</span>
-				<span className="paint__status-coords">70, 42</span>
+				<span className="paint__status-coords paint__sunken">70, 42</span>
 			</div>
 		</div>
 	);

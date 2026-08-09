@@ -101,13 +101,6 @@
 	pointer-events: none;
 }
 
-.paint__tool--selected {
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-hi);
-	border-bottom: 1px solid var(--chrome-hi);
-}
-
 .paint__tool--selected::before {
 	border-top: 1px solid var(--chrome-lo);
 	border-left: 1px solid var(--chrome-lo);
@@ -173,6 +166,15 @@
 	outline-offset: 2px;
 }
 
+/* 1px sunken bevel: canvas, swatches, status, selected tool */
+.paint__sunken,
+.paint__tool--selected {
+	border-top: 1px solid var(--chrome-lo);
+	border-left: 1px solid var(--chrome-lo);
+	border-right: 1px solid var(--chrome-hi);
+	border-bottom: 1px solid var(--chrome-hi);
+}
+
 .paint__canvas-wrap {
 	flex: 1;
 	min-width: 0;
@@ -180,10 +182,6 @@
 	margin: 2px 2px 2px 0;
 	overflow: hidden;
 	background: #0a0a0a;
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-hi);
-	border-bottom: 1px solid var(--chrome-hi);
 }
 
 .paint__canvas {
@@ -223,10 +221,6 @@
 	position: absolute;
 	width: 15px;
 	height: 15px;
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-hi);
-	border-bottom: 1px solid var(--chrome-hi);
 	box-shadow: inset 1px 1px 0 var(--chrome-lo);
 }
 
@@ -256,10 +250,6 @@
 	height: 16px;
 	margin: 0;
 	padding: 0;
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-hi);
-	border-bottom: 1px solid var(--chrome-hi);
 	box-shadow: inset 1px 1px 0 var(--chrome-lo);
 	cursor: default;
 }
@@ -280,10 +270,6 @@
 	display: flex;
 	align-items: center;
 	padding: 0 4px;
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-hi);
-	border-bottom: 1px solid var(--chrome-hi);
 	overflow: hidden;
 	white-space: nowrap;
 	font-size: 11px;

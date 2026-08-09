@@ -1,0 +1,14 @@
+title = "portfolio"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local build artifacts (never committed)"
+paths = [
+  '''(?i)/\.next/''',
+  '''(?i)/node_modules/''',
+  '''(?i)/\.git/''',
+  '''(?i)/dist/''',
+  '''(?i)/out/''',
+]
