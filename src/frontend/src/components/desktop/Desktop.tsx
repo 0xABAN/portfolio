@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GitHubGraph } from "./GitHubGraph";
 import { Paint } from "./paint/Paint";
 import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
@@ -41,6 +42,10 @@ function windowBody(
 
 	if (w.kind === "paint" && w.src) {
 		return <Paint src={w.src} />;
+	}
+
+	if (w.kind === "github") {
+		return <GitHubGraph />;
 	}
 
 	if (w.src) {

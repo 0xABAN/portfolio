@@ -10,7 +10,7 @@ export type DesktopWindow = {
 	h: number;
 	z: number;
 	src?: string;
-	kind?: "error" | "paint";
+	kind?: "error" | "paint" | "github";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -162,8 +162,31 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			src: "/photos/new.png",
 			...layoutSquareWindow(vw, vh),
 		},
+		{
+			id: "github",
+			title: `github - ${GITHUB_USER}`,
+			z: 5,
+			kind: "github" as const,
+			...layoutGitHubWindow(me),
+		},
 		...layoutErrorStack(me),
 	];
+}
+
+function layoutGitHubWindow(
+	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+	// ~13 weeks visible; full year scrolls horizontally
+	const w = 320;
+	const h = 200;
+	// Dangle off the right edge of Paint, vertically centered
+	const overlap = 48;
+	return {
+		w,
+		h,
+		x: Math.round(anchor.x + anchor.w - overlap),
+		y: Math.round(anchor.y + (anchor.h - h) / 2),
+	};
 }
 
 export function altCropStyle(
