@@ -58,7 +58,7 @@
 	left: 10px;
 	z-index: 2;
 	display: grid;
-	grid-template-columns: 96px 96px 96px;
+	grid-template-columns: 96px 96px;
 	grid-template-rows: repeat(4, auto);
 	gap: 14px 8px;
 	margin: 0;
@@ -94,9 +94,9 @@
 	grid-column: 2;
 	grid-row: 3;
 }
-.desk-icon-cell--c3r1 {
-	grid-column: 3;
-	grid-row: 1;
+.desk-icon-cell--c2r4 {
+	grid-column: 2;
+	grid-row: 4;
 }
 
 .desk-icon {

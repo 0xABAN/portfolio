@@ -96,7 +96,7 @@ const DESK_ICONS = [
 		id: "sunglasses",
 		label: "😎",
 		src: "/icons/folder-sunglasses.png",
-		cell: "desk-icon-cell--c3r1",
+		cell: "desk-icon-cell--c2r4",
 		open: "explorer" as const,
 	},
 ] as const;

@@ -125,7 +125,7 @@ export function clampToParent(
 
 const NOTE_W = 260;
 const NOTE_H = 280;
-const NOTE_STACK_LEFT = 20;
+const NOTE_STACK_LEFT = 120; // was 20; +100px left
 const NOTE_STACK_LIFT = 40;
 const NOTE_STEP_Y = 120;
 const BEEP_Y_FRAC = 0.18;
@@ -149,12 +149,12 @@ function layoutBeepBoop(
 	const client = 96;
 	const w = client + CHROME_X;
 	const h = client + CHROME_Y;
-	// Right-align with amazon.md (stack width)
+	// Right-align with amazon.md, then nudge right
 	const { baseX } = notepadStackOrigin(anchor, vh, 0);
 	return {
 		w,
 		h,
-		x: baseX + NOTE_W - w,
+		x: baseX + NOTE_W - w + 50,
 		y: Math.round(anchor.y + anchor.h * BEEP_Y_FRAC),
 	};
 }
@@ -165,7 +165,7 @@ const ERR_COUNT = 5;
 const ERR_STEP_X = 24;
 const ERR_WAVE_Y = 36;
 /** Gap past Paint’s right edge before the leftmost error dialog. */
-const ERR_PAINT_GAP = 22;
+const ERR_PAINT_GAP = 72; // +50px right
 
 /** Error snake right→left with a vertical ︶⁔︶ wave. */
 function layoutErrorStack(
@@ -356,7 +356,7 @@ function layoutTerminalWindow(
 	const w = Math.round(anchor.w * 1.3 * 0.85);
 	const h = Math.round(anchor.h * 0.7);
 	const { x, y } = clampWindowPos(
-		anchor.x + anchor.w,
+		anchor.x + anchor.w + 50,
 		Math.round(anchor.y + (anchor.h - h) / 2),
 		w,
 	);
