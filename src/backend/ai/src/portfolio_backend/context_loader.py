@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 # backend/context — two levels up from this file (…/src/portfolio_backend → …/backend)
 CONTEXT_DIR = Path(__file__).resolve().parents[2] / "context"
 
 _TEXT_SUFFIXES = {".md", ".txt", ".markdown"}
+# Re-stat at most this often — context files barely change at runtime
+_MTIME_TTL_S = 5.0
 
 _cache_key: tuple[tuple[str, float], ...] | None = None
 _cache_text: str = ""
+_cache_checked_at = 0.0
 
 
 def _iter_files() -> list[Path]:
@@ -25,7 +29,12 @@ def _iter_files() -> list[Path]:
 
 
 def load_system_prompt() -> str:
-    global _cache_key, _cache_text
+    global _cache_key, _cache_text, _cache_checked_at
+    now = time.monotonic()
+    if _cache_text and now - _cache_checked_at < _MTIME_TTL_S:
+        return _cache_text
+    _cache_checked_at = now
+
     files = _iter_files()
     key = tuple((str(p), p.stat().st_mtime) for p in files)
     if key == _cache_key and _cache_text:

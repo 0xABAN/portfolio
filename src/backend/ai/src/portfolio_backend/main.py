@@ -15,7 +15,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from portfolio_backend.chat import (
@@ -23,6 +23,7 @@ from portfolio_backend.chat import (
     MAX_OUTPUT_TOKENS,
     XAI_API_KEY,
     build_xai_messages,
+    close_http,
     estimate_text_tokens,
     parse_messages,
     stream_grok,
@@ -33,6 +34,13 @@ from portfolio_backend.limits import client_ip, remaining, try_consume
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "http://localhost:3000")
 
 app = FastAPI(title="portfolio-backend", version="0.1.0")
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    await close_http()
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in ALLOWED_ORIGIN.split(",") if o.strip()],
@@ -55,7 +63,7 @@ def _sse(event: str, data: dict) -> str:
 
 
 @app.post("/chat")
-async def chat(request: Request, body: ChatRequest) -> StreamingResponse:
+async def chat(request: Request, body: ChatRequest) -> Response:
     ip = client_ip(
         {k.lower(): v for k, v in request.headers.items()},
         request.client.host if request.client else None,
@@ -67,13 +75,10 @@ async def chat(request: Request, body: ChatRequest) -> StreamingResponse:
 
     system = load_system_prompt()
     xai_messages = build_xai_messages(system, parsed)
+    # system once + already-validated turns (avoid double-walking full payload)
     est_tokens = (
-        sum(
-            estimate_text_tokens(m["content"])
-            if isinstance(m.get("content"), str)
-            else 0
-            for m in xai_messages
-        )
+        estimate_text_tokens(system)
+        + sum(estimate_text_tokens(m["content"]) for m in parsed)
         + MAX_OUTPUT_TOKENS
     )
 
@@ -119,7 +124,10 @@ def main() -> None:
     import uvicorn
 
     host = os.getenv("HOST", "127.0.0.1")
-    port = int(os.getenv("PORT", "8000"))
+    try:
+        port = int(os.getenv("PORT", "8000") or "8000")
+    except ValueError:
+        port = 8000
     uvicorn.run("portfolio_backend.main:app", host=host, port=port, reload=True)
 
 

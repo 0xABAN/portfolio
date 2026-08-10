@@ -8,13 +8,24 @@ from collections import deque
 from datetime import date
 from threading import Lock
 
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
 # per visitor
-DAILY_IP_LIMIT = int(os.getenv("DAILY_IP_LIMIT", "10"))
+DAILY_IP_LIMIT = _env_int("DAILY_IP_LIMIT", 10)
 
 # global (whole process / whole key traffic through this app)
 # solid portfolio defaults — match xAI key qpm/tpm when you mint the key
-RPM_LIMIT = int(os.getenv("RPM_LIMIT", "15"))  # requests per minute
-TPM_LIMIT = int(os.getenv("TPM_LIMIT", "40000"))  # tokens per minute (est.)
+RPM_LIMIT = _env_int("RPM_LIMIT", 15)  # requests per minute
+TPM_LIMIT = _env_int("TPM_LIMIT", 40000)  # tokens per minute (est.)
 
 _lock = Lock()
 # ip -> (day_iso, count)
@@ -22,6 +33,7 @@ _counts: dict[str, tuple[str, int]] = {}
 # sliding 60s windows
 _req_times: deque[float] = deque()
 _token_events: deque[tuple[float, int]] = deque()  # (time, tokens)
+_used_tpm = 0
 
 
 def _today() -> str:
@@ -29,11 +41,18 @@ def _today() -> str:
 
 
 def _prune(now: float) -> None:
+    global _used_tpm
     cutoff = now - 60.0
     while _req_times and _req_times[0] < cutoff:
         _req_times.popleft()
     while _token_events and _token_events[0][0] < cutoff:
-        _token_events.popleft()
+        _, n = _token_events.popleft()
+        _used_tpm = max(0, _used_tpm - n)
+    # Drop stale daily counters from prior days
+    day = _today()
+    stale = [ip for ip, (d, _) in _counts.items() if d != day]
+    for ip in stale:
+        del _counts[ip]
 
 
 def remaining(ip: str) -> int:
@@ -49,13 +68,11 @@ def rpm_tpm_status() -> dict[str, int]:
     now = time.monotonic()
     with _lock:
         _prune(now)
-        used_rpm = len(_req_times)
-        used_tpm = sum(n for _, n in _token_events)
         return {
             "rpm_limit": RPM_LIMIT,
-            "rpm_used": used_rpm,
+            "rpm_used": len(_req_times),
             "tpm_limit": TPM_LIMIT,
-            "tpm_used": used_tpm,
+            "tpm_used": _used_tpm,
         }
 
 
@@ -65,6 +82,7 @@ def try_consume(ip: str, est_tokens: int) -> tuple[bool, int, str | None]:
     Returns (ok, remaining_daily, error_code).
     error_code: daily | rpm | tpm | None
     """
+    global _used_tpm
     if est_tokens < 0:
         est_tokens = 0
     day = _today()
@@ -75,8 +93,7 @@ def try_consume(ip: str, est_tokens: int) -> tuple[bool, int, str | None]:
         if len(_req_times) >= RPM_LIMIT:
             return False, remaining_unlocked(ip, day), "rpm"
 
-        used_tpm = sum(n for _, n in _token_events)
-        if used_tpm + est_tokens > TPM_LIMIT:
+        if _used_tpm + est_tokens > TPM_LIMIT:
             return False, remaining_unlocked(ip, day), "tpm"
 
         entry = _counts.get(ip)
@@ -92,6 +109,7 @@ def try_consume(ip: str, est_tokens: int) -> tuple[bool, int, str | None]:
         _req_times.append(now)
         if est_tokens:
             _token_events.append((now, est_tokens))
+            _used_tpm += est_tokens
         return True, DAILY_IP_LIMIT - count, None
 
 
