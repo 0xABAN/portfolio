@@ -289,6 +289,10 @@ export function Desktop() {
 					w={w.w}
 					h={w.h}
 					z={w.z}
+					// Nested crop + parent-of-nested need live React geometry while dragging
+					liveMove={Boolean(
+						w.parentId || windows.some((c) => c.parentId === w.id),
+					)}
 					onCloseAction={() => closeWindow(w.id)}
 					onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
 				>
