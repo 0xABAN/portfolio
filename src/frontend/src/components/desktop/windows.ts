@@ -104,7 +104,7 @@ function layoutAltOnParent(
 	const side = Math.round(Math.min(img.w, img.h) * ALT_SIDE_FRAC);
 	const faceX = img.x + img.w * ALT_FACE_CX;
 	const faceY = img.y + img.h * ALT_FACE_CY;
-	const x = Math.round(faceX - side * ALT_FACE_IN_BOX_X) + 40;
+	const x = Math.round(faceX - side * ALT_FACE_IN_BOX_X) + 20;
 	const y = Math.round(faceY - side * ALT_FACE_IN_BOX_Y);
 	return clampToParent({ x, y, w: side, h: side }, img);
 }
@@ -123,48 +123,59 @@ export function clampToParent(
 	};
 }
 
+const NOTE_W = 260;
+const NOTE_H = 280;
+const NOTE_STACK_LEFT = 20;
+const NOTE_STACK_LIFT = 40;
+const NOTE_STEP_Y = 120;
+const BEEP_Y_FRAC = 0.18;
+
+/** Notepad column origin (amazon.md at offset 0). */
+function notepadStackOrigin(
+	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+	vh: number,
+	lastY: number,
+) {
+	return {
+		baseX: Math.round(anchor.x - NOTE_W - NOTE_STACK_LEFT),
+		baseY: Math.round(vh - TASKBAR_H - NOTE_H / 2 - lastY - NOTE_STACK_LIFT),
+	};
+}
+
 function layoutBeepBoop(
 	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+	vh: number,
 ): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
 	const client = 96;
 	const w = client + CHROME_X;
 	const h = client + CHROME_Y;
-	// Left of Paint (toolbox clear), sits above notepad stack
+	// Right-align with amazon.md (stack width)
+	const { baseX } = notepadStackOrigin(anchor, vh, 0);
 	return {
 		w,
 		h,
-		x: Math.round(anchor.x - w - 14),
-		y: Math.round(anchor.y + anchor.h * 0.3 + 40),
+		x: baseX + NOTE_W - w,
+		y: Math.round(anchor.y + anchor.h * BEEP_Y_FRAC),
 	};
 }
 
 const ERR_W = 260;
 const ERR_H = 128;
-/** Doubled stack — new dialogs sit halfway between the old 7. */
 const ERR_COUNT = 14;
-/** Primary travel: right → left (half of prior 48 so span stays put). */
 const ERR_STEP_X = 24;
-/** Vertical amplitude of the ︶⁔︶ wave while sliding left. */
 const ERR_WAVE_Y = 36;
-/** How far the leftmost dialog overlaps Paint’s right edge. */
-const ERR_PAINT_OVERLAP = 98;
+/** Gap past Paint’s right edge before the leftmost error dialog. */
+const ERR_PAINT_GAP = 22;
 
-/**
- * Error snake right→left with a vertical wave (︶⁔︶).
- * Left tip slightly overlaps Paint; body sits up in the paint/terminal band.
- */
+/** Error snake right→left with a vertical ︶⁔︶ wave. */
 function layoutErrorStack(
 	paint: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ): DesktopWindow[] {
-	const paintRight = paint.x + paint.w;
-	// i = n-1 is leftmost — tuck it a bit over Paint’s right edge
-	const leftX = Math.round(paintRight - ERR_PAINT_OVERLAP);
+	const leftX = Math.round(paint.x + paint.w + ERR_PAINT_GAP);
 	const baseX = leftX + (ERR_COUNT - 1) * ERR_STEP_X;
-	// Low band — wave dips toward the taskbar
 	const baseY = Math.round(paint.y + paint.h * 0.86 - ERR_H / 2);
 
 	return Array.from({ length: ERR_COUNT }, (_, i) => {
-		// Full wave on the left; start at π/2 so the rightmost bump is only half
 		const t = i / (ERR_COUNT - 1);
 		const wave = Math.sin(Math.PI / 2 + t * Math.PI * 1.5);
 		return {
@@ -212,7 +223,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			title: "beep boop",
 			z: 4,
 			src: "/photos/beep-boop.gif",
-			...layoutBeepBoop(me),
+			...layoutBeepBoop(me, vh),
 		},
 		terminal,
 		{
@@ -227,23 +238,19 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	];
 }
 
-const NOTE_W = 260;
-const NOTE_H = 280;
-/** Zig-zag offsets + content (left → right → left while stepping down) */
+/** Zig-zag x offsets + content; y is i * NOTE_STEP_Y */
 const NOTES = [
 	{
 		title: "amazon.md",
 		src: "/photos/amazon.png",
-		segments: [{ t: "swe intern @ 'zon summer 2026" }],
+		segments: [{ t: "swe intern @ amazon summer 2026" }],
 		x: 0,
-		y: 0,
 	},
 	{
 		title: "ibm.md",
 		src: "/photos/ibm.png",
-		segments: [{ t: "ai eng co-op 2025-2026" }],
+		segments: [{ t: "ai eng co-op @ ibm 2025-2026" }],
 		x: 72,
-		y: 88,
 	},
 	{
 		title: "copycat.md",
@@ -254,7 +261,6 @@ const NOTES = [
 			},
 		],
 		x: 12,
-		y: 176,
 	},
 	{
 		title: "definitive_multiplayer.md",
@@ -267,7 +273,6 @@ const NOTES = [
 			{ t: " i built in a week, 1k+ downloads" },
 		],
 		x: 84,
-		y: 264,
 	},
 ] as const;
 
@@ -275,11 +280,8 @@ function layoutNotepadStack(
 	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 	vh: number,
 ): DesktopWindow[] {
-	// Dangle into Paint from the left; last pad half-tucked under the taskbar
-	const last = NOTES.at(-1);
-	if (!last) return [];
-	const baseX = Math.round(anchor.x - NOTE_W);
-	const baseY = Math.round(vh - TASKBAR_H - NOTE_H / 2 - last.y);
+	const lastY = (NOTES.length - 1) * NOTE_STEP_Y;
+	const { baseX, baseY } = notepadStackOrigin(anchor, vh, lastY);
 	return NOTES.map((note, i) => ({
 		id: `notepad-${i}`,
 		title: note.title,
@@ -288,7 +290,7 @@ function layoutNotepadStack(
 		kind: "notepad" as const,
 		icon: "/icons/notepad.svg",
 		x: baseX + note.x,
-		y: baseY + note.y,
+		y: baseY + i * NOTE_STEP_Y,
 		w: NOTE_W,
 		h: NOTE_H,
 		z: 6 + i,
