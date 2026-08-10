@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	DEFAULT_SIZE_INDEX,
 	DRAWABLE_TOOLS,
@@ -8,7 +8,6 @@ import {
 	PALETTE,
 	SIZE_DOT,
 	TOOLS,
-	type Coords,
 	type SizeIndex,
 	type ToolId,
 } from "./paintModel";
@@ -24,7 +23,7 @@ export function Paint({ src }: Props) {
 	const [fg, setFg] = useState<string>(PALETTE[0]);
 	const [bg, setBg] = useState<string>(PALETTE[14]);
 	const [sizeIndex, setSizeIndex] = useState<SizeIndex>(DEFAULT_SIZE_INDEX);
-	const [coords, setCoords] = useState<Coords | null>(null);
+	const coordsRef = useRef<HTMLSpanElement>(null);
 
 	const { canvasRef, wrapRef } = usePaintCanvas({
 		src,
@@ -32,7 +31,7 @@ export function Paint({ src }: Props) {
 		fg,
 		bg,
 		sizeIndex,
-		onCoordsAction: setCoords,
+		coordsEl: coordsRef,
 	});
 
 	return (
@@ -125,9 +124,7 @@ export function Paint({ src }: Props) {
 				<span className="paint__status-text paint__sunken">
 					For Help, click Help Topics on the Help Menu.
 				</span>
-				<span className="paint__status-coords paint__sunken">
-					{coords ? `${coords.x}, ${coords.y}` : ""}
-				</span>
+				<span ref={coordsRef} className="paint__status-coords paint__sunken" />
 			</div>
 		</div>
 	);

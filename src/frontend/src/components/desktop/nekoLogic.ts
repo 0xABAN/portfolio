@@ -63,6 +63,7 @@ const SPRITES: Record<string, readonly (readonly [number, number])[]> = {
 };
 
 const SPEED = 20;
+const TICK_MS = 100;
 const SCRATCH = new Set([
 	"scratchWallN",
 	"scratchWallS",
@@ -89,19 +90,25 @@ function moveDir(dx: number, dy: number, dist: number) {
 	return `${n}${s}${w}${e}` || "idle";
 }
 
-function pickIdleAnim(x: number, y: number) {
+function pickIdleAnim(x: number, y: number, vw: number, vh: number) {
 	const opts = ["sleeping", "scratchSelf"];
 	if (x < 32) opts.push("scratchWallW");
 	if (y < 32) opts.push("scratchWallN");
-	if (x > window.innerWidth - 32) opts.push("scratchWallE");
-	if (y > window.innerHeight - 32) opts.push("scratchWallS");
+	if (x > vw - 32) opts.push("scratchWallE");
+	if (y > vh - 32) opts.push("scratchWallS");
 	return opts[Math.floor(Math.random() * opts.length)] ?? "sleeping";
 }
 
-function stepIdle(idle: IdleState, x: number, y: number): [string, number] {
+function stepIdle(
+	idle: IdleState,
+	x: number,
+	y: number,
+	vw: number,
+	vh: number,
+): [string, number] {
 	idle.time += 1;
 	if (idle.time > 10 && Math.floor(Math.random() * 200) === 0 && !idle.anim) {
-		idle.anim = pickIdleAnim(x, y);
+		idle.anim = pickIdleAnim(x, y, vw, vh);
 	}
 
 	const anim = idle.anim;
@@ -139,8 +146,9 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 	let mouseY = 48;
 	let frameCount = 0;
 	const idle: IdleState = { time: 0, anim: null, frame: 0 };
-	let lastTs = 0;
-	let raf = 0;
+	let vw = window.innerWidth;
+	let vh = window.innerHeight;
+	let timer = 0;
 
 	const paint = (name: string, frame: number) => {
 		const [sx, sy] = cell(name, frame);
@@ -152,13 +160,15 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 	};
 
 	const tick = () => {
+		if (!el.isConnected || document.hidden) return;
 		frameCount += 1;
 		const dx = nekoX - mouseX;
 		const dy = nekoY - mouseY;
 		const dist = Math.hypot(dx, dy);
 
 		if (dist < SPEED || dist < 48) {
-			const [name, frame] = stepIdle(idle, nekoX, nekoY);
+			// Sleeping is long idle — skip most paint work while static idle sprite
+			const [name, frame] = stepIdle(idle, nekoX, nekoY, vw, vh);
 			paint(name, frame);
 			return;
 		}
@@ -175,8 +185,8 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		paint(moveDir(dx, dy, dist), frameCount);
 		nekoX -= (dx / dist) * SPEED;
 		nekoY -= (dy / dist) * SPEED;
-		nekoX = Math.min(Math.max(16, nekoX), window.innerWidth - 16);
-		nekoY = Math.min(Math.max(16, nekoY), window.innerHeight - 16);
+		nekoX = Math.min(Math.max(16, nekoX), vw - 16);
+		nekoY = Math.min(Math.max(16, nekoY), vh - 16);
 		place();
 	};
 
@@ -185,24 +195,29 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		mouseY = e.clientY;
 	};
 
-	const loop = (ts: number) => {
-		if (!el.isConnected) return;
-		if (!lastTs) lastTs = ts;
-		if (ts - lastTs > 100) {
-			lastTs = ts;
-			tick();
-		}
-		raf = requestAnimationFrame(loop);
+	const onResize = () => {
+		vw = window.innerWidth;
+		vh = window.innerHeight;
+	};
+
+	const onVis = () => {
+		// timer keeps running; tick no-ops while hidden
+		if (!document.hidden) tick();
 	};
 
 	el.style.backgroundImage = `url(${sheetUrl})`;
 	paint("idle", 0);
 	place();
-	document.addEventListener("mousemove", onMove);
-	raf = requestAnimationFrame(loop);
+	document.addEventListener("mousemove", onMove, { passive: true });
+	window.addEventListener("resize", onResize, { passive: true });
+	document.addEventListener("visibilitychange", onVis);
+	// Fixed 10Hz — no rAF tax at display refresh
+	timer = window.setInterval(tick, TICK_MS);
 
 	return () => {
-		cancelAnimationFrame(raf);
+		window.clearInterval(timer);
 		document.removeEventListener("mousemove", onMove);
+		window.removeEventListener("resize", onResize);
+		document.removeEventListener("visibilitychange", onVis);
 	};
 }

@@ -20,11 +20,16 @@ type Props = {
 	fg: string;
 	bg: string;
 	sizeIndex: SizeIndex;
-	/** *Action suffix satisfies Next TS 71007 */
-	onCoordsAction: (c: Coords | null) => void;
+	/** Status bar coords node — written imperatively (no React paint thrash). */
+	coordsEl: RefObject<HTMLElement | null>;
 };
 
-type StrokeCfg = Omit<Props, "src">;
+type StrokeCfg = {
+	tool: ToolId;
+	fg: string;
+	bg: string;
+	sizeIndex: SizeIndex;
+};
 
 type Stroke = {
 	lastX: number;
@@ -36,10 +41,10 @@ function canvasPoint(
 	canvas: HTMLCanvasElement,
 	clientX: number,
 	clientY: number,
+	rect: DOMRect,
 ): Coords {
-	const r = canvas.getBoundingClientRect();
-	const x = Math.floor(((clientX - r.left) * canvas.width) / r.width);
-	const y = Math.floor(((clientY - r.top) * canvas.height) / r.height);
+	const x = Math.floor(((clientX - rect.left) * canvas.width) / rect.width);
+	const y = Math.floor(((clientY - rect.top) * canvas.height) / rect.height);
 	return {
 		x: Math.max(0, Math.min(canvas.width - 1, x)),
 		y: Math.max(0, Math.min(canvas.height - 1, y)),
@@ -52,7 +57,7 @@ export function usePaintCanvas({
 	fg,
 	bg,
 	sizeIndex,
-	onCoordsAction,
+	coordsEl,
 }: Props): {
 	canvasRef: RefObject<HTMLCanvasElement | null>;
 	wrapRef: RefObject<HTMLDivElement | null>;
@@ -60,21 +65,18 @@ export function usePaintCanvas({
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-	const cfg = useRef<StrokeCfg>({
-		tool,
-		fg,
-		bg,
-		sizeIndex,
-		onCoordsAction,
-	});
+	const cfg = useRef<StrokeCfg>({ tool, fg, bg, sizeIndex });
 	const strokeRef = useRef<Stroke | null>(null);
 	const undoStack = useRef<ImageData[]>([]);
 	const readyRef = useRef(false);
 	const lastCoords = useRef<Coords | null>(null);
+	const rectRef = useRef<DOMRect | null>(null);
+	const coordsElRef = useRef(coordsEl);
 
 	useEffect(() => {
-		cfg.current = { tool, fg, bg, sizeIndex, onCoordsAction };
-	}, [tool, fg, bg, sizeIndex, onCoordsAction]);
+		cfg.current = { tool, fg, bg, sizeIndex };
+		coordsElRef.current = coordsEl;
+	}, [tool, fg, bg, sizeIndex, coordsEl]);
 
 	function emitCoords(c: Coords | null) {
 		const prev = lastCoords.current;
@@ -84,7 +86,8 @@ export function usePaintCanvas({
 			return;
 		}
 		lastCoords.current = c;
-		cfg.current.onCoordsAction(c);
+		const el = coordsElRef.current.current;
+		if (el) el.textContent = c ? `${c.x}, ${c.y}` : "";
 	}
 
 	function pushUndo(ctx: CanvasRenderingContext2D) {
@@ -109,7 +112,8 @@ export function usePaintCanvas({
 		const h = Math.max(1, wrap.clientHeight);
 		canvas.width = w;
 		canvas.height = h;
-		const ctx = canvas.getContext("2d", { willReadFrequently: true });
+		// willReadFrequently only helps color-eraser getImageData; default is faster for draw
+		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 		ctx.imageSmoothingEnabled = false;
 		ctxRef.current = ctx;
@@ -144,6 +148,16 @@ export function usePaintCanvas({
 		if (!el) return;
 		const canvas: HTMLCanvasElement = el;
 
+		const refreshRect = () => {
+			rectRef.current = canvas.getBoundingClientRect();
+		};
+		refreshRect();
+
+		function point(e: PointerEvent): Coords {
+			const r = rectRef.current ?? canvas.getBoundingClientRect();
+			return canvasPoint(canvas, e.clientX, e.clientY, r);
+		}
+
 		function onPointerDown(e: PointerEvent) {
 			if (e.button !== 0 && e.button !== 2) return;
 			if (!readyRef.current) return;
@@ -157,17 +171,18 @@ export function usePaintCanvas({
 			if (!ctx) return;
 
 			e.preventDefault();
+			refreshRect();
 			canvas.setPointerCapture(e.pointerId);
 			pushUndo(ctx);
 
-			const { x, y } = canvasPoint(canvas, e.clientX, e.clientY);
+			const { x, y } = point(e);
 			paintSegment(ctx, x, y, x, y, style);
 			strokeRef.current = { lastX: x, lastY: y, style };
 			emitCoords({ x, y });
 		}
 
 		function onPointerMove(e: PointerEvent) {
-			const { x, y } = canvasPoint(canvas, e.clientX, e.clientY);
+			const { x, y } = point(e);
 			emitCoords({ x, y });
 
 			const stroke = strokeRef.current;
@@ -222,6 +237,7 @@ export function usePaintCanvas({
 		canvas.addEventListener("pointerleave", onPointerLeave);
 		canvas.addEventListener("contextmenu", onContextMenu);
 		window.addEventListener("keydown", onKey);
+		window.addEventListener("resize", refreshRect);
 
 		return () => {
 			canvas.removeEventListener("pointerdown", onPointerDown);
@@ -231,6 +247,7 @@ export function usePaintCanvas({
 			canvas.removeEventListener("pointerleave", onPointerLeave);
 			canvas.removeEventListener("contextmenu", onContextMenu);
 			window.removeEventListener("keydown", onKey);
+			window.removeEventListener("resize", refreshRect);
 		};
 	}, []);
 

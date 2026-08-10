@@ -80,20 +80,12 @@ function stampCircle(
 		stampPencil(ctx, cx, cy, color);
 		return;
 	}
-	const left = Math.round(cx - size / 2);
-	const top = Math.round(cy - size / 2);
+	// Single path fill — same visual, far cheaper than per-pixel fillRect
 	const r = size / 2;
-	const rr = r * r;
 	ctx.fillStyle = color;
-	for (let y = 0; y < size; y++) {
-		for (let x = 0; x < size; x++) {
-			const dx = x + 0.5 - r;
-			const dy = y + 0.5 - r;
-			if (dx * dx + dy * dy <= rr) {
-				ctx.fillRect(left + x, top + y, 1, 1);
-			}
-		}
-	}
+	ctx.beginPath();
+	ctx.arc(cx + 0.5, cy + 0.5, r, 0, Math.PI * 2);
+	ctx.fill();
 }
 
 /** jspaint get_rect: ceil(x - size/2) square */

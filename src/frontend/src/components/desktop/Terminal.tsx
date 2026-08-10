@@ -41,7 +41,7 @@ function prefersReducedMotion() {
 	);
 }
 
-/** ms between chars; spaces use spaceMs when provided */
+/** ms between chars; spaces use spaceMs when provided. Batches React ticks. */
 async function typewrite(
 	text: string,
 	onTick: (full: string) => void,
@@ -49,16 +49,27 @@ async function typewrite(
 	charMs: number,
 	spaceMs?: number,
 ) {
-	let out = "";
 	const instant = prefersReducedMotion();
+	if (instant) {
+		onTick(text);
+		return;
+	}
+	let out = "";
 	const gapSpace = spaceMs ?? charMs;
+	// Commit ~every 2–3 chars instead of every keystroke
+	const BATCH = 3;
+	let sinceFlush = 0;
 	for (const ch of text) {
 		if (!alive()) return;
 		out += ch;
-		onTick(out);
-		if (instant) continue;
+		sinceFlush += 1;
+		if (sinceFlush >= BATCH || ch === " ") {
+			onTick(out);
+			sinceFlush = 0;
+		}
 		await sleep(ch === " " ? gapSpace : charMs);
 	}
+	if (sinceFlush) onTick(out);
 }
 
 async function streamChat(

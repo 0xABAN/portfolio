@@ -47,21 +47,23 @@ export function GitHubGraph() {
 
 		const tick = () => {
 			if (stopped) return;
+			if (document.hidden) {
+				timer = window.setTimeout(tick, 800);
+				return;
+			}
 			const all = root.querySelectorAll<SVGRectElement>(
 				".react-activity-calendar__calendar rect[data-level]",
 			);
 			if (all.length === 0) {
-				timer = window.setTimeout(tick, 120);
+				timer = window.setTimeout(tick, 200);
 				return;
 			}
 			const active = Array.from(all).filter((e) => Number(e.dataset.level) > 0);
-			const n = 1 + Math.floor(Math.random() * 2);
-			for (let i = 0; i < n; i++) {
-				const pool = active.length > 0 && Math.random() < 0.75 ? active : all;
-				const el = pool[Math.floor(Math.random() * pool.length)];
-				if (el) pop(el);
-			}
-			timer = window.setTimeout(tick, 60 + 140 * Math.random());
+			const pool = active.length > 0 && Math.random() < 0.75 ? active : all;
+			const el = pool[Math.floor(Math.random() * pool.length)];
+			if (el) pop(el);
+			// ~3–5 Hz instead of ~6–12 Hz
+			timer = window.setTimeout(tick, 200 + 180 * Math.random());
 		};
 
 		tick();

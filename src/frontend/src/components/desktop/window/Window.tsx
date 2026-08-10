@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { memo, useLayoutEffect, useRef, type ReactNode } from "react";
 import "./window.css";
 
 type Props = {
@@ -13,6 +13,7 @@ type Props = {
 	z: number;
 	/** Client callback — *Action suffix satisfies Next TS 71007 */
 	onCloseAction: () => void;
+	/** Commit final geometry (clamping / children live here). */
 	onMoveAction: (x: number, y: number) => void;
 	children?: ReactNode;
 };
@@ -24,7 +25,7 @@ type DragOrigin = {
 	originY: number;
 };
 
-export function Window({
+function WindowInner({
 	title,
 	icon,
 	x,
@@ -40,6 +41,8 @@ export function Window({
 	const drag = useRef<DragOrigin | null>(null);
 
 	useLayoutEffect(() => {
+		// Don't fight an in-progress drag (DOM is source of truth mid-drag)
+		if (drag.current) return;
 		const el = rootRef.current;
 		if (!el) return;
 		el.style.left = `${x}px`;
@@ -52,29 +55,37 @@ export function Window({
 	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
 		if ((e.target as HTMLElement).closest(".win-close")) return;
 		e.currentTarget.setPointerCapture(e.pointerId);
+		const el = rootRef.current;
+		const originX = el ? el.offsetLeft : x;
+		const originY = el ? el.offsetTop : y;
 		drag.current = {
 			pointerX: e.clientX,
 			pointerY: e.clientY,
-			originX: x,
-			originY: y,
+			originX,
+			originY,
 		};
 	}
 
 	function onTitlePointerMove(e: React.PointerEvent<HTMLElement>) {
 		const d = drag.current;
-		if (!d) return;
-		onMoveAction(
-			d.originX + (e.clientX - d.pointerX),
-			d.originY + (e.clientY - d.pointerY),
-		);
+		const el = rootRef.current;
+		if (!d || !el) return;
+		// Live DOM only — avoids re-rendering the whole desktop every move
+		el.style.left = `${d.originX + (e.clientX - d.pointerX)}px`;
+		el.style.top = `${d.originY + (e.clientY - d.pointerY)}px`;
 	}
 
 	function onTitlePointerUp(e: React.PointerEvent<HTMLElement>) {
-		if (!drag.current) return;
+		const d = drag.current;
+		if (!d) return;
 		drag.current = null;
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
+		const el = rootRef.current;
+		const nx = el ? el.offsetLeft : d.originX + (e.clientX - d.pointerX);
+		const ny = el ? el.offsetTop : d.originY + (e.clientY - d.pointerY);
+		onMoveAction(nx, ny);
 	}
 
 	return (
@@ -101,7 +112,7 @@ export function Window({
 					className="win-close chrome-raised"
 					aria-label="Close"
 					onClick={onCloseAction}
-					onPointerDown={(e) => e.stopPropagation()}
+					onPointerDown={(ev) => ev.stopPropagation()}
 				>
 					×
 				</button>
@@ -110,3 +121,5 @@ export function Window({
 		</section>
 	);
 }
+
+export const Window = memo(WindowInner);
