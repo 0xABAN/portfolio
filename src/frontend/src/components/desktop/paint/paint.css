@@ -45,7 +45,7 @@
 
 .paint__menu-item {
 	padding: 2px 6px 3px;
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 }
 
 .paint__menu-hot {
@@ -87,7 +87,7 @@
 	border-right: 1px solid var(--chrome-lo);
 	border-bottom: 1px solid var(--chrome-lo);
 	background: var(--chrome-btn);
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 }
 
 .paint__tool::before {
@@ -142,28 +142,40 @@
 
 .paint__pen-dot {
 	display: block;
+	margin: 0;
+	padding: 4px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	cursor: var(--cursor-arrow);
+	box-sizing: content-box;
+}
+
+.paint__pen-dot::before {
+	content: "";
+	display: block;
 	border-radius: 50%;
 	background: var(--chrome-text);
 }
 
-.paint__pen-dot--sm {
+.paint__pen-dot--sm::before {
 	width: 1px;
 	height: 1px;
 }
 
-.paint__pen-dot--md {
+.paint__pen-dot--md::before {
 	width: 3px;
 	height: 3px;
 }
 
-.paint__pen-dot--lg {
+.paint__pen-dot--lg::before {
 	width: 5px;
 	height: 5px;
 }
 
 .paint__pen-dot--on {
 	outline: 1px dotted var(--chrome-text);
-	outline-offset: 2px;
+	outline-offset: 0;
 }
 
 /* 1px sunken bevel: canvas, swatches, status, selected tool */
@@ -188,9 +200,9 @@
 	display: block;
 	width: 100%;
 	height: 100%;
-	object-fit: fill;
-	pointer-events: none;
-	image-rendering: auto;
+	cursor: var(--cursor-arrow);
+	touch-action: none;
+	image-rendering: pixelated;
 }
 
 .paint__colors {
@@ -251,7 +263,7 @@
 	margin: 0;
 	padding: 0;
 	box-shadow: inset 1px 1px 0 var(--chrome-lo);
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 }
 
 .paint__status {
