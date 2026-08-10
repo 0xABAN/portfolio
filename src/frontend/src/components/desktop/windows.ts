@@ -161,7 +161,7 @@ function layoutBeepBoop(
 
 const ERR_W = 260;
 const ERR_H = 128;
-const ERR_COUNT = 14;
+const ERR_COUNT = 5;
 const ERR_STEP_X = 24;
 const ERR_WAVE_Y = 36;
 /** Gap past Paint’s right edge before the leftmost error dialog. */

@@ -9,4 +9,5 @@
 	image-rendering: pixelated;
 	background-repeat: no-repeat;
 	will-change: transform;
+	filter: invert(1);
 }
