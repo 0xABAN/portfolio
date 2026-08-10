@@ -60,10 +60,14 @@ export const PLAYLIST: readonly Track[] = [
 ] as const;
 
 export function trackAt(i: number): Track {
-	const t = PLAYLIST[i];
-	if (t) return t;
-	// PLAYLIST is non-empty
-	return PLAYLIST[0] as Track;
+	const n = PLAYLIST.length;
+	if (n === 0) {
+		throw new Error("playlist is empty");
+	}
+	const idx = ((i % n) + n) % n;
+	const t = PLAYLIST[idx];
+	if (!t) throw new Error("playlist is empty");
+	return t;
 }
 
 export function formatElapsed(sec: number) {

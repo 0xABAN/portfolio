@@ -20,23 +20,31 @@ async function viaProduction(
 	method: "GET" | "POST",
 	headers?: { userAgent?: string; ip?: string },
 ): Promise<number> {
-	const h = new Headers();
-	if (headers?.userAgent) h.set("user-agent", headers.userAgent);
-	if (headers?.ip) h.set("x-forwarded-for", headers.ip);
-	const res = await fetch(PROD_VIEWS, {
-		method,
-		headers: h,
-		cache: "no-store",
-	});
-	if (!res.ok) return 0;
-	const data = (await res.json()) as { count?: number };
-	return typeof data.count === "number" ? data.count : 0;
+	try {
+		const h = new Headers();
+		if (headers?.userAgent) h.set("user-agent", headers.userAgent);
+		if (headers?.ip) h.set("x-forwarded-for", headers.ip);
+		const res = await fetch(PROD_VIEWS, {
+			method,
+			headers: h,
+			cache: "no-store",
+		});
+		if (!res.ok) return 0;
+		const data = (await res.json()) as { count?: number };
+		return typeof data.count === "number" ? data.count : 0;
+	} catch {
+		return 0;
+	}
 }
 
 export async function getViewCount(): Promise<number> {
 	const redis = client();
 	if (!redis) return viaProduction("GET");
-	return (await redis.get<number>(KEY)) ?? 0;
+	try {
+		return (await redis.get<number>(KEY)) ?? 0;
+	} catch {
+		return 0;
+	}
 }
 
 export async function recordView({
@@ -60,12 +68,16 @@ export async function recordView({
 		return getViewCount();
 	}
 
-	const dedupKey = `portfolio:views:seen:${ip}`;
-	const isNew = await redis.set(dedupKey, 1, { nx: true, ex: 3600 });
+	try {
+		const dedupKey = `portfolio:views:seen:${ip}`;
+		const isNew = await redis.set(dedupKey, 1, { nx: true, ex: 3600 });
 
-	if (isNew !== null) {
-		return await redis.incr(KEY);
+		if (isNew !== null) {
+			return redis.incr(KEY);
+		}
+
+		return getViewCount();
+	} catch {
+		return getViewCount();
 	}
-
-	return getViewCount();
 }

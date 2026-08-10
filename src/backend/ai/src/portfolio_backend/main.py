@@ -62,6 +62,20 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+async def _chat_sse(
+    xai_messages: list[dict[str, Any]],
+    left: int,
+) -> AsyncIterator[bytes]:
+    try:
+        async for token in stream_grok(xai_messages):
+            yield _sse("token", {"content": token}).encode("utf-8")
+        yield _sse("done", {"remaining": left}).encode("utf-8")
+    except Exception as e:
+        raw = getattr(e, "detail", None)
+        detail = raw if isinstance(raw, str) else str(e)
+        yield _sse("error", {"detail": detail}).encode("utf-8")
+
+
 @app.post("/chat")
 async def chat(request: Request, body: ChatRequest) -> Response:
     ip = client_ip(
@@ -89,19 +103,8 @@ async def chat(request: Request, body: ChatRequest) -> Response:
             content={"detail": BROKE_MSG, "remaining": left},
         )
 
-    async def events() -> AsyncIterator[bytes]:
-        try:
-            async for token in stream_grok(xai_messages):
-                yield _sse("token", {"content": token}).encode("utf-8")
-            yield _sse("done", {"remaining": left}).encode("utf-8")
-        except Exception as e:
-            detail = getattr(e, "detail", None) or str(e)
-            if not isinstance(detail, str):
-                detail = str(detail)
-            yield _sse("error", {"detail": detail}).encode("utf-8")
-
     return StreamingResponse(
-        events(),
+        _chat_sse(xai_messages, left),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
