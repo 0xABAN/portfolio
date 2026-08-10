@@ -52,5 +52,5 @@
 	font: inherit;
 	font-size: 12px;
 	line-height: 1;
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 }

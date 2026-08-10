@@ -1,10 +1,11 @@
 import "./system-message.css";
 
 type Props = {
-	onOk: () => void;
+	/** *Action suffix satisfies Next TS 71007 */
+	onOkAction: () => void;
 };
 
-export function SystemMessage({ onOk }: Props) {
+export function SystemMessage({ onOkAction }: Props) {
 	return (
 		<div className="sysmsg">
 			<div className="sysmsg__row">
@@ -17,7 +18,7 @@ export function SystemMessage({ onOk }: Props) {
 				<button
 					type="button"
 					className="sysmsg__ok chrome-raised"
-					onClick={onOk}
+					onClick={onOkAction}
 				>
 					Ok
 				</button>

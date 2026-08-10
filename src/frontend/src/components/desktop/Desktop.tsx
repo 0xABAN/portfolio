@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Bio } from "./Bio";
+import { Explorer } from "./explorer/Explorer";
+import type { ExplorerFile } from "./explorer/explorerData";
 import { GitHubGraph } from "./GitHubGraph";
 import { Neko } from "./Neko";
 import { Notepad } from "./Notepad";
@@ -13,16 +15,31 @@ import { Window } from "./window/Window";
 import {
 	altCropStyle,
 	clampToParent,
+	paintImageBounds,
 	clampWindowPos,
 	layoutDesktop,
 	makeBioWindow,
+	makeExplorerWindow,
 	type DesktopWindow,
 } from "./windows";
 import "./desktop.css";
 
 const DECOS = [
-	{ className: "desktop__deco desktop__branch", src: "/photos/branch.png" },
-	{ className: "desktop__deco desktop__thorn", src: "/photos/thorn.png" },
+	{
+		id: "branch",
+		className: "desktop__deco desktop__branch",
+		src: "/photos/branch.png",
+	},
+	{
+		id: "thorn-tl",
+		className: "desktop__deco desktop__thorn",
+		src: "/photos/thorn.png",
+	},
+	{
+		id: "thorn-br",
+		className: "desktop__deco desktop__thorn-br",
+		src: "/photos/thorn.png",
+	},
 ] as const;
 
 const DESK_ICONS = [
@@ -32,43 +49,55 @@ const DESK_ICONS = [
 		label: "Hollow Knight",
 		src: "/icons/games/hollow-knight.png",
 		cell: "desk-icon-cell--c1r1",
+		href: "https://store.steampowered.com/app/367520/Hollow_Knight/",
 	},
 	{
 		id: "silksong",
 		label: "Silksong",
 		src: "/icons/games/silksong.png",
 		cell: "desk-icon-cell--c1r2",
+		href: "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/",
 	},
 	{
 		id: "terraria",
 		label: "Terraria",
 		src: "/icons/games/terraria.png",
 		cell: "desk-icon-cell--c1r3",
+		href: "https://store.steampowered.com/app/105600/Terraria/",
 	},
 	{
 		id: "roblox",
 		label: "Roblox",
 		src: "/icons/games/roblox.png",
 		cell: "desk-icon-cell--c1r4",
+		href: "https://www.roblox.com/",
 	},
 	{
 		id: "persona-3-reload",
 		label: "Persona 3 Reload",
 		src: "/icons/games/persona-3-reload.png",
 		cell: "desk-icon-cell--c2r1",
+		href: "https://store.steampowered.com/app/2161700/Persona_3_Reload/",
 	},
 	{
 		id: "persona-5-royal",
 		label: "Persona 5 Royal",
 		src: "/icons/games/persona-5-royal.png",
 		cell: "desk-icon-cell--c2r2",
+		href: "https://store.steampowered.com/app/1687950/Persona_5_Royal/",
 	},
 	{
-		id: "bio",
-		label: "bio.txt",
-		src: "/icons/notepad.svg",
+		id: "homework",
+		label: "homework",
+		src: "/icons/folder.png",
 		cell: "desk-icon-cell--c2r3",
-		open: "bio" as const,
+	},
+	{
+		id: "sunglasses",
+		label: "😎",
+		src: "/icons/folder-sunglasses.png",
+		cell: "desk-icon-cell--c3r1",
+		open: "explorer" as const,
 	},
 ] as const;
 
@@ -76,9 +105,10 @@ function windowBody(
 	w: DesktopWindow,
 	all: DesktopWindow[],
 	onClose: (id: string) => void,
+	onOpenExplorerFile: (file: ExplorerFile) => void,
 ) {
 	if (w.kind === "error") {
-		return <SystemMessage onOk={() => onClose(w.id)} />;
+		return <SystemMessage onOkAction={() => onClose(w.id)} />;
 	}
 
 	if (w.kind === "paint" && w.src) {
@@ -99,6 +129,10 @@ function windowBody(
 
 	if (w.kind === "bio") {
 		return <Bio />;
+	}
+
+	if (w.kind === "explorer") {
+		return <Explorer onOpenFileAction={onOpenExplorerFile} />;
 	}
 
 	if (w.src) {
@@ -136,15 +170,31 @@ export function Desktop() {
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
 	}
 
-	function openBio() {
+	function nextZ(prev: DesktopWindow[]) {
+		return prev.reduce((z, w) => Math.max(z, w.z), 0) + 1;
+	}
+
+	function openOrRaise(id: string, make: (z: number) => DesktopWindow) {
 		setWindows((prev) => {
-			const maxZ = prev.reduce((z, w) => Math.max(z, w.z), 0);
-			const existing = prev.find((w) => w.id === "bio");
-			if (existing) {
-				return prev.map((w) => (w.id === "bio" ? makeBioWindow(maxZ + 1) : w));
+			const z = nextZ(prev);
+			if (prev.some((w) => w.id === id)) {
+				return prev.map((w) => (w.id === id ? make(z) : w));
 			}
-			return [...prev, makeBioWindow(maxZ + 1)];
+			return [...prev, make(z)];
 		});
+	}
+
+	function openBio() {
+		openOrRaise("bio", makeBioWindow);
+	}
+
+	function openExplorer() {
+		openOrRaise("explorer", makeExplorerWindow);
+	}
+
+	function openExplorerFile(file: ExplorerFile) {
+		if (file.action === "bio") openBio();
+		else window.open(file.href, "_blank", "noopener,noreferrer");
 	}
 
 	function moveWindow(id: string, x: number, y: number) {
@@ -155,7 +205,10 @@ export function Desktop() {
 			if (target.parentId) {
 				const parent = prev.find((w) => w.id === target.parentId);
 				if (!parent) return prev;
-				const next = clampToParent({ x, y, w: target.w, h: target.h }, parent);
+				// Nested alt stays over the Paint image, not the whole window chrome
+				const bounds =
+					parent.kind === "paint" ? paintImageBounds(parent) : parent;
+				const next = clampToParent({ x, y, w: target.w, h: target.h }, bounds);
 				if (next.x === target.x && next.y === target.y) return prev;
 				return prev.map((w) =>
 					w.id === id ? { ...w, x: next.x, y: next.y } : w,
@@ -170,9 +223,14 @@ export function Desktop() {
 			return prev.map((w) => {
 				if (w.id === id) return { ...w, x: next.x, y: next.y };
 				if (w.parentId === id) {
+					const movedParent = { ...target, x: next.x, y: next.y };
+					const bounds =
+						target.kind === "paint"
+							? paintImageBounds(movedParent)
+							: movedParent;
 					const moved = clampToParent(
 						{ x: w.x + dx, y: w.y + dy, w: w.w, h: w.h },
-						{ ...target, x: next.x, y: next.y },
+						bounds,
 					);
 					return { ...w, x: moved.x, y: moved.y };
 				}
@@ -186,7 +244,7 @@ export function Desktop() {
 			{DECOS.map((d) => (
 				// eslint-disable-next-line @next/next/no-img-element
 				<img
-					key={d.src}
+					key={d.id}
 					className={d.className}
 					src={d.src}
 					alt=""
@@ -200,9 +258,12 @@ export function Desktop() {
 							type="button"
 							className="desk-icon"
 							title={icon.label}
-							onClick={
-								"open" in icon && icon.open === "bio" ? openBio : undefined
-							}
+							onClick={() => {
+								if ("open" in icon && icon.open === "explorer") openExplorer();
+								else if ("href" in icon && icon.href) {
+									window.open(icon.href, "_blank", "noopener,noreferrer");
+								}
+							}}
 						>
 							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img
@@ -231,7 +292,7 @@ export function Desktop() {
 					onCloseAction={() => closeWindow(w.id)}
 					onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
 				>
-					{windowBody(w, windows, closeWindow)}
+					{windowBody(w, windows, closeWindow, openExplorerFile)}
 				</Window>
 			))}
 			<Taskbar />

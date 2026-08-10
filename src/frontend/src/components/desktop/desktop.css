@@ -5,6 +5,8 @@
 	--chrome-hi: #5a5a5a;
 	--chrome-lo: #000000;
 	--chrome-text: #f0f0f0;
+	/* classic Win9x arrow — hotspot 0,0 */
+	--cursor-arrow: url("/cursors/arrow.cur") 0 0, default;
 
 	position: relative;
 	min-height: 100dvh;
@@ -12,7 +14,7 @@
 	background: var(--desktop-bg);
 	overflow: hidden;
 	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 }
 
 .desktop__deco {
@@ -37,6 +39,18 @@
 	z-index: 1;
 }
 
+/* Same thorn, upside-down + mirrored, much bigger — hangs from page BR */
+.desktop__thorn-br {
+	top: auto;
+	left: auto;
+	bottom: -12%;
+	right: calc(-8% - 400px);
+	width: min(2400px, 190vw);
+	/* flip both axes = upside-down mirror of the TL placement */
+	transform: scale(-1) rotate(-10deg);
+	z-index: 1;
+}
+
 .desktop__icons {
 	position: absolute;
 	top: auto;
@@ -44,7 +58,7 @@
 	left: 10px;
 	z-index: 2;
 	display: grid;
-	grid-template-columns: 96px 96px;
+	grid-template-columns: 96px 96px 96px;
 	grid-template-rows: repeat(4, auto);
 	gap: 14px 8px;
 	margin: 0;
@@ -80,6 +94,10 @@
 	grid-column: 2;
 	grid-row: 3;
 }
+.desk-icon-cell--c3r1 {
+	grid-column: 3;
+	grid-row: 1;
+}
 
 .desk-icon {
 	display: flex;
@@ -93,7 +111,7 @@
 	background: transparent;
 	color: var(--chrome-text);
 	font: inherit;
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 	user-select: none;
 }
 
@@ -207,7 +225,7 @@
 	font-size: 12px;
 	line-height: 1;
 	text-decoration: none;
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 	user-select: none;
 	overflow: hidden;
 }
@@ -225,6 +243,13 @@
 	white-space: nowrap;
 }
 
+.taskbar__right {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
 .taskbar__tray {
 	display: flex;
 	align-items: center;
@@ -236,6 +261,64 @@
 	font-size: 12px;
 	line-height: 1;
 	white-space: nowrap;
+}
+
+.taskbar__speaker {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	margin: 0;
+	padding: 0;
+	flex-shrink: 0;
+	background: var(--chrome-btn);
+	color: var(--chrome-text);
+	font: inherit;
+	line-height: 0;
+	cursor: var(--cursor-arrow);
+	user-select: none;
+}
+
+.taskbar__speaker-svg {
+	display: block;
+	width: 16px;
+	height: 16px;
+	overflow: visible;
+}
+
+.taskbar__speaker-wave {
+	animation: taskbar-speaker-wave 0.9s ease-in-out infinite;
+}
+
+.taskbar__speaker--muted .taskbar__speaker-wave {
+	/* still “playing”, just quieter under the X */
+	animation-duration: 1.2s;
+}
+
+.taskbar__speaker-wave--1 {
+	animation-delay: 0s;
+}
+
+.taskbar__speaker-wave--2 {
+	animation-delay: 0.18s;
+}
+
+@keyframes taskbar-speaker-wave {
+	0%,
+	100% {
+		opacity: 0.2;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.taskbar__speaker-wave {
+		animation: none;
+		opacity: 0.55;
+	}
 }
 
 .taskbar__clock {
@@ -260,7 +343,7 @@
 	font-weight: 700;
 	line-height: 1;
 	flex-shrink: 0;
-	cursor: crosshair;
+	cursor: var(--cursor-arrow);
 	user-select: none;
 }
 

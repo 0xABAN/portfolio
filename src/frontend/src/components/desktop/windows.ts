@@ -13,7 +13,14 @@ export type DesktopWindow = {
 	z: number;
 	src?: string;
 	segments?: readonly NoteSegment[];
-	kind?: "error" | "paint" | "github" | "notepad" | "terminal" | "bio";
+	kind?:
+		| "error"
+		| "paint"
+		| "github"
+		| "notepad"
+		| "terminal"
+		| "bio"
+		| "explorer";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -31,7 +38,7 @@ const PAINT_INNER_X = 56;
 const PAINT_INNER_Y = 18;
 const PAINT_INNER_BOTTOM = 70;
 
-const STREET_RATIO = 2725 / 1539;
+const STREET_RATIO = 1360 / 768; // street.png
 const MARGIN = 24;
 const ALT_SIDE_FRAC = 0.42;
 
@@ -47,6 +54,22 @@ function paintCanvasSize(parent: Pick<DesktopWindow, "w" | "h">) {
 		h: parent.h - CHROME_Y - PAINT_INNER_Y - PAINT_INNER_BOTTOM,
 		insetX: PAINT_INNER_X,
 		insetY: PAINT_INNER_Y,
+	};
+}
+
+/** Desktop-space rect of the Paint image (canvas), not the whole adam window. */
+export function paintImageBounds(
+	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+	const { w, h, insetX, insetY } = paintCanvasSize(parent);
+	// win border+pad+client margin (window.css): 2+2+2 each side of client
+	const frameX = CHROME_X / 2;
+	const frameY = TITLE_H + (CHROME_Y - TITLE_H) / 2;
+	return {
+		x: parent.x + frameX + insetX,
+		y: parent.y + frameY + insetY,
+		w,
+		h,
 	};
 }
 
@@ -77,12 +100,13 @@ function layoutMeWindow(
 function layoutAltOnParent(
 	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
-	const side = Math.round(Math.min(parent.w, parent.h) * ALT_SIDE_FRAC);
-	const faceX = parent.x + parent.w * ALT_FACE_CX;
-	const faceY = parent.y + parent.h * ALT_FACE_CY;
+	const img = paintImageBounds(parent);
+	const side = Math.round(Math.min(img.w, img.h) * ALT_SIDE_FRAC);
+	const faceX = img.x + img.w * ALT_FACE_CX;
+	const faceY = img.y + img.h * ALT_FACE_CY;
 	const x = Math.round(faceX - side * ALT_FACE_IN_BOX_X) + 40;
 	const y = Math.round(faceY - side * ALT_FACE_IN_BOX_Y);
-	return clampToParent({ x, y, w: side, h: side }, parent);
+	return clampToParent({ x, y, w: side, h: side }, img);
 }
 
 export function clampToParent(
@@ -116,27 +140,44 @@ function layoutBeepBoop(
 
 const ERR_W = 260;
 const ERR_H = 128;
-const ERR_CASCADE = 16;
-const ERR_COUNT = 7;
+/** Doubled stack — new dialogs sit halfway between the old 7. */
+const ERR_COUNT = 14;
+/** Primary travel: right → left (half of prior 48 so span stays put). */
+const ERR_STEP_X = 24;
+/** Vertical amplitude of the ︶⁔︶ wave while sliding left. */
+const ERR_WAVE_Y = 36;
+/** How far the leftmost dialog overlaps Paint’s right edge. */
+const ERR_PAINT_OVERLAP = 98;
 
+/**
+ * Error snake right→left with a vertical wave (︶⁔︶).
+ * Left tip slightly overlaps Paint; body sits up in the paint/terminal band.
+ */
 function layoutErrorStack(
-	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-	vh: number,
+	paint: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ): DesktopWindow[] {
-	// Inside terminal horizontally; last dialog half-tucked under taskbar (z < 10)
-	const baseX = anchor.x + Math.round(anchor.w * 0.42);
-	const lastY = (ERR_COUNT - 1) * ERR_CASCADE;
-	const baseY = Math.round(vh - TASKBAR_H - ERR_H / 2 - lastY - 28);
-	return Array.from({ length: ERR_COUNT }, (_, i) => ({
-		id: `sysmsg-${i}`,
-		title: "System message",
-		kind: "error" as const,
-		x: baseX - i * ERR_CASCADE,
-		y: baseY + i * ERR_CASCADE,
-		w: ERR_W,
-		h: ERR_H,
-		z: 20 + i,
-	}));
+	const paintRight = paint.x + paint.w;
+	// i = n-1 is leftmost — tuck it a bit over Paint’s right edge
+	const leftX = Math.round(paintRight - ERR_PAINT_OVERLAP);
+	const baseX = leftX + (ERR_COUNT - 1) * ERR_STEP_X;
+	// Low band — wave dips toward the taskbar
+	const baseY = Math.round(paint.y + paint.h * 0.86 - ERR_H / 2);
+
+	return Array.from({ length: ERR_COUNT }, (_, i) => {
+		// Full wave on the left; start at π/2 so the rightmost bump is only half
+		const t = i / (ERR_COUNT - 1);
+		const wave = Math.sin(Math.PI / 2 + t * Math.PI * 1.5);
+		return {
+			id: `sysmsg-${i}`,
+			title: "System message",
+			kind: "error" as const,
+			x: Math.round(baseX - i * ERR_STEP_X),
+			y: Math.round(baseY + wave * ERR_WAVE_Y),
+			w: ERR_W,
+			h: ERR_H,
+			z: 20 + i,
+		};
+	});
 }
 
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
@@ -145,13 +186,13 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		title: "adam",
 		z: 2,
 		kind: "paint" as const,
-		src: "/photos/street.jpg",
+		src: "/photos/street.png",
 		icon: "/paint/icon-16.png",
 		...layoutMeWindow(vw, vh),
 	};
 	const terminal = {
 		id: "terminal",
-		title: "pi — Command Prompt",
+		title: "Command Prompt",
 		z: 12,
 		kind: "terminal" as const,
 		icon: "/icons/terminal.svg",
@@ -182,7 +223,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			...layoutGitHubWindow(terminal),
 		},
 		...layoutNotepadStack(me, vh),
-		...layoutErrorStack(terminal, vh),
+		...layoutErrorStack(me),
 	];
 }
 
@@ -281,6 +322,32 @@ export function makeBioWindow(z: number): DesktopWindow {
 	};
 }
 
+const EXPLORER_W = 520;
+const EXPLORER_H = 360;
+
+export function layoutExplorerWindow(
+	vw = typeof window !== "undefined" ? window.innerWidth : 1440,
+	vh = typeof window !== "undefined" ? window.innerHeight : 900,
+): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+	return {
+		w: EXPLORER_W,
+		h: EXPLORER_H,
+		x: Math.round((vw - EXPLORER_W) / 2),
+		y: Math.round((vh - TASKBAR_H - EXPLORER_H) / 2),
+	};
+}
+
+export function makeExplorerWindow(z: number): DesktopWindow {
+	return {
+		id: "explorer",
+		title: "😎",
+		kind: "explorer",
+		icon: "/icons/folder-sunglasses.png",
+		z,
+		...layoutExplorerWindow(),
+	};
+}
+
 function layoutTerminalWindow(
 	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
@@ -310,12 +377,15 @@ export function altCropStyle(
 	child: Pick<DesktopWindow, "x" | "y">,
 	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
 ) {
-	const { w, h, insetX, insetY } = paintCanvasSize(parent);
+	const img = paintImageBounds(parent);
+	// Position relative to alt's win__client (same frame offsets as paintImageBounds)
+	const frameX = CHROME_X / 2;
+	const frameY = TITLE_H + (CHROME_Y - TITLE_H) / 2;
 	return {
-		width: w,
-		height: h,
-		left: parent.x - child.x + insetX,
-		top: parent.y - child.y + insetY,
+		width: img.w,
+		height: img.h,
+		left: img.x - (child.x + frameX),
+		top: img.y - (child.y + frameY),
 	};
 }
 
