@@ -230,6 +230,18 @@
 	overflow: hidden;
 }
 
+.task-btn--spotify {
+	max-width: min(320px, 42vw);
+	flex: 0 1 auto;
+}
+
+.task-btn--active {
+	border-top-color: var(--chrome-lo);
+	border-left-color: var(--chrome-lo);
+	border-right-color: var(--chrome-hi);
+	border-bottom-color: var(--chrome-hi);
+}
+
 .task-btn__icon {
 	width: 16px;
 	height: 16px;
@@ -248,6 +260,16 @@
 	align-items: center;
 	gap: 4px;
 	flex-shrink: 0;
+}
+
+.taskbar__views {
+	font-size: 12px;
+	line-height: 1;
+	white-space: nowrap;
+	color: var(--chrome-text);
+	font-variant-numeric: tabular-nums;
+	user-select: none;
+	padding: 0 4px;
 }
 
 .taskbar__tray {

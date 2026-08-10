@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { StartButton } from "./StartButton";
+import { useTaskbarAudio } from "./useTaskbarAudio";
+import { useViewCount } from "./useViewCount";
 import { GITHUB_URL } from "./windows";
 
 function formatClock(d: Date) {
@@ -11,7 +13,7 @@ function formatClock(d: Date) {
 			minute: "2-digit",
 			hour12: true,
 		})
-		.replace(/\u202f/g, " "); // narrow no-break space some locales use
+		.replace(/\u202f/g, " ");
 }
 
 const LINKS = [
@@ -28,16 +30,10 @@ const LINKS = [
 		icon: "/icons/linkedin.svg",
 	},
 	{
-		id: "x",
-		label: "X",
+		id: "twitter",
+		label: "Twitter",
 		href: "https://x.com/0xABANN",
 		icon: "/icons/x.svg",
-	},
-	{
-		id: "spotify",
-		label: "Spotify",
-		href: "https://open.spotify.com/user/31bqqior62rs6m4rewpadlcws2oa",
-		icon: "/icons/spotify.svg",
 	},
 ] as const;
 
@@ -45,9 +41,13 @@ function openExternal(href: string) {
 	window.open(href, "_blank", "noopener,noreferrer");
 }
 
+const viewFmt = new Intl.NumberFormat("en-US");
+
 export function Taskbar() {
 	const [clock, setClock] = useState(() => formatClock(new Date()));
-	const [muted, setMuted] = useState(true);
+	const views = useViewCount();
+	const { muted, playing, trackLabel, elapsedElRef, toggleMute, togglePlay } =
+		useTaskbarAudio();
 
 	useEffect(() => {
 		const tick = () => setClock(formatClock(new Date()));
@@ -81,17 +81,48 @@ export function Taskbar() {
 							<span className="task-btn__label">{link.label}</span>
 						</button>
 					))}
+					<button
+						type="button"
+						className={`task-btn task-btn--spotify chrome-raised${playing ? " task-btn--active" : ""}`}
+						title={trackLabel}
+						aria-label={playing ? "Pause music" : "Play music"}
+						aria-pressed={playing}
+						onClick={togglePlay}
+					>
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img
+							className="task-btn__icon"
+							src="/icons/spotify.svg"
+							alt=""
+							width={16}
+							height={16}
+							draggable={false}
+						/>
+						<span className="task-btn__label">
+							{trackLabel}
+							{"  "}
+							<span ref={elapsedElRef}>0:00</span>
+						</span>
+					</button>
 				</div>
 			</div>
 			<div className="taskbar__right">
-				{/* cone from Wikimedia Mute_Icon (public domain); X only while muted */}
+				{views != null && (
+					<span
+						className="taskbar__views"
+						title="Site views"
+						suppressHydrationWarning
+					>
+						{viewFmt.format(views)} views
+					</span>
+				)}
 				<button
 					type="button"
 					className={`taskbar__speaker chrome-raised${muted ? " taskbar__speaker--muted" : ""}`}
 					title={muted ? "Unmute" : "Mute"}
 					aria-label={muted ? "Unmute" : "Mute"}
 					aria-pressed={!muted}
-					onClick={() => setMuted((m) => !m)}
+					onClick={toggleMute}
 				>
 					<svg
 						className="taskbar__speaker-svg"
