@@ -72,6 +72,8 @@ export function usePaintCanvas({
 	const lastCoords = useRef<Coords | null>(null);
 	const rectRef = useRef<DOMRect | null>(null);
 	const coordsElRef = useRef(coordsEl);
+	const imgRef = useRef<HTMLImageElement | null>(null);
+	const sizeRef = useRef({ w: 0, h: 0 });
 
 	useEffect(() => {
 		cfg.current = { tool, fg, bg, sizeIndex };
@@ -103,44 +105,101 @@ export function usePaintCanvas({
 		ctx.putImageData(snap, 0, 0);
 	}
 
-	useLayoutEffect(() => {
+	function paintBase(ctx: CanvasRenderingContext2D, w: number, h: number) {
+		const img = imgRef.current;
+		if (img && img.complete && img.naturalWidth > 0) {
+			ctx.drawImage(img, 0, 0, w, h);
+		} else {
+			ctx.fillStyle = "#ffffff";
+			ctx.fillRect(0, 0, w, h);
+		}
+	}
+
+	/** Size canvas bitmap to wrap; redraw base image when size actually changes. */
+	function syncSize() {
 		const canvas = canvasRef.current;
 		const wrap = wrapRef.current;
 		if (!canvas || !wrap) return;
 
-		const w = Math.max(1, wrap.clientWidth);
-		const h = Math.max(1, wrap.clientHeight);
+		const w = Math.max(1, Math.round(wrap.clientWidth));
+		const h = Math.max(1, Math.round(wrap.clientHeight));
+		if (w === sizeRef.current.w && h === sizeRef.current.h && readyRef.current) {
+			return;
+		}
+
+		sizeRef.current = { w, h };
 		canvas.width = w;
 		canvas.height = h;
-		// willReadFrequently only helps color-eraser getImageData; default is faster for draw
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 		ctx.imageSmoothingEnabled = false;
 		ctxRef.current = ctx;
 		undoStack.current = [];
-		readyRef.current = false;
+		strokeRef.current = null;
 		lastCoords.current = null;
 
-		let settled = false;
-		const settle = (paint: () => void) => {
-			if (settled || canvas.width !== w || canvas.height !== h) return;
-			settled = true;
-			paint();
+		const img = imgRef.current;
+		if (img && img.complete && img.naturalWidth > 0) {
+			paintBase(ctx, w, h);
 			readyRef.current = true;
-		};
+		} else {
+			readyRef.current = false;
+		}
+	}
+
+	useLayoutEffect(() => {
+		const canvas = canvasRef.current;
+		const wrap = wrapRef.current;
+		if (!canvas || !wrap) return;
+
+		readyRef.current = false;
+		sizeRef.current = { w: 0, h: 0 };
 
 		const img = new Image();
+		imgRef.current = img;
 		img.decoding = "async";
-		img.onload = () => settle(() => ctx.drawImage(img, 0, 0, w, h));
-		img.onerror = () =>
-			settle(() => {
-				ctx.fillStyle = "#ffffff";
-				ctx.fillRect(0, 0, w, h);
-			});
+		img.onload = () => {
+			if (imgRef.current !== img) return;
+			syncSize();
+			// image may finish after first 0× layout — force paint once sized
+			const ctx = ctxRef.current;
+			if (ctx && sizeRef.current.w > 1) {
+				paintBase(ctx, sizeRef.current.w, sizeRef.current.h);
+				readyRef.current = true;
+			}
+		};
+		img.onerror = () => {
+			if (imgRef.current !== img) return;
+			imgRef.current = null;
+			syncSize();
+			const ctx = ctxRef.current;
+			if (ctx) {
+				paintBase(ctx, sizeRef.current.w, sizeRef.current.h);
+				readyRef.current = true;
+			}
+		};
 		img.src = src;
 		if (img.complete && img.naturalWidth > 0) {
-			settle(() => ctx.drawImage(img, 0, 0, w, h));
+			syncSize();
+			const ctx = ctxRef.current;
+			if (ctx) {
+				paintBase(ctx, sizeRef.current.w, sizeRef.current.h);
+				readyRef.current = true;
+			}
+		} else {
+			syncSize();
 		}
+
+		// boot reveal / window layout often mounts paint before final size
+		const ro = new ResizeObserver(() => syncSize());
+		ro.observe(wrap);
+
+		return () => {
+			ro.disconnect();
+			imgRef.current = null;
+			img.onload = null;
+			img.onerror = null;
+		};
 	}, [src]);
 
 	useEffect(() => {
