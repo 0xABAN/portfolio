@@ -6,6 +6,9 @@ import { GITHUB_USER } from "./windows";
 import "./github-graph.css";
 
 const API = "https://github-contributions-api.jogruber.de/v4/";
+const THEME = {
+	dark: ["#1a1a1a", "#3d1515", "#6b1c1c", "#9a2222", "#af0000"],
+};
 
 /** One fetch per page load — avoids AbortError from Strict Mode remount. */
 const contribCache = new Map<string, Promise<Activity[]>>();
@@ -20,13 +23,10 @@ function loadContributions(username: string): Promise<Activity[]> {
 					contributions?: Activity[];
 					error?: string;
 				};
-				if (!res.ok) {
-					throw new Error(data.error || `HTTP ${res.status}`);
-				}
+				if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 				return data.contributions ?? [];
 			})
 			.catch((err: unknown) => {
-				// Allow retry on real failures (not aborts)
 				contribCache.delete(key);
 				throw err;
 			});
@@ -97,14 +97,16 @@ export function GitHubGraph() {
 				timer = window.setTimeout(tick, 800);
 				return;
 			}
-			const all = root.querySelectorAll<SVGRectElement>(
-				".react-activity-calendar__calendar rect[data-level]",
-			);
+			const all = [
+				...root.querySelectorAll<SVGRectElement>(
+					".react-activity-calendar__calendar rect[data-level]",
+				),
+			];
 			if (all.length === 0) {
 				timer = window.setTimeout(tick, 200);
 				return;
 			}
-			const active = Array.from(all).filter((e) => Number(e.dataset.level) > 0);
+			const active = all.filter((e) => Number(e.dataset.level) > 0);
 			const pool = active.length > 0 && Math.random() < 0.75 ? active : all;
 			const el = pool[Math.floor(Math.random() * pool.length)];
 			if (el) pop(el);
@@ -112,7 +114,6 @@ export function GitHubGraph() {
 		};
 
 		tick();
-
 		return () => {
 			stopped = true;
 			mo.disconnect();
@@ -120,30 +121,24 @@ export function GitHubGraph() {
 		};
 	}, [data]);
 
-	if (failed) {
-		return (
-			<div className="gh-graph" ref={rootRef}>
-				<span className="gh-graph__err">couldn&apos;t load github</span>
-			</div>
-		);
-	}
-
 	return (
-		<div className="gh-graph" ref={rootRef}>
-			<ActivityCalendar
-				data={data ?? []}
-				loading={!data}
-				colorScheme="dark"
-				blockSize={10}
-				blockMargin={3}
-				fontSize={11}
-				maxLevel={4}
-				showColorLegend={false}
-				showTotalCount={false}
-				theme={{
-					dark: ["#1a1a1a", "#3d1515", "#6b1c1c", "#9a2222", "#af0000"],
-				}}
-			/>
+		<div className="gh-app" ref={rootRef}>
+			{failed ? (
+				<span className="gh-app__err">couldn&apos;t load github</span>
+			) : (
+				<ActivityCalendar
+					data={data ?? []}
+					loading={!data}
+					colorScheme="dark"
+					blockSize={11}
+					blockMargin={3}
+					fontSize={11}
+					maxLevel={4}
+					showColorLegend={false}
+					showTotalCount={false}
+					theme={THEME}
+				/>
+			)}
 		</div>
 	);
 }

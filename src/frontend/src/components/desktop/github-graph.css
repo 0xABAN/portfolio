@@ -1,56 +1,62 @@
-.gh-graph {
+.gh-app {
 	position: absolute;
 	inset: 0;
 	display: flex;
 	align-items: center;
+	justify-content: center;
 	box-sizing: border-box;
-	padding: 10px 12px;
+	padding: 8px;
 	overflow: hidden;
-	background: var(--chrome-face);
-	color: var(--chrome-text);
+	background: #0a0a0a;
+	color: #c8c8c8;
 	font:
-		11px / 1.2 Tahoma,
+		10px / 1.2 Tahoma,
 		"MS Sans Serif",
 		sans-serif;
+	user-select: none;
 }
 
-.gh-graph .react-activity-calendar {
+.gh-app__err {
+	padding: 12px;
+	color: #ff6b6b;
+}
+
+.gh-app .react-activity-calendar {
 	width: 100%;
 	max-width: 100%;
-	color: var(--chrome-text);
+	color: #9ab;
 }
 
-.gh-graph .react-activity-calendar__scroll-container {
+.gh-app .react-activity-calendar__scroll-container {
 	max-width: 100%;
 	overflow-x: auto;
 	overflow-y: hidden;
 	scrollbar-width: thin;
-	scrollbar-color: var(--chrome-hi) var(--chrome-btn);
+	scrollbar-color: #5a5a5a #0a0a0a;
 }
 
-.gh-graph .react-activity-calendar__scroll-container::-webkit-scrollbar {
-	height: 8px;
+.gh-app .react-activity-calendar__scroll-container::-webkit-scrollbar {
+	height: 6px;
 }
 
-.gh-graph .react-activity-calendar__scroll-container::-webkit-scrollbar-track {
-	background: var(--chrome-btn);
+.gh-app .react-activity-calendar__scroll-container::-webkit-scrollbar-track {
+	background: #0a0a0a;
 }
 
-.gh-graph .react-activity-calendar__scroll-container::-webkit-scrollbar-thumb {
-	background: var(--chrome-hi);
+.gh-app .react-activity-calendar__scroll-container::-webkit-scrollbar-thumb {
+	background: #5a5a5a;
 }
 
-.gh-graph rect[data-level] {
+.gh-app rect[data-level] {
 	transform-origin: center;
 	transform-box: fill-box;
 }
 
-.gh-graph rect.git-cell-pop {
+.gh-app rect.git-cell-pop {
 	animation: git-cell-pop 0.4s ease-out;
 	will-change: opacity, transform;
 }
 
-/* opacity/transform only — filter:brightness forces expensive layer paints */
 @keyframes git-cell-pop {
 	0% {
 		opacity: 1;
@@ -71,7 +77,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.gh-graph rect.git-cell-pop {
+	.gh-app rect.git-cell-pop {
 		animation: none;
 	}
 }
