@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { BOOT_WINDOWS } from "../boot/bootReveal";
+import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
 import { Explorer } from "./explorer/Explorer";
 import type { ExplorerFile } from "./explorer/explorerData";
 import { GitHubGraph } from "./GitHubGraph";
 import { Neko } from "./Neko";
-import { Notepad } from "./Notepad";
 import { Paint } from "./paint/Paint";
+import { Experience } from "./experience/Experience";
 import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
 import { Terminal } from "./Terminal";
@@ -15,11 +17,13 @@ import { Window } from "./window/Window";
 import {
 	altCropStyle,
 	clampToParent,
-	paintImageBounds,
+	nestBounds,
 	clampWindowPos,
 	layoutDesktop,
 	makeBioWindow,
 	makeExplorerWindow,
+	makeExperienceWindow,
+	EXPERIENCE_WINDOW_ID,
 	type DesktopWindow,
 } from "./windows";
 import "./desktop.css";
@@ -42,97 +46,83 @@ const DECOS = [
 	},
 ] as const;
 
-const DESK_ICONS = [
-	// col 1 (4) · col 2 (2 personas beside HK / Silksong)
-	{
-		id: "hollow-knight",
-		label: "Hollow Knight",
-		src: "/icons/games/hollow-knight.png",
-		cell: "desk-icon-cell--c1r1",
-		href: "https://store.steampowered.com/app/367520/Hollow_Knight/",
-	},
-	{
-		id: "silksong",
-		label: "Silksong",
-		src: "/icons/games/silksong.png",
-		cell: "desk-icon-cell--c1r2",
-		href: "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/",
-	},
-	{
-		id: "terraria",
-		label: "Terraria",
-		src: "/icons/games/terraria.png",
-		cell: "desk-icon-cell--c1r3",
-		href: "https://store.steampowered.com/app/105600/Terraria/",
-	},
-	{
-		id: "roblox",
-		label: "Roblox",
-		src: "/icons/games/roblox.png",
-		cell: "desk-icon-cell--c1r4",
-		href: "https://www.roblox.com/",
-	},
-	{
-		id: "persona-3-reload",
-		label: "Persona 3 Reload",
-		src: "/icons/games/persona-3-reload.png",
-		cell: "desk-icon-cell--c2r1",
-		href: "https://store.steampowered.com/app/2161700/Persona_3_Reload/",
-	},
-	{
-		id: "persona-5-royal",
-		label: "Persona 5 Royal",
-		src: "/icons/games/persona-5-royal.png",
-		cell: "desk-icon-cell--c2r2",
-		href: "https://store.steampowered.com/app/1687950/Persona_5_Royal/",
-	},
-	{
-		id: "homework",
-		label: "homework",
-		src: "/icons/folder.png",
-		cell: "desk-icon-cell--c2r3",
-	},
-	{
-		id: "sunglasses",
-		label: "😎",
-		src: "/icons/folder-sunglasses.png",
-		cell: "desk-icon-cell--c2r4",
-		open: "explorer" as const,
-	},
-] as const;
+type DeskIcon = {
+	id: string;
+	label: string;
+	src: string;
+	col: number;
+	row: number;
+	href?: string;
+	open?: "explorer" | "experience";
+};
+
+function game(
+	id: string,
+	label: string,
+	col: number,
+	row: number,
+	href: string,
+): DeskIcon {
+	return { id, label, src: `/icons/games/${id}.png`, col, row, href };
+}
+
+const DESK_ICONS: DeskIcon[] = [
+	// col 1 (4+exe) · col 2 (2 personas + self + bin)
+	game("hollow-knight", "Hollow Knight", 1, 1, "https://store.steampowered.com/app/367520/Hollow_Knight/"),
+	game("silksong", "Silksong", 1, 2, "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
+	game("terraria", "Terraria", 1, 3, "https://store.steampowered.com/app/105600/Terraria/"),
+	game("roblox", "Roblox", 1, 4, "https://www.roblox.com/"),
+	game("persona-3-reload", "Persona 3 Reload", 2, 1, "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
+	game("persona-5-royal", "Persona 5 Royal", 2, 2, "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
+	{ id: "sunglasses", label: "self", src: "/icons/folder.png", col: 2, row: 3, open: "explorer" },
+	{ id: "experience", label: "experience.exe", src: "/icons/exe.png", col: 1, row: 5, open: "experience" },
+];
+
+const RECYCLE_BIN = {
+	id: "recycle-bin",
+	label: "Recycle Bin",
+	col: 2,
+	row: 4,
+} as const;
+
+function DeskIconGlyph({ src, label }: { src: string; label: string }) {
+	return (
+		<>
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img
+				className="desk-icon__img"
+				src={src}
+				alt=""
+				width={64}
+				height={64}
+				draggable={false}
+			/>
+			<span className="desk-icon__label">{label}</span>
+		</>
+	);
+}
 
 function windowBody(
 	w: DesktopWindow,
 	all: DesktopWindow[],
-	onClose: (id: string) => void,
+	onMinimize: (id: string) => void,
 	onOpenExplorerFile: (file: ExplorerFile) => void,
 ) {
-	if (w.kind === "error") {
-		return <SystemMessage onOkAction={() => onClose(w.id)} />;
-	}
-
-	if (w.kind === "paint" && w.src) {
-		return <Paint src={w.src} />;
-	}
-
-	if (w.kind === "github") {
-		return <GitHubGraph />;
-	}
-
-	if (w.kind === "notepad") {
-		return <Notepad segments={w.segments} src={w.src} />;
-	}
-
-	if (w.kind === "terminal") {
-		return <Terminal />;
-	}
-
-	if (w.kind === "bio") {
-		return <Bio />;
-	}
-
-	if (w.kind === "explorer") {
-		return <Explorer onOpenFileAction={onOpenExplorerFile} />;
+	switch (w.kind) {
+		case "error":
+			return <SystemMessage onOkAction={() => onMinimize(w.id)} />;
+		case "paint":
+			return w.src ? <Paint src={w.src} /> : null;
+		case "github":
+			return <GitHubGraph />;
+		case "experience":
+			return <Experience />;
+		case "terminal":
+			return <Terminal />;
+		case "bio":
+			return <Bio />;
+		case "explorer":
+			return <Explorer onOpenFileAction={onOpenExplorerFile} />;
 	}
 
 	if (w.src) {
@@ -160,36 +150,121 @@ function windowBody(
 	return null;
 }
 
+function restoreTree(
+	prev: DesktopWindow[],
+	id: string,
+	z: number,
+): DesktopWindow[] {
+	return prev.map((w) => {
+		if (w.id === id) return { ...w, minimized: false, z };
+		if (w.parentId === id) return { ...w, minimized: false };
+		return w;
+	});
+}
+
 export function Desktop() {
-	// page.tsx loads this with ssr:false, so window is available on first paint
+	// Boot mounts this client-only, so window is available on first paint
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
 		layoutDesktop(window.innerWidth, window.innerHeight),
 	);
+	const [busy, setBusy] = useState(false);
+	/** Taskbar tab order — first minimized is leftmost (after CD Player). */
+	const [minOrder, setMinOrder] = useState<string[]>([]);
+	const [trashed, setTrashed] = useState<ReadonlySet<string>>(() => new Set());
+	const [binFull, setBinFull] = useState(false);
+	const [binHot, setBinHot] = useState(false);
+	const [draggingId, setDraggingId] = useState<string | null>(null);
+	const skipClick = useRef(false);
+	const revealed = useBootReveal();
 
-	function closeWindow(id: string) {
+	function trashIcon(id: string) {
+		if (!id || id === RECYCLE_BIN.id) return;
+		setBinFull(true);
+		setTrashed((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+	}
+
+	function trashWindow(id: string) {
+		setBinFull(true);
+		setBinHot(false);
+		clearMinOrder(id);
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
+	}
+
+	function openDeskIcon(icon: DeskIcon) {
+		if (skipClick.current) {
+			skipClick.current = false;
+			return;
+		}
+		if (icon.open === "explorer") openExplorer();
+		else if (icon.open === "experience") openExperience();
+		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
+	}
+
+	function isBootVisible(id: string) {
+		return !BOOT_WINDOWS.has(id) || revealed.has(id);
 	}
 
 	function nextZ(prev: DesktopWindow[]) {
 		return prev.reduce((z, w) => Math.max(z, w.z), 0) + 1;
 	}
 
+	function clearMinOrder(id: string) {
+		setMinOrder((prev) =>
+			prev.includes(id) ? prev.filter((x) => x !== id) : prev,
+		);
+	}
+
+	function minimizeWindow(id: string) {
+		setWindows((prev) =>
+			prev.map((w) =>
+				w.id === id || w.parentId === id ? { ...w, minimized: true } : w,
+			),
+		);
+		setMinOrder((prev) => (prev.includes(id) ? prev : [...prev, id]));
+	}
+
+	function restoreWindow(id: string) {
+		setWindows((prev) => restoreTree(prev, id, nextZ(prev)));
+		clearMinOrder(id);
+	}
+
 	function openOrRaise(id: string, make: (z: number) => DesktopWindow) {
 		setWindows((prev) => {
-			const z = nextZ(prev);
-			if (prev.some((w) => w.id === id)) {
-				return prev.map((w) => (w.id === id ? make(z) : w));
+			const existing = prev.find((w) => w.id === id);
+			if (!existing) return [...prev, make(nextZ(prev))];
+			if (existing.minimized) {
+				clearMinOrder(id);
+				return restoreTree(prev, id, nextZ(prev));
 			}
-			return [...prev, make(z)];
+			return prev.map((w) => (w.id === id ? { ...w, z: nextZ(prev) } : w));
 		});
 	}
 
+	function withBusy(run: () => void) {
+		if (busy) return;
+		setBusy(true);
+		// ponytail: fixed fake load delay — tune if it feels too snappy/slow
+		window.setTimeout(() => {
+			run();
+			setBusy(false);
+		}, 1500);
+	}
+
 	function openBio() {
-		openOrRaise("bio", makeBioWindow);
+		withBusy(() => openOrRaise("bio", makeBioWindow));
 	}
 
 	function openExplorer() {
 		openOrRaise("explorer", makeExplorerWindow);
+	}
+
+	function openExperience() {
+		withBusy(() => {
+			setWindows((prev) => {
+				const rest = prev.filter((w) => w.id !== EXPERIENCE_WINDOW_ID);
+				return [...rest, makeExperienceWindow(nextZ(rest))];
+			});
+		});
 	}
 
 	function openExplorerFile(file: ExplorerFile) {
@@ -205,10 +280,10 @@ export function Desktop() {
 			if (target.parentId) {
 				const parent = prev.find((w) => w.id === target.parentId);
 				if (!parent) return prev;
-				// Nested alt stays over the Paint image, not the whole window chrome
-				const bounds =
-					parent.kind === "paint" ? paintImageBounds(parent) : parent;
-				const next = clampToParent({ x, y, w: target.w, h: target.h }, bounds);
+				const next = clampToParent(
+					{ x, y, w: target.w, h: target.h },
+					nestBounds(parent),
+				);
 				if (next.x === target.x && next.y === target.y) return prev;
 				return prev.map((w) =>
 					w.id === id ? { ...w, x: next.x, y: next.y } : w,
@@ -223,14 +298,9 @@ export function Desktop() {
 			return prev.map((w) => {
 				if (w.id === id) return { ...w, x: next.x, y: next.y };
 				if (w.parentId === id) {
-					const movedParent = { ...target, x: next.x, y: next.y };
-					const bounds =
-						target.kind === "paint"
-							? paintImageBounds(movedParent)
-							: movedParent;
 					const moved = clampToParent(
 						{ x: w.x + dx, y: w.y + dy, w: w.w, h: w.h },
-						bounds,
+						nestBounds({ ...target, x: next.x, y: next.y }),
 					);
 					return { ...w, x: moved.x, y: moved.y };
 				}
@@ -240,67 +310,121 @@ export function Desktop() {
 	}
 
 	return (
-		<div className="desktop">
-			{DECOS.map((d) => (
-				// eslint-disable-next-line @next/next/no-img-element
-				<img
-					key={d.id}
-					className={d.className}
-					src={d.src}
-					alt=""
-					draggable={false}
-				/>
-			))}
+		<div className={busy ? "desktop desktop--busy" : "desktop"}>
+			{DECOS.filter((d) => d.id.startsWith("thorn") || revealed.has(d.id)).map(
+				(d) => (
+					// eslint-disable-next-line @next/next/no-img-element
+					<img
+						key={d.id}
+						className={d.className}
+						src={d.src}
+						alt=""
+						draggable={false}
+					/>
+				),
+			)}
 			<ul className="desktop__icons" aria-label="Desktop">
-				{DESK_ICONS.map((icon) => (
-					<li key={icon.id} className={icon.cell}>
+				{DESK_ICONS.filter(
+					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),
+				).map((icon) => (
+					<li
+						key={icon.id}
+						style={{ gridColumn: icon.col, gridRow: icon.row }}
+					>
 						<button
 							type="button"
-							className="desk-icon"
+							className={
+								draggingId === icon.id
+									? "desk-icon desk-icon--dragging"
+									: "desk-icon"
+							}
 							title={icon.label}
-							onClick={() => {
-								if ("open" in icon && icon.open === "explorer") openExplorer();
-								else if ("href" in icon && icon.href) {
-									window.open(icon.href, "_blank", "noopener,noreferrer");
-								}
+							draggable
+							onDragStart={(e) => {
+								skipClick.current = true;
+								e.dataTransfer.setData("text/plain", icon.id);
+								e.dataTransfer.effectAllowed = "move";
+								setDraggingId(icon.id);
 							}}
+							onDragEnd={() => {
+								setDraggingId(null);
+								setBinHot(false);
+							}}
+							onClick={() => openDeskIcon(icon)}
 						>
-							{/* eslint-disable-next-line @next/next/no-img-element */}
-							<img
-								className="desk-icon__img"
-								src={icon.src}
-								alt=""
-								width={64}
-								height={64}
-								draggable={false}
-							/>
-							<span className="desk-icon__label">{icon.label}</span>
+							<DeskIconGlyph src={icon.src} label={icon.label} />
 						</button>
 					</li>
 				))}
+				{revealed.has(RECYCLE_BIN.id) ? (
+					<li style={{ gridColumn: RECYCLE_BIN.col, gridRow: RECYCLE_BIN.row }}>
+						<button
+							type="button"
+							data-recycle-bin=""
+							className={binHot ? "desk-icon desk-icon--drop-hot" : "desk-icon"}
+							title={RECYCLE_BIN.label}
+							onDragOver={(e) => {
+								e.preventDefault();
+								e.dataTransfer.dropEffect = "move";
+								setBinHot(true);
+							}}
+							onDragLeave={() => setBinHot(false)}
+							onDrop={(e) => {
+								e.preventDefault();
+								setBinHot(false);
+								setDraggingId(null);
+								trashIcon(e.dataTransfer.getData("text/plain"));
+							}}
+						>
+							<DeskIconGlyph
+								src={
+									binFull
+										? "/icons/recycle-bin-full.png"
+										: "/icons/recycle-bin-empty.png"
+								}
+								label={RECYCLE_BIN.label}
+							/>
+						</button>
+					</li>
+				) : null}
 			</ul>
-			{windows.map((w) => (
-				<Window
-					key={w.id}
-					title={w.title}
-					icon={w.icon}
-					x={w.x}
-					y={w.y}
-					w={w.w}
-					h={w.h}
-					z={w.z}
-					// Nested crop + parent-of-nested need live React geometry while dragging
-					liveMove={Boolean(
-						w.parentId || windows.some((c) => c.parentId === w.id),
-					)}
-					onCloseAction={() => closeWindow(w.id)}
-					onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
-				>
-					{windowBody(w, windows, closeWindow, openExplorerFile)}
-				</Window>
-			))}
-			<Taskbar />
-			<Neko />
+			{windows
+				.filter((w) => !w.minimized && isBootVisible(w.id))
+				.map((w) => (
+					<Window
+						key={w.id}
+						title={w.title}
+						icon={w.icon}
+						x={w.x}
+						y={w.y}
+						w={w.w}
+						h={w.h}
+						z={w.z}
+						variant={w.kind === "github" ? "genesis" : undefined}
+						// Nested crop + parent-of-nested need live React geometry while dragging
+						liveMove={Boolean(
+							w.parentId || windows.some((c) => c.parentId === w.id),
+						)}
+						minimizable={w.id !== "alt"}
+						onMinimizeAction={() => minimizeWindow(w.id)}
+						onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
+						onTrashHoverAction={setBinHot}
+						onTrashAction={() => trashWindow(w.id)}
+					>
+						{windowBody(w, windows, minimizeWindow, openExplorerFile)}
+					</Window>
+				))}
+			<Taskbar
+				minimized={minOrder.flatMap((id) => {
+					const w = windows.find((x) => x.id === id);
+					return w && w.minimized && !w.parentId && isBootVisible(w.id)
+						? [w]
+						: [];
+				})}
+				onRestoreAction={restoreWindow}
+				revealed={revealed}
+			/>
+			{revealed.has("neko") ? <Neko /> : null}
 		</div>
 	);
 }

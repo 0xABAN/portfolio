@@ -1,8 +1,6 @@
 export const GITHUB_USER = "0xABAN";
 export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
 
-export type NoteSegment = { t: string; href?: string };
-
 export type DesktopWindow = {
 	id: string;
 	title: string;
@@ -12,18 +10,19 @@ export type DesktopWindow = {
 	h: number;
 	z: number;
 	src?: string;
-	segments?: readonly NoteSegment[];
 	kind?:
 		| "error"
 		| "paint"
 		| "github"
-		| "notepad"
+		| "experience"
 		| "terminal"
 		| "bio"
 		| "explorer";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
+	/** Hidden from desktop; shown as a taskbar tab until restored */
+	minimized?: boolean;
 };
 
 const TASKBAR_H = 36;
@@ -32,6 +31,10 @@ const TITLE_H = 22;
 /** pad+border+client margin — keep in sync with window.css */
 const CHROME_X = 12;
 const CHROME_Y = TITLE_H + 12;
+
+/** Client origin inside window box (border+pad each side). */
+const FRAME_X = CHROME_X / 2;
+const FRAME_Y = TITLE_H + (CHROME_Y - TITLE_H) / 2;
 
 /** Paint chrome inside client — keep in sync with paint.css vars */
 const PAINT_INNER_X = 56;
@@ -48,6 +51,26 @@ const ALT_FACE_CY = 0.32;
 const ALT_FACE_IN_BOX_X = 0.72;
 const ALT_FACE_IN_BOX_Y = 0.7;
 
+type Rect = Pick<DesktopWindow, "x" | "y" | "w" | "h">;
+
+function viewport(vw?: number, vh?: number) {
+	if (vw != null && vh != null) return { vw, vh };
+	if (typeof window !== "undefined") {
+		return { vw: window.innerWidth, vh: window.innerHeight };
+	}
+	return { vw: 1440, vh: 900 };
+}
+
+function layoutCentered(w: number, h: number, vw?: number, vh?: number): Rect {
+	const { vw: W, vh: H } = viewport(vw, vh);
+	return {
+		w,
+		h,
+		x: Math.round((W - w) / 2),
+		y: Math.round((H - TASKBAR_H - h) / 2),
+	};
+}
+
 function paintCanvasSize(parent: Pick<DesktopWindow, "w" | "h">) {
 	return {
 		w: parent.w - CHROME_X - PAINT_INNER_X,
@@ -58,25 +81,24 @@ function paintCanvasSize(parent: Pick<DesktopWindow, "w" | "h">) {
 }
 
 /** Desktop-space rect of the Paint image (canvas), not the whole adam window. */
-export function paintImageBounds(
-	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+export function paintImageBounds(parent: Rect): Rect {
 	const { w, h, insetX, insetY } = paintCanvasSize(parent);
-	// win border+pad+client margin (window.css): 2+2+2 each side of client
-	const frameX = CHROME_X / 2;
-	const frameY = TITLE_H + (CHROME_Y - TITLE_H) / 2;
 	return {
-		x: parent.x + frameX + insetX,
-		y: parent.y + frameY + insetY,
+		x: parent.x + FRAME_X + insetX,
+		y: parent.y + FRAME_Y + insetY,
 		w,
 		h,
 	};
 }
 
-function layoutMeWindow(
-	vw: number,
-	vh: number,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+/** Bounds nested windows clamp to (paint canvas, else full parent). */
+export function nestBounds(
+	parent: Rect & Pick<DesktopWindow, "kind">,
+): Rect {
+	return parent.kind === "paint" ? paintImageBounds(parent) : parent;
+}
+
+function layoutMeWindow(vw: number, vh: number): Rect {
 	const maxH = vh - TASKBAR_H - MARGIN * 2;
 	const maxW = vw - MARGIN * 2;
 
@@ -91,28 +113,31 @@ function layoutMeWindow(
 
 	const w = Math.round(canvasW + chromeX);
 	const h = Math.round(canvasH + chromeY);
-	const x = Math.round((vw - w) / 2);
-	const y = Math.round(MARGIN + (vh - TASKBAR_H - MARGIN * 2 - h) / 2);
-
-	return { x, y, w, h };
+	return {
+		w,
+		h,
+		x: Math.round((vw - w) / 2),
+		y: Math.round(MARGIN + (vh - TASKBAR_H - MARGIN * 2 - h) / 2),
+	};
 }
 
-function layoutAltOnParent(
-	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+function layoutAltOnParent(parent: Rect): Rect {
 	const img = paintImageBounds(parent);
 	const side = Math.round(Math.min(img.w, img.h) * ALT_SIDE_FRAC);
 	const faceX = img.x + img.w * ALT_FACE_CX;
 	const faceY = img.y + img.h * ALT_FACE_CY;
-	const x = Math.round(faceX - side * ALT_FACE_IN_BOX_X) + 20;
-	const y = Math.round(faceY - side * ALT_FACE_IN_BOX_Y);
-	return clampToParent({ x, y, w: side, h: side }, img);
+	return clampToParent(
+		{
+			x: Math.round(faceX - side * ALT_FACE_IN_BOX_X) + 20,
+			y: Math.round(faceY - side * ALT_FACE_IN_BOX_Y),
+			w: side,
+			h: side,
+		},
+		img,
+	);
 }
 
-export function clampToParent(
-	child: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+export function clampToParent(child: Rect, parent: Rect): Rect {
 	const maxX = parent.x + parent.w - child.w;
 	const maxY = parent.y + parent.h - child.h;
 	return {
@@ -123,38 +148,18 @@ export function clampToParent(
 	};
 }
 
-const NOTE_W = 260;
-const NOTE_H = 280;
-const NOTE_STACK_LEFT = 120; // was 20; +100px left
-const NOTE_STACK_LIFT = 40;
-const NOTE_STEP_Y = 120;
 const BEEP_Y_FRAC = 0.18;
+/** Left of paint, right-aligned where the old notepad column sat. */
+const BEEP_LEFT_GAP = 70;
 
-/** Notepad column origin (amazon.md at offset 0). */
-function notepadStackOrigin(
-	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-	vh: number,
-	lastY: number,
-) {
-	return {
-		baseX: Math.round(anchor.x - NOTE_W - NOTE_STACK_LEFT),
-		baseY: Math.round(vh - TASKBAR_H - NOTE_H / 2 - lastY - NOTE_STACK_LIFT),
-	};
-}
-
-function layoutBeepBoop(
-	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-	vh: number,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+function layoutBeepBoop(anchor: Rect): Rect {
 	const client = 96;
 	const w = client + CHROME_X;
 	const h = client + CHROME_Y;
-	// Right-align with amazon.md, then nudge right
-	const { baseX } = notepadStackOrigin(anchor, vh, 0);
 	return {
 		w,
 		h,
-		x: baseX + NOTE_W - w + 50,
+		x: Math.round(anchor.x - w - BEEP_LEFT_GAP),
 		y: Math.round(anchor.y + anchor.h * BEEP_Y_FRAC),
 	};
 }
@@ -168,9 +173,7 @@ const ERR_WAVE_Y = 36;
 const ERR_PAINT_GAP = 72; // +50px right
 
 /** Error snake right→left with a vertical ︶⁔︶ wave. */
-function layoutErrorStack(
-	paint: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-): DesktopWindow[] {
+function layoutErrorStack(paint: Rect): DesktopWindow[] {
 	const leftX = Math.round(paint.x + paint.w + ERR_PAINT_GAP);
 	const baseX = leftX + (ERR_COUNT - 1) * ERR_STEP_X;
 	const baseY = Math.round(paint.y + paint.h * 0.86 - ERR_H / 2);
@@ -213,7 +216,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		me,
 		{
 			id: "alt",
-			title: "alt",
+			title: "magnifying glass",
 			z: 3,
 			parentId: "me",
 			...layoutAltOnParent(me),
@@ -223,96 +226,50 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			title: "beep boop",
 			z: 4,
 			src: "/photos/beep-boop.gif",
-			...layoutBeepBoop(me, vh),
+			...layoutBeepBoop(me),
 		},
 		terminal,
 		{
 			id: "github",
-			title: `github - ${GITHUB_USER}`,
+			title: "",
 			z: 13,
 			kind: "github" as const,
 			...layoutGitHubWindow(terminal),
 		},
-		...layoutNotepadStack(me, vh),
 		...layoutErrorStack(me),
 	];
 }
 
-/** Zig-zag x offsets + content; y is i * NOTE_STEP_Y */
-const NOTES = [
-	{
-		title: "amazon.md",
-		src: "/photos/amazon.png",
-		segments: [{ t: "swe intern @ amazon summer 2026" }],
-		x: 0,
-	},
-	{
-		title: "ibm.md",
-		src: "/photos/ibm.png",
-		segments: [{ t: "ai eng co-op @ ibm 2025-2026" }],
-		x: 72,
-	},
-	{
-		title: "copycat.md",
-		segments: [
-			{ t: "mcp", href: `${GITHUB_URL}/copycat` },
-			{
-				t: " to copy sites' visuals as DESIGN.md's for later use. very useful :)",
-			},
-		],
-		x: 12,
-	},
-	{
-		title: "definitive_multiplayer.md",
-		src: "/photos/definitive-multiplayer.png",
-		segments: [
-			{
-				t: "terraria multiplayer add-on",
-				href: `${GITHUB_URL}/DefinitiveMultiplayer`,
-			},
-			{ t: " i built in a week, 1k+ downloads" },
-		],
-		x: 84,
-	},
-] as const;
+export const EXPERIENCE_WINDOW_ID = "experience";
 
-function layoutNotepadStack(
-	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-	vh: number,
-): DesktopWindow[] {
-	const lastY = (NOTES.length - 1) * NOTE_STEP_Y;
-	const { baseX, baseY } = notepadStackOrigin(anchor, vh, lastY);
-	return NOTES.map((note, i) => ({
-		id: `notepad-${i}`,
-		title: note.title,
-		segments: note.segments,
-		src: "src" in note ? note.src : undefined,
-		kind: "notepad" as const,
-		icon: "/icons/notepad.svg",
-		x: baseX + note.x,
-		y: baseY + i * NOTE_STEP_Y,
-		w: NOTE_W,
-		h: NOTE_H,
-		z: 6 + i,
-	}));
+/** Work + projects browser (Figma-style shell). */
+export function makeExperienceWindow(
+	baseZ: number,
+	vw?: number,
+	vh?: number,
+): DesktopWindow {
+	const { vw: W, vh: H } = viewport(vw, vh);
+	const w = 760;
+	const h = 520;
+	const x = Math.round((W - w) / 2) - 300;
+	const y = Math.round((H - TASKBAR_H - h) / 2) + 300;
+	return {
+		id: EXPERIENCE_WINDOW_ID,
+		title: "experience",
+		kind: "experience",
+		icon: "/icons/exe.png",
+		x: Math.max(0, Math.min(x, W - w)),
+		y: Math.max(0, Math.min(y, H - TASKBAR_H - h)),
+		w,
+		h,
+		z: baseZ,
+	};
 }
 
 const BIO_W = 572;
 const BIO_H = 420;
 
 /** Centered bio.txt window (opened from desk icon, not on load). */
-export function layoutBioWindow(
-	vw = typeof window !== "undefined" ? window.innerWidth : 1440,
-	vh = typeof window !== "undefined" ? window.innerHeight : 900,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
-	return {
-		w: BIO_W,
-		h: BIO_H,
-		x: Math.round((vw - BIO_W) / 2),
-		y: Math.round((vh - TASKBAR_H - BIO_H) / 2),
-	};
-}
-
 export function makeBioWindow(z: number): DesktopWindow {
 	return {
 		id: "bio",
@@ -320,39 +277,25 @@ export function makeBioWindow(z: number): DesktopWindow {
 		kind: "bio",
 		icon: "/icons/notepad.svg",
 		z,
-		...layoutBioWindow(),
+		...layoutCentered(BIO_W, BIO_H),
 	};
 }
 
 const EXPLORER_W = 520;
 const EXPLORER_H = 360;
 
-export function layoutExplorerWindow(
-	vw = typeof window !== "undefined" ? window.innerWidth : 1440,
-	vh = typeof window !== "undefined" ? window.innerHeight : 900,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
-	return {
-		w: EXPLORER_W,
-		h: EXPLORER_H,
-		x: Math.round((vw - EXPLORER_W) / 2),
-		y: Math.round((vh - TASKBAR_H - EXPLORER_H) / 2),
-	};
-}
-
 export function makeExplorerWindow(z: number): DesktopWindow {
 	return {
 		id: "explorer",
-		title: "😎",
+		title: "self",
 		kind: "explorer",
-		icon: "/icons/folder-sunglasses.png",
+		icon: "/icons/folder.png",
 		z,
-		...layoutExplorerWindow(),
+		...layoutCentered(EXPLORER_W, EXPLORER_H),
 	};
 }
 
-function layoutTerminalWindow(
-	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
+function layoutTerminalWindow(anchor: Rect): Rect {
 	const w = Math.round(anchor.w * 1.3 * 0.85);
 	const h = Math.round(anchor.h * 0.7);
 	const { x, y } = clampWindowPos(
@@ -363,31 +306,38 @@ function layoutTerminalWindow(
 	return { x, y, w, h };
 }
 
-function layoutGitHubWindow(
-	anchor: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
-): Pick<DesktopWindow, "x" | "y" | "w" | "h"> {
-	// ~13 weeks visible; full year scrolls horizontally
-	const w = 320;
-	const h = 200;
-	// Upper-right of terminal: right-aligned, hangs off the top edge
-	const x = Math.round(anchor.x + anchor.w - w - 12 - 20);
-	const y = Math.round(anchor.y - h * 0.4 - 20);
-	return { w, h, x, y };
+function layoutGitHubWindow(anchor: Rect): Rect {
+	// Native cell size; viewport ~3 months, full year scrolls
+	// keep in sync with GitHubGraph ActivityCalendar props / github-graph.css pad
+	const block = 11;
+	const gap = 3;
+	const pad = 8;
+	const labelW = 28;
+	const labelH = 18;
+	const weeks = 21; // ~5 months visible
+	const graphW = labelW + weeks * (block + gap) - gap + pad * 2;
+	const graphH = labelH + 7 * (block + gap) - gap + pad * 2;
+	const w = graphW + CHROME_X;
+	const h = graphH + CHROME_Y;
+	return {
+		w,
+		h,
+		x: Math.round(anchor.x + anchor.w - w - 12 - 20) + 50,
+		y: Math.round(anchor.y - h * 0.35),
+	};
 }
 
 export function altCropStyle(
 	child: Pick<DesktopWindow, "x" | "y">,
-	parent: Pick<DesktopWindow, "x" | "y" | "w" | "h">,
+	parent: Rect,
 ) {
 	const img = paintImageBounds(parent);
 	// Position relative to alt's win__client (same frame offsets as paintImageBounds)
-	const frameX = CHROME_X / 2;
-	const frameY = TITLE_H + (CHROME_Y - TITLE_H) / 2;
 	return {
 		width: img.w,
 		height: img.h,
-		left: img.x - (child.x + frameX),
-		top: img.y - (child.y + frameY),
+		left: img.x - (child.x + FRAME_X),
+		top: img.y - (child.y + FRAME_Y),
 	};
 }
 

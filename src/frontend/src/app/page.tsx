@@ -2,15 +2,15 @@
 
 import dynamic from "next/dynamic";
 
-// Client-only: window-measured layout + GitHub calendar (avoids SSR hydration mismatch)
-const Desktop = dynamic(
+// Client-only boot + desktop (avoids SSR hydration mismatch)
+const Boot = dynamic(
 	() =>
-		import("@/components/desktop/Desktop").then((m) => ({
-			default: m.Desktop,
+		import("@/components/boot/Boot").then((m) => ({
+			default: m.Boot,
 		})),
 	{ ssr: false },
 );
 
 export default function Home() {
-	return <Desktop />;
+	return <Boot />;
 }
