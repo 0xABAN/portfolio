@@ -17,14 +17,14 @@ type Props = {
 	w: number;
 	h: number;
 	z: number;
-	/**
-	 * When true, report moves every frame (needed for nested crop / child follow).
-	 * Default false: DOM-only drag, commit on pointerup.
-	 */
+	variant?: "genesis";
+	/** Report moves every frame (nested crop / child follow). Default: commit on pointerup. */
 	liveMove?: boolean;
-	/** Client callback — *Action suffix satisfies Next TS 71007 */
-	onCloseAction: () => void;
+	minimizable?: boolean;
+	onMinimizeAction: () => void;
 	onMoveAction: (x: number, y: number) => void;
+	onTrashAction?: () => void;
+	onTrashHoverAction?: (hot: boolean) => void;
 	children?: ReactNode;
 };
 
@@ -57,6 +57,18 @@ function dragDelta(d: DragOrigin, clientX: number, clientY: number) {
 	};
 }
 
+/** Windows stack above the bin — disable their hit-testing for elementFromPoint. */
+function hitTrash(clientX: number, clientY: number) {
+	const wins = document.querySelectorAll<HTMLElement>(".win");
+	const prev = Array.from(wins, (n) => n.style.pointerEvents);
+	for (const n of wins) n.style.pointerEvents = "none";
+	const under = document.elementFromPoint(clientX, clientY);
+	wins.forEach((n, i) => {
+		n.style.pointerEvents = prev[i] ?? "";
+	});
+	return Boolean(under?.closest("[data-recycle-bin]"));
+}
+
 function WindowInner({
 	title,
 	icon,
@@ -65,21 +77,35 @@ function WindowInner({
 	w,
 	h,
 	z,
+	variant,
 	liveMove = false,
-	onCloseAction,
+	minimizable = true,
+	onMinimizeAction,
 	onMoveAction,
+	onTrashAction,
+	onTrashHoverAction,
 	children,
 }: Props) {
 	const rootRef = useRef<HTMLElement>(null);
 	const drag = useRef<DragOrigin | null>(null);
 	const moveRef = useRef(onMoveAction);
+	const trashRef = useRef(onTrashAction);
+	const trashHoverRef = useRef(onTrashHoverAction);
+	const trashHot = useRef(false);
 
 	useEffect(() => {
 		moveRef.current = onMoveAction;
-	}, [onMoveAction]);
+		trashRef.current = onTrashAction;
+		trashHoverRef.current = onTrashHoverAction;
+	});
+
+	function setTrashHot(hot: boolean) {
+		if (trashHot.current === hot) return;
+		trashHot.current = hot;
+		trashHoverRef.current?.(hot);
+	}
 
 	useLayoutEffect(() => {
-		// Don't fight a non-live drag (DOM is source of truth mid-drag)
 		if (drag.current && !drag.current.live) return;
 		const el = rootRef.current;
 		if (!el) return;
@@ -87,11 +113,11 @@ function WindowInner({
 	}, [x, y, w, h, z]);
 
 	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
-		if ((e.target as HTMLElement).closest(".win-close")) return;
+		if ((e.target as HTMLElement).closest(".win-min")) return;
 		e.currentTarget.setPointerCapture(e.pointerId);
 		const el = rootRef.current;
-		const originX = el ? el.offsetLeft : x;
-		const originY = el ? el.offsetTop : y;
+		const originX = el?.offsetLeft ?? x;
+		const originY = el?.offsetTop ?? y;
 		drag.current = {
 			pointerX: e.clientX,
 			pointerY: e.clientY,
@@ -109,15 +135,14 @@ function WindowInner({
 		const el = rootRef.current;
 		if (!d || !el) return;
 		const { x: nx, y: ny } = dragDelta(d, e.clientX, e.clientY);
+		setTrashHot(hitTrash(e.clientX, e.clientY));
 
 		if (!d.live) {
-			// Cheap path: no React until pointerup
 			el.style.left = `${nx}px`;
 			el.style.top = `${ny}px`;
 			return;
 		}
 
-		// Nested / parent-of-nested: keep React geometry live (crop + children)
 		d.pendingX = nx;
 		d.pendingY = ny;
 		if (d.raf) return;
@@ -137,21 +162,28 @@ function WindowInner({
 			d.raf = 0;
 		}
 		drag.current = null;
+		setTrashHot(false);
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
-		const el = rootRef.current;
-		if (d.live) {
-			moveRef.current(d.pendingX, d.pendingY);
+		if (hitTrash(e.clientX, e.clientY) && trashRef.current) {
+			trashRef.current();
 			return;
 		}
-		const nx = el ? el.offsetLeft : d.originX + (e.clientX - d.pointerX);
-		const ny = el ? el.offsetTop : d.originY + (e.clientY - d.pointerY);
-		moveRef.current(nx, ny);
+		const el = rootRef.current;
+		const fallback = dragDelta(d, e.clientX, e.clientY);
+		moveRef.current(
+			d.live ? d.pendingX : (el?.offsetLeft ?? fallback.x),
+			d.live ? d.pendingY : (el?.offsetTop ?? fallback.y),
+		);
 	}
 
 	return (
-		<section ref={rootRef} className="win" aria-label={title}>
+		<section
+			ref={rootRef}
+			className={variant ? `win win--${variant}` : "win"}
+			aria-label={title || "window"}
+		>
 			<header
 				className="win-titlebar"
 				onPointerDown={onTitlePointerDown}
@@ -169,15 +201,15 @@ function WindowInner({
 					/>
 				) : null}
 				<span className="win-titlebar__text">{title}</span>
-				<button
-					type="button"
-					className="win-close chrome-raised"
-					aria-label="Close"
-					onClick={onCloseAction}
-					onPointerDown={(ev) => ev.stopPropagation()}
-				>
-					×
-				</button>
+				{minimizable ? (
+					<button
+						type="button"
+						className="win-min chrome-raised"
+						aria-label="Minimize"
+						onClick={onMinimizeAction}
+						onPointerDown={(ev) => ev.stopPropagation()}
+					/>
+				) : null}
 			</header>
 			<div className="win__client chrome-sunken">{children}</div>
 		</section>
