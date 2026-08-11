@@ -1,9 +1,6 @@
 /** Desktop trickle-in after restart. Last item must land at BOOT_MS. */
 export const BOOT_MS = 5000;
 
-/** Dev skips RSOD/restart and reveals everything immediately. */
-export const SKIP_INTRO = process.env.NODE_ENV === "development";
-
 const WINDOW_IDS = [
 	"me",
 	"alt",

@@ -1,20 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BOOT_SCHEDULE, SKIP_INTRO } from "./bootReveal";
-
-const ALL_REVEALED: ReadonlySet<string> = new Set(
-	BOOT_SCHEDULE.map((s) => s.id),
-);
+import { BOOT_SCHEDULE } from "./bootReveal";
 
 /** Grows a Set of reveal ids over the boot schedule. */
 export function useBootReveal(): ReadonlySet<string> {
-	const [revealed, setRevealed] = useState<ReadonlySet<string>>(() =>
-		SKIP_INTRO ? ALL_REVEALED : new Set(),
-	);
+	const [revealed, setRevealed] = useState<ReadonlySet<string>>(() => new Set());
 
 	useEffect(() => {
-		if (SKIP_INTRO) return;
 		const timers = BOOT_SCHEDULE.map(({ id, at }) =>
 			window.setTimeout(() => {
 				setRevealed((prev) => {

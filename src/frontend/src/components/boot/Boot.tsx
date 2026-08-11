@@ -2,14 +2,13 @@
 
 import { useCallback, useState } from "react";
 import { Desktop } from "../desktop/Desktop";
-import { SKIP_INTRO } from "./bootReveal";
 import { Restarting } from "./Restarting";
 import { Rsod } from "./Rsod";
 
 type Phase = "rsod" | "restarting" | "desktop";
 
 export function Boot() {
-	const [phase, setPhase] = useState<Phase>(SKIP_INTRO ? "desktop" : "rsod");
+	const [phase, setPhase] = useState<Phase>("rsod");
 	const toRestart = useCallback(() => setPhase("restarting"), []);
 	const toDesktop = useCallback(() => setPhase("desktop"), []);
 
