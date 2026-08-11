@@ -202,28 +202,33 @@ export function Taskbar({ minimized = [], onRestoreAction, revealed }: Props) {
 							</button>
 						</div>
 					) : null}
-					{minimized.map((w) => (
-						<button
-							key={w.id}
-							type="button"
-							className="task-btn task-btn--active chrome-raised"
-							title={w.title}
-							onClick={() => onRestoreAction?.(w.id)}
-						>
-							{w.icon ? (
-								// eslint-disable-next-line @next/next/no-img-element
-								<img
-									className="task-btn__icon"
-									src={w.icon}
-									alt=""
-									width={16}
-									height={16}
-									draggable={false}
-								/>
-							) : null}
-							<span className="task-btn__label">{w.title}</span>
-						</button>
-					))}
+					{minimized.map((w) => {
+						// genesis github keeps an empty titlebar but needs a task tab name
+						const label =
+							w.title || (w.kind === "github" ? "github" : w.id);
+						return (
+							<button
+								key={w.id}
+								type="button"
+								className="task-btn task-btn--active chrome-raised"
+								title={label}
+								onClick={() => onRestoreAction?.(w.id)}
+							>
+								{w.icon ? (
+									// eslint-disable-next-line @next/next/no-img-element
+									<img
+										className="task-btn__icon"
+										src={w.icon}
+										alt=""
+										width={16}
+										height={16}
+										draggable={false}
+									/>
+								) : null}
+								<span className="task-btn__label">{label}</span>
+							</button>
+						);
+					})}
 				</div>
 			</div>
 			<div className="taskbar__right">
