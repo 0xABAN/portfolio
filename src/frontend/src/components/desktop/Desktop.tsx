@@ -74,7 +74,7 @@ const DESK_ICONS: DeskIcon[] = [
 	game("roblox", "Roblox", 1, 4, "https://www.roblox.com/"),
 	game("persona-3-reload", "Persona 3 Reload", 2, 1, "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
 	game("persona-5-royal", "Persona 5 Royal", 2, 2, "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
-	{ id: "sunglasses", label: "self", src: "/icons/folder.png", col: 2, row: 3, open: "explorer" },
+	{ id: "self", label: "self", src: "/icons/folder.png", col: 2, row: 3, open: "explorer" },
 	{ id: "experience", label: "experience.exe", src: "/icons/exe.png", col: 1, row: 5, open: "experience" },
 ];
 

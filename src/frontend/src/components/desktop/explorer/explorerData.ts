@@ -2,7 +2,7 @@ export type ExplorerFile =
 	| { id: string; name: string; icon: string; action: "bio" }
 	| { id: string; name: string; icon: string; action: "href"; href: string };
 
-export const EXPLORER_PATH = "C:\\😎";
+export const EXPLORER_PATH = "C:\\self";
 
 export const EXPLORER_FILES: readonly ExplorerFile[] = [
 	{
