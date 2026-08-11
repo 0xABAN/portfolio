@@ -377,8 +377,11 @@ export function Terminal() {
 				onKeyDown={() => inputRef.current?.focus()}
 			>
 				{lines.map((line) => (
-					<span key={line.id} className="term__line">
-						{line.text || " "}
+					<span
+						key={line.id}
+						className={`term__line${line.text ? "" : " term__line--blank"}`}
+					>
+						{line.text || "\u00a0"}
 					</span>
 				))}
 				{/* only one live prompt — hide while boot/program output runs */}
