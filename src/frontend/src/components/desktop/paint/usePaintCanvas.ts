@@ -105,52 +105,54 @@ export function usePaintCanvas({
 		ctx.putImageData(snap, 0, 0);
 	}
 
-	function paintBase(ctx: CanvasRenderingContext2D, w: number, h: number) {
-		const img = imgRef.current;
-		if (img && img.complete && img.naturalWidth > 0) {
-			ctx.drawImage(img, 0, 0, w, h);
-		} else {
-			ctx.fillStyle = "#ffffff";
-			ctx.fillRect(0, 0, w, h);
-		}
-	}
-
-	/** Size canvas bitmap to wrap; redraw base image when size actually changes. */
-	function syncSize() {
-		const canvas = canvasRef.current;
-		const wrap = wrapRef.current;
-		if (!canvas || !wrap) return;
-
-		const w = Math.max(1, Math.round(wrap.clientWidth));
-		const h = Math.max(1, Math.round(wrap.clientHeight));
-		if (w === sizeRef.current.w && h === sizeRef.current.h && readyRef.current) {
-			return;
-		}
-
-		sizeRef.current = { w, h };
-		canvas.width = w;
-		canvas.height = h;
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
-		ctx.imageSmoothingEnabled = false;
-		ctxRef.current = ctx;
-		undoStack.current = [];
-		strokeRef.current = null;
-		lastCoords.current = null;
-
-		const img = imgRef.current;
-		if (img && img.complete && img.naturalWidth > 0) {
-			paintBase(ctx, w, h);
-			readyRef.current = true;
-		} else {
-			readyRef.current = false;
-		}
-	}
-
 	useLayoutEffect(() => {
-		const canvas = canvasRef.current;
-		const wrap = wrapRef.current;
-		if (!canvas || !wrap) return;
+		const canvasEl = canvasRef.current;
+		const wrapEl = wrapRef.current;
+		if (!canvasEl || !wrapEl) return;
+		const canvas = canvasEl;
+		const wrap = wrapEl;
+
+		function paintBase(ctx: CanvasRenderingContext2D, w: number, h: number) {
+			const img = imgRef.current;
+			if (img && img.complete && img.naturalWidth > 0) {
+				ctx.drawImage(img, 0, 0, w, h);
+			} else {
+				ctx.fillStyle = "#ffffff";
+				ctx.fillRect(0, 0, w, h);
+			}
+		}
+
+		/** Size canvas bitmap to wrap; redraw base when size actually changes. */
+		function syncSize() {
+			const w = Math.max(1, Math.round(wrap.clientWidth));
+			const h = Math.max(1, Math.round(wrap.clientHeight));
+			if (
+				w === sizeRef.current.w &&
+				h === sizeRef.current.h &&
+				readyRef.current
+			) {
+				return;
+			}
+
+			sizeRef.current = { w, h };
+			canvas.width = w;
+			canvas.height = h;
+			const ctx = canvas.getContext("2d");
+			if (!ctx) return;
+			ctx.imageSmoothingEnabled = false;
+			ctxRef.current = ctx;
+			undoStack.current = [];
+			strokeRef.current = null;
+			lastCoords.current = null;
+
+			const img = imgRef.current;
+			if (img && img.complete && img.naturalWidth > 0) {
+				paintBase(ctx, w, h);
+				readyRef.current = true;
+			} else {
+				readyRef.current = false;
+			}
+		}
 
 		readyRef.current = false;
 		sizeRef.current = { w: 0, h: 0 };
