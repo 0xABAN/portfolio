@@ -11,4 +11,7 @@ paths = [
   '''(?i)/\.git/''',
   '''(?i)/dist/''',
   '''(?i)/out/''',
+  # local secrets — already gitignored via .env*; never commit
+  '''(?i)(^|/)\.env''',
+  '''(?i)(^|/)\.env\..*''',
 ]
