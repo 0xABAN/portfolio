@@ -53,7 +53,7 @@ type DeskIcon = {
 	col: number;
 	row: number;
 	href?: string;
-	open?: "explorer" | "experience";
+	open?: "explorer";
 };
 
 function game(
@@ -67,7 +67,7 @@ function game(
 }
 
 const DESK_ICONS: DeskIcon[] = [
-	// col 1 (4 games + bin) · col 2 (personas + secrets + exe)
+	// col 1 (4 games + bin) · col 2 (personas + secrets)
 	game("hollow-knight", "Hollow Knight", 1, 1, "https://store.steampowered.com/app/367520/Hollow_Knight/"),
 	game("silksong", "Silksong", 1, 2, "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
 	game("terraria", "Terraria", 1, 3, "https://store.steampowered.com/app/105600/Terraria/"),
@@ -75,7 +75,6 @@ const DESK_ICONS: DeskIcon[] = [
 	game("persona-3-reload", "Persona 3 Reload", 2, 1, "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
 	game("persona-5-royal", "Persona 5 Royal", 2, 2, "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
 	{ id: "secrets", label: "secrets", src: "/icons/folder.png", col: 2, row: 3, open: "explorer" },
-	{ id: "experience", label: "experience.exe", src: "/icons/exe.png", col: 2, row: 4, open: "experience" },
 ];
 
 const RECYCLE_BIN = {
@@ -86,7 +85,7 @@ const RECYCLE_BIN = {
 } as const;
 
 /** Soft bounce after boot to pull the eye. */
-const ATTENTION_IDS = new Set(["secrets", "experience"]);
+const ATTENTION_IDS = new Set(["secrets"]);
 const ATTENTION_DELAY_MS = 1000;
 const ATTENTION_FOR_MS = 10000;
 
@@ -205,8 +204,6 @@ export function Desktop() {
 		if (!attention || attentionDone.has(id) || !ATTENTION_IDS.has(id)) return false;
 		// already open → no bounce
 		if (id === "secrets" && windows.some((w) => w.id === "explorer")) return false;
-		if (id === "experience" && windows.some((w) => w.id === EXPERIENCE_WINDOW_ID))
-			return false;
 		return true;
 	}
 
@@ -230,7 +227,6 @@ export function Desktop() {
 		}
 		dismissAttention(icon.id);
 		if (icon.open === "explorer") openExplorer();
-		else if (icon.open === "experience") openExperience();
 		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
 	}
 
@@ -303,6 +299,7 @@ export function Desktop() {
 
 	function openExplorerFile(file: ExplorerFile) {
 		if (file.action === "bio") openBio();
+		else if (file.action === "experience") openExperience();
 		else window.open(file.href, "_blank", "noopener,noreferrer");
 	}
 
