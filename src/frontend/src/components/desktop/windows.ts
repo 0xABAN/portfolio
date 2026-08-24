@@ -287,7 +287,7 @@ const EXPLORER_H = 360;
 export function makeExplorerWindow(z: number): DesktopWindow {
 	return {
 		id: "explorer",
-		title: "self",
+		title: "secrets",
 		kind: "explorer",
 		icon: "/icons/folder.png",
 		z,
