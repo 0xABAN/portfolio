@@ -1,5 +1,5 @@
 /** Desktop trickle-in after restart. Last item must land at BOOT_MS. */
-export const BOOT_MS = 3800;
+export const BOOT_MS = 2100;
 
 const WINDOW_IDS = [
 	"me",
@@ -16,35 +16,33 @@ const WINDOW_IDS = [
 
 /** Ids match Desktop / Taskbar reveal gates. */
 export const BOOT_SCHEDULE: readonly { id: string; at: number }[] = [
-	{ id: "tb:start", at: 60 },
-	{ id: "tb:github", at: 150 },
-	{ id: "tb:linkedin", at: 230 },
-	{ id: "tb:twitter", at: 300 },
-	{ id: "tb:cd", at: 420 },
-	{ id: "tb:tray", at: 520 },
-	{ id: "tb:speaker", at: 610 },
-	{ id: "tb:views", at: 710 },
-	// thorns stay always-on; only branch trickles in
-	{ id: "branch", at: 850 },
-	{ id: "hollow-knight", at: 1140 },
-	{ id: "silksong", at: 1560 },
-	{ id: "persona-3-reload", at: 1710 },
-	{ id: "terraria", at: 1850 },
-	{ id: "persona-5-royal", at: 1990 },
-	{ id: "roblox", at: 2130 },
-	{ id: "self", at: 2280 },
-	{ id: "experience", at: 2420 },
-	{ id: "recycle-bin", at: 2510 },
-	{ id: "me", at: 2610 },
-	{ id: "alt", at: 2750 },
-	{ id: "new", at: 2900 },
-	{ id: "terminal", at: 3040 },
-	{ id: "github", at: 3180 },
-	{ id: "sysmsg-0", at: 3320 },
-	{ id: "sysmsg-1", at: 3420 },
-	{ id: "sysmsg-2", at: 3510 },
-	{ id: "sysmsg-3", at: 3610 },
-	{ id: "sysmsg-4", at: 3700 },
+	{ id: "tb:start", at: 40 },
+	{ id: "tb:github", at: 90 },
+	{ id: "tb:linkedin", at: 130 },
+	{ id: "tb:twitter", at: 170 },
+	{ id: "tb:cd", at: 230 },
+	{ id: "tb:tray", at: 290 },
+	{ id: "tb:speaker", at: 340 },
+	{ id: "tb:views", at: 390 },
+	{ id: "hollow-knight", at: 520 },
+	{ id: "silksong", at: 700 },
+	{ id: "persona-3-reload", at: 780 },
+	{ id: "terraria", at: 860 },
+	{ id: "persona-5-royal", at: 940 },
+	{ id: "roblox", at: 1020 },
+	{ id: "self", at: 1120 },
+	{ id: "experience", at: 1220 },
+	{ id: "recycle-bin", at: 1300 },
+	{ id: "me", at: 1380 },
+	{ id: "alt", at: 1480 },
+	{ id: "new", at: 1580 },
+	{ id: "terminal", at: 1680 },
+	{ id: "github", at: 1760 },
+	{ id: "sysmsg-0", at: 1840 },
+	{ id: "sysmsg-1", at: 1900 },
+	{ id: "sysmsg-2", at: 1960 },
+	{ id: "sysmsg-3", at: 2020 },
+	{ id: "sysmsg-4", at: 2060 },
 	{ id: "neko", at: BOOT_MS },
 ];
 
@@ -62,7 +60,6 @@ if (process.env.NODE_ENV !== "production") {
 		"self",
 		"experience",
 		"recycle-bin",
-		"branch",
 		...WINDOW_IDS,
 		"neko",
 	];

@@ -109,6 +109,29 @@
 	opacity: 0.45;
 }
 
+@keyframes desk-icon-bounce {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	35% {
+		transform: translateY(-12px);
+	}
+	55% {
+		transform: translateY(-4px);
+	}
+}
+
+.desk-icon--bounce {
+	animation: desk-icon-bounce 0.55s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.desk-icon--bounce {
+		animation: none;
+	}
+}
+
 .desk-icon__img {
 	width: 64px;
 	height: 64px;

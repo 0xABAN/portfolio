@@ -10,7 +10,7 @@ const LINES = [
 	"Starting Windows 95...",
 ] as const;
 
-const RESTART_MS = 1200;
+const RESTART_MS = 900;
 
 type Props = {
 	onDoneAction: () => void;

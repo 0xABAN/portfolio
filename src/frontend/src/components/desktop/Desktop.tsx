@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { BOOT_WINDOWS } from "../boot/bootReveal";
+import { useEffect, useRef, useState } from "react";
+import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
 import { Explorer } from "./explorer/Explorer";
@@ -67,7 +67,7 @@ function game(
 }
 
 const DESK_ICONS: DeskIcon[] = [
-	// col 1 (4+exe) · col 2 (2 personas + self + bin)
+	// col 1 (4 games + bin) · col 2 (personas + self + exe)
 	game("hollow-knight", "Hollow Knight", 1, 1, "https://store.steampowered.com/app/367520/Hollow_Knight/"),
 	game("silksong", "Silksong", 1, 2, "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
 	game("terraria", "Terraria", 1, 3, "https://store.steampowered.com/app/105600/Terraria/"),
@@ -75,15 +75,20 @@ const DESK_ICONS: DeskIcon[] = [
 	game("persona-3-reload", "Persona 3 Reload", 2, 1, "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
 	game("persona-5-royal", "Persona 5 Royal", 2, 2, "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
 	{ id: "self", label: "self", src: "/icons/folder.png", col: 2, row: 3, open: "explorer" },
-	{ id: "experience", label: "experience.exe", src: "/icons/exe.png", col: 1, row: 5, open: "experience" },
+	{ id: "experience", label: "experience.exe", src: "/icons/exe.png", col: 2, row: 4, open: "experience" },
 ];
 
 const RECYCLE_BIN = {
 	id: "recycle-bin",
 	label: "Recycle Bin",
-	col: 2,
-	row: 4,
+	col: 1,
+	row: 5,
 } as const;
+
+/** Soft bounce after boot to pull the eye. */
+const ATTENTION_IDS = new Set(["self", "experience"]);
+const ATTENTION_DELAY_MS = 1000;
+const ATTENTION_FOR_MS = 5000;
 
 function DeskIconGlyph({ src, label }: { src: string; label: string }) {
 	return (
@@ -174,8 +179,19 @@ export function Desktop() {
 	const [binFull, setBinFull] = useState(false);
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
+	const [attention, setAttention] = useState(false);
 	const skipClick = useRef(false);
 	const revealed = useBootReveal();
+
+	useEffect(() => {
+		const startAt = BOOT_MS + ATTENTION_DELAY_MS;
+		const start = window.setTimeout(() => setAttention(true), startAt);
+		const stop = window.setTimeout(() => setAttention(false), startAt + ATTENTION_FOR_MS);
+		return () => {
+			window.clearTimeout(start);
+			window.clearTimeout(stop);
+		};
+	}, []);
 
 	function trashIcon(id: string) {
 		if (!id || id === RECYCLE_BIN.id) return;
@@ -311,18 +327,17 @@ export function Desktop() {
 
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"}>
-			{DECOS.filter((d) => d.id.startsWith("thorn") || revealed.has(d.id)).map(
-				(d) => (
-					// eslint-disable-next-line @next/next/no-img-element
-					<img
-						key={d.id}
-						className={d.className}
-						src={d.src}
-						alt=""
-						draggable={false}
-					/>
-				),
-			)}
+			{/* branch + both thorns mount together with the desktop */}
+			{DECOS.map((d) => (
+				// eslint-disable-next-line @next/next/no-img-element
+				<img
+					key={d.id}
+					className={d.className}
+					src={d.src}
+					alt=""
+					draggable={false}
+				/>
+			))}
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.filter(
 					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),
@@ -334,9 +349,15 @@ export function Desktop() {
 						<button
 							type="button"
 							className={
-								draggingId === icon.id
-									? "desk-icon desk-icon--dragging"
-									: "desk-icon"
+								[
+									"desk-icon",
+									attention && ATTENTION_IDS.has(icon.id)
+										? "desk-icon--bounce"
+										: "",
+									draggingId === icon.id ? "desk-icon--dragging" : "",
+								]
+									.filter(Boolean)
+									.join(" ")
 							}
 							title={icon.label}
 							draggable
