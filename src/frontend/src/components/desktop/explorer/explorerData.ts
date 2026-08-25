@@ -17,7 +17,7 @@ export const EXPLORER_FILES: readonly ExplorerFile[] = [
 		name: "resume.pdf",
 		icon: "/icons/pdf.png",
 		action: "href",
-		href: "https://github.com/0xABAN/resume/blob/main/editions/Adam_Torres_Encarnacion_Resume.pdf",
+		href: "https://github.com/0xABAN/jobs/blob/main/src/resume/Adam_Torres_Encarnacion_Resume.pdf",
 	},
 	{
 		id: "experience",
