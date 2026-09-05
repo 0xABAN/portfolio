@@ -1,3 +1,0 @@
-{
-	"ignore": [".next/**", "src/frontend/.next/**", "**/node_modules/**"]
-}
