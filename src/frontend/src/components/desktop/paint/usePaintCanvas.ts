@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import {
-	DRAWABLE_TOOLS,
 	UNDO_LIMIT,
 	type Coords,
 	type SizeIndex,
@@ -223,8 +222,6 @@ export function usePaintCanvas({
 			if (e.button !== 0 && e.button !== 2) return;
 			if (!readyRef.current) return;
 			const { tool: t, fg: f, bg: b, sizeIndex: s } = cfg.current;
-			if (!DRAWABLE_TOOLS.has(t)) return;
-
 			const style = resolveStrokeStyle(t, f, b, s, e.button === 2);
 			if (!style) return;
 

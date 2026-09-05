@@ -241,7 +241,7 @@ export function Terminal() {
 		// BIOS-ish copyright dump (line-by-line, not instant)
 		for (const text of COPYRIGHT) {
 			if (!alive()) return;
-			setLines((prev) => [...prev, { id: nextId(), text }]);
+			append(text);
 			await pause(text ? 210 : 140);
 		}
 
@@ -265,7 +265,7 @@ export function Terminal() {
 
 		// Enter — disk spin / PE load
 		await pause(220);
-		setLines((prev) => [...prev, { id: nextId(), text: "" }]);
+		append("");
 		await pause(550);
 		// program init (no output yet)
 		await pause(420);
@@ -288,10 +288,10 @@ export function Terminal() {
 
 		await pause(175);
 		setHistory([{ role: "assistant", content: GREETING }]);
-		setLines((prev) => [...prev, { id: nextId(), text: "" }]);
+		append("");
 		setBusy(false);
 		inputRef.current?.focus();
-	}, [setLineText]);
+	}, [append, setLineText]);
 
 	useEffect(() => {
 		const t = window.setTimeout(() => {
