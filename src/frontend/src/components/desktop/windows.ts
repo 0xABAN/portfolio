@@ -210,9 +210,9 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		z: 12,
 		kind: "terminal" as const,
 		icon: "/icons/terminal.svg",
-		...layoutTerminalWindow(me),
+		...layoutTerminalWindow(me, vw, vh),
 	};
-	return [
+	const windows: DesktopWindow[] = [
 		me,
 		{
 			id: "alt",
@@ -238,6 +238,59 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		},
 		...layoutErrorStack(me),
 	];
+	return windows.map((w) => w.parentId ? w : {
+		...w,
+		...clampWindowPos(w.x, w.y, w.w, vw, vh),
+	});
+}
+
+/** Reflow existing windows, retaining user offsets rather than restoring closed apps. */
+export function reflowDesktop(
+	current: DesktopWindow[],
+	previous: DesktopWindow[],
+	next: DesktopWindow[],
+	vw: number,
+	vh: number,
+): DesktopWindow[] {
+	const oldLayout = new Map(previous.map((w) => [w.id, w]));
+	const newLayout = new Map(next.map((w) => [w.id, w]));
+	const oldAnchor = oldLayout.get("me");
+	const anchor = newLayout.get("me");
+	if (!oldAnchor || !anchor) return current;
+	const dx = anchor.x + anchor.w / 2 - oldAnchor.x - oldAnchor.w / 2;
+	const dy = anchor.y + anchor.h / 2 - oldAnchor.y - oldAnchor.h / 2;
+
+	const resized = current.map((w) => {
+		if (w.parentId) return w;
+		const old = oldLayout.get(w.id);
+		const target = newLayout.get(w.id);
+		const width = target?.w ?? w.w;
+		const x = old && target ? target.x + w.x - old.x : w.x + dx;
+		const y = old && target ? target.y + w.y - old.y : w.y + dy;
+		return { ...w, w: width, h: target?.h ?? w.h, ...clampWindowPos(x, y, width, vw, vh) };
+	});
+
+	return resized.map((w) => {
+		if (!w.parentId) return w;
+		const parent = resized.find((p) => p.id === w.parentId);
+		const oldParent = current.find((p) => p.id === w.parentId);
+		if (!parent || !oldParent) return w;
+		const old = oldLayout.get(w.id);
+		const target = newLayout.get(w.id);
+		const oldBase = oldLayout.get(w.parentId);
+		const newBase = newLayout.get(w.parentId);
+		const shiftX = old && target && oldBase && newBase ? target.x - newBase.x - old.x + oldBase.x : 0;
+		const shiftY = old && target && oldBase && newBase ? target.y - newBase.y - old.y + oldBase.y : 0;
+		return {
+			...w,
+			...clampToParent({
+				x: parent.x + w.x - oldParent.x + shiftX,
+				y: parent.y + w.y - oldParent.y + shiftY,
+				w: target?.w ?? w.w,
+				h: target?.h ?? w.h,
+			}, nestBounds(parent)),
+		};
+	});
 }
 
 export const EXPERIENCE_WINDOW_ID = "experience";
@@ -295,13 +348,15 @@ export function makeExplorerWindow(z: number): DesktopWindow {
 	};
 }
 
-function layoutTerminalWindow(anchor: Rect): Rect {
+function layoutTerminalWindow(anchor: Rect, vw: number, vh: number): Rect {
 	const w = Math.round(anchor.w * 1.3 * 0.85);
 	const h = Math.round(anchor.h * 0.7);
 	const { x, y } = clampWindowPos(
 		anchor.x + anchor.w + 50,
 		Math.round(anchor.y + (anchor.h - h) / 2),
 		w,
+		vw,
+		vh,
 	);
 	return { x, y, w, h };
 }
@@ -345,11 +400,14 @@ export function clampWindowPos(
 	x: number,
 	y: number,
 	w: number,
+	vw?: number,
+	vh?: number,
 ): { x: number; y: number } {
-	if (typeof window === "undefined") return { x, y };
+	if ((vw == null || vh == null) && typeof window === "undefined") return { x, y };
+	const { vw: width, vh: height } = viewport(vw, vh);
 	const minX = 48 - w;
-	const maxX = window.innerWidth - 48;
-	const maxY = window.innerHeight - TASKBAR_H - TITLE_H;
+	const maxX = width - 48;
+	const maxY = height - TASKBAR_H - TITLE_H;
 	return {
 		x: Math.min(maxX, Math.max(minX, x)),
 		y: Math.min(maxY, Math.max(0, y)),

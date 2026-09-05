@@ -21,6 +21,7 @@ import {
 	nestBounds,
 	clampWindowPos,
 	layoutDesktop,
+	reflowDesktop,
 	makeBioWindow,
 	makeExplorerWindow,
 	makeExperienceWindow,
@@ -154,6 +155,7 @@ export function Desktop() {
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
 		layoutDesktop(window.innerWidth, window.innerHeight),
 	);
+	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
 	/** Taskbar tab order — first minimized is leftmost (after CD Player). */
 	const [minOrder, setMinOrder] = useState<string[]>([]);
@@ -167,6 +169,18 @@ export function Desktop() {
 	);
 	const skipClick = useRef(false);
 	const revealed = useBootReveal();
+
+	useEffect(() => {
+		const resize = () => {
+			const { innerWidth: width, innerHeight: height } = window;
+			const previous = layoutRef.current;
+			const next = layoutDesktop(width, height);
+			layoutRef.current = next;
+			setWindows((current) => reflowDesktop(current, previous, next, width, height));
+		};
+		window.addEventListener("resize", resize);
+		return () => window.removeEventListener("resize", resize);
+	}, []);
 
 	useEffect(() => {
 		const startAt = BOOT_MS + ATTENTION_DELAY_MS;

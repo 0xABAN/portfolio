@@ -121,15 +121,13 @@ export function usePaintCanvas({
 			}
 		}
 
-		/** Size canvas bitmap to wrap; redraw base when size actually changes. */
+		/** CSS scales the initialized bitmap without discarding drawings or undo. */
 		function syncSize() {
+			rectRef.current = canvas.getBoundingClientRect();
 			const w = Math.max(1, Math.round(wrap.clientWidth));
 			const h = Math.max(1, Math.round(wrap.clientHeight));
-			if (
-				w === sizeRef.current.w &&
-				h === sizeRef.current.h &&
-				readyRef.current
-			) {
+			// ponytail: keep initial resolution; use a document-sized bitmap if zoom quality matters.
+			if (readyRef.current && sizeRef.current.w > 1 && sizeRef.current.h > 1) {
 				return;
 			}
 
