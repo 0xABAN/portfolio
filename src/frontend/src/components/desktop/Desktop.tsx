@@ -71,20 +71,22 @@ const RECYCLE_BIN = {
 /** Soft bounce after boot to pull the eye. */
 const ATTENTION_IDS = new Set(["secrets"]);
 const ATTENTION_DELAY_MS = 1000;
-const ATTENTION_FOR_MS = 10000;
 
-function DeskIconGlyph({ src, label }: { src: string; label: string }) {
+function DeskIconGlyph({ src, label, notification = false }: { src: string; label: string; notification?: boolean }) {
 	return (
 		<>
-			{/* eslint-disable-next-line @next/next/no-img-element */}
-			<img
-				className="desk-icon__img"
-				src={src}
-				alt=""
-				width={64}
-				height={64}
-				draggable={false}
-			/>
+			<span className="desk-icon__art">
+				{/* eslint-disable-next-line @next/next/no-img-element */}
+				<img
+					className="desk-icon__img"
+					src={src}
+					alt=""
+					width={64}
+					height={64}
+					draggable={false}
+				/>
+				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
+			</span>
 			<span className="desk-icon__label">{label}</span>
 		</>
 	);
@@ -185,11 +187,7 @@ export function Desktop() {
 	useEffect(() => {
 		const startAt = BOOT_MS + ATTENTION_DELAY_MS;
 		const start = window.setTimeout(() => setAttention(true), startAt);
-		const stop = window.setTimeout(() => setAttention(false), startAt + ATTENTION_FOR_MS);
-		return () => {
-			window.clearTimeout(start);
-			window.clearTimeout(stop);
-		};
+		return () => window.clearTimeout(start);
 	}, []);
 
 	function dismissAttention(id: string) {
@@ -197,8 +195,12 @@ export function Desktop() {
 		setAttentionDone((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
 	}
 
+	function hasNotification(id: string) {
+		return ATTENTION_IDS.has(id) && !attentionDone.has(id);
+	}
+
 	function shouldBounce(id: string) {
-		if (!attention || attentionDone.has(id) || !ATTENTION_IDS.has(id)) return false;
+		if (!attention || !hasNotification(id)) return false;
 		// already open → no bounce
 		if (id === "secrets" && windows.some((w) => w.id === "explorer")) return false;
 		return true;
@@ -360,6 +362,7 @@ export function Desktop() {
 									.join(" ")
 							}
 							title={icon.label}
+							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : undefined}
 							draggable
 							onDragStart={(e) => {
 								skipClick.current = true;
@@ -373,7 +376,7 @@ export function Desktop() {
 							}}
 							onClick={() => openDeskIcon(icon)}
 						>
-							<DeskIconGlyph src={icon.src} label={icon.label} />
+							<DeskIconGlyph src={icon.src} label={icon.label} notification={hasNotification(icon.id)} />
 						</button>
 					</li>
 				))}
