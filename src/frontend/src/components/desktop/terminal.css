@@ -33,7 +33,8 @@
 	margin: 0;
 	padding: 4px 6px;
 	overflow: auto;
-	background: #ff0000;
+	/* Match the taskbar; .win overrides --chrome-face with light gray. */
+	background: #1a1a1a;
 	border-top: 1px solid var(--chrome-lo);
 	border-left: 1px solid var(--chrome-lo);
 	border-right: 1px solid var(--chrome-hi);
