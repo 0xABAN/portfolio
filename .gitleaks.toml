@@ -1,0 +1,17 @@
+title = "portfolio"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local build artifacts (never committed)"
+paths = [
+  '''(?i)/\.next/''',
+  '''(?i)/node_modules/''',
+  '''(?i)/\.git/''',
+  '''(?i)/dist/''',
+  '''(?i)/out/''',
+  # local secrets — already gitignored via .env*; never commit
+  '''(?i)(^|/)\.env''',
+  '''(?i)(^|/)\.env\..*''',
+]
