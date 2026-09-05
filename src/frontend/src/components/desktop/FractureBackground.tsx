@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { fractureOffset } from "./desktopParallax";
+import { installFractureParticles } from "./fractureParticles";
 
 const PIECES = [
 	"northwest", "north", "northeast", "upper-right", "right",
@@ -27,6 +28,7 @@ export function FractureBackground() {
 				return Array.from({ length: steps + 1 }, (_, i) => path.getPointAtLength((length * i) / steps));
 			}),
 		}));
+		const removeParticles = installFractureParticles(svg, desktop, motion, pieces);
 		let frame = 0;
 		let pointer: DOMPoint | null = null;
 
@@ -64,6 +66,7 @@ export function FractureBackground() {
 		window.addEventListener("resize", reset);
 		motion.addEventListener("change", reset);
 		return () => {
+			removeParticles();
 			reset();
 			desktop.removeEventListener("pointermove", move);
 			desktop.removeEventListener("pointerleave", reset);
@@ -165,17 +168,17 @@ export function FractureBackground() {
 				<path fill="url(#pixels)" d="M0 0H1600V1000H0Z"/>
 				<path filter="url(#signal)" opacity=".6" d="M0 0H1600V1000H0Z"/>
 			</g>
-			{/* Separate masks/filters prevent moving bounds from resampling the static screen. */}
-			{PIECES.map((piece) => (
-				<g key={piece} mask="url(#screen)">
-					<g className="fracture-piece" data-piece={piece}>
+			{/* Share a stationary mask: per-piece masks flicker in Chrome during transforms. */}
+			<g mask="url(#screen)">
+				{PIECES.map((piece) => (
+					<g key={piece} className="fracture-piece" data-piece={piece}>
 						<g filter="url(#rough)">
 							<use href={`#fracture-${piece}`} fill="#df0000" stroke="#df0000" strokeWidth="2" opacity=".3" transform="translate(-2 1)"/>
 							<use href={`#fracture-${piece}`} fill="#120000"/>
 						</g>
 					</g>
-				</g>
-			))}
+				))}
+			</g>
 			<g mask="url(#screen)">
 				<g filter="url(#rough)">
 					<use href="#fracture-impact" fill="#df0000" stroke="#df0000" strokeWidth="2" opacity=".3" transform="translate(-2 1)"/>
