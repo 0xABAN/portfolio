@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
+import { parallaxRatio } from "./desktopParallax";
 import { Explorer } from "./explorer/Explorer";
 import type { ExplorerFile } from "./explorer/explorerData";
 import { GitHubGraph } from "./GitHubGraph";
@@ -323,7 +324,26 @@ export function Desktop() {
 	}
 
 	return (
-		<div className={busy ? "desktop desktop--busy" : "desktop"}>
+		<div
+			className={busy ? "desktop desktop--busy" : "desktop"}
+			onPointerMove={(event) => {
+				if (event.pointerType !== "mouse") return;
+				const desktop = event.currentTarget;
+				const rect = desktop.getBoundingClientRect();
+				desktop.style.setProperty(
+					"--fracture-x",
+					String(parallaxRatio(event.clientX - rect.left, rect.width)),
+				);
+				desktop.style.setProperty(
+					"--fracture-y",
+					String(parallaxRatio(event.clientY - rect.top, rect.height)),
+				);
+			}}
+			onPointerLeave={(event) => {
+				event.currentTarget.style.removeProperty("--fracture-x");
+				event.currentTarget.style.removeProperty("--fracture-y");
+			}}
+		>
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.filter(
 					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),
