@@ -34,8 +34,6 @@ type DeskIcon = {
 	id: string;
 	label: string;
 	src: string;
-	col: number;
-	row: number;
 	href?: string;
 	open?: "explorer";
 };
@@ -43,29 +41,25 @@ type DeskIcon = {
 function game(
 	id: string,
 	label: string,
-	col: number,
-	row: number,
 	href: string,
 ): DeskIcon {
-	return { id, label, src: `/icons/games/${id}.png`, col, row, href };
+	return { id, label, src: `/icons/games/${id}.png`, href };
 }
 
 const DESK_ICONS: DeskIcon[] = [
-	// col 1 (4 games + bin) · col 2 (personas + secrets)
-	game("hollow-knight", "Hollow Knight", 1, 1, "https://store.steampowered.com/app/367520/Hollow_Knight/"),
-	game("silksong", "Silksong", 1, 2, "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
-	game("terraria", "Terraria", 1, 3, "https://store.steampowered.com/app/105600/Terraria/"),
-	game("roblox", "Roblox", 1, 4, "https://www.roblox.com/"),
-	game("persona-3-reload", "Persona 3 Reload", 2, 1, "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
-	game("persona-5-royal", "Persona 5 Royal", 2, 2, "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
-	{ id: "secrets", label: "secrets", src: "/icons/folder.png", col: 2, row: 3, open: "explorer" },
+	// Apps precede folders; Recycle Bin is rendered last.
+	game("hollow-knight", "Hollow Knight", "https://store.steampowered.com/app/367520/Hollow_Knight/"),
+	game("silksong", "Silksong", "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
+	game("terraria", "Terraria", "https://store.steampowered.com/app/105600/Terraria/"),
+	game("roblox", "Roblox", "https://www.roblox.com/"),
+	game("persona-3-reload", "Persona 3 Reload", "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
+	game("persona-5-royal", "Persona 5 Royal", "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
+	{ id: "secrets", label: "secrets", src: "/icons/folder.png", open: "explorer" },
 ];
 
 const RECYCLE_BIN = {
 	id: "recycle-bin",
 	label: "Recycle Bin",
-	col: 1,
-	row: 5,
 } as const;
 
 /** Soft bounce after boot to pull the eye. */
@@ -346,10 +340,7 @@ export function Desktop() {
 				{DESK_ICONS.filter(
 					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),
 				).map((icon) => (
-					<li
-						key={icon.id}
-						style={{ gridColumn: icon.col, gridRow: icon.row }}
-					>
+					<li key={icon.id}>
 						<button
 							type="button"
 							className={
@@ -381,7 +372,7 @@ export function Desktop() {
 					</li>
 				))}
 				{revealed.has(RECYCLE_BIN.id) ? (
-					<li style={{ gridColumn: RECYCLE_BIN.col, gridRow: RECYCLE_BIN.row }}>
+					<li>
 						<button
 							type="button"
 							data-recycle-bin=""

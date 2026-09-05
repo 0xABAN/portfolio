@@ -44,17 +44,22 @@
 
 .desktop__icons {
 	position: absolute;
-	top: auto;
+	top: 12px;
 	bottom: 52px;
 	left: 10px;
 	z-index: 2;
-	display: grid;
-	grid-template-columns: 96px 96px;
-	grid-template-rows: repeat(5, auto);
+	display: flex;
+	flex-flow: column wrap;
+	align-content: flex-start;
 	gap: 14px 8px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
+}
+
+.desktop__icons > li {
+	flex: none;
+	width: 96px;
 }
 
 .desk-icon {
