@@ -4,9 +4,12 @@ from fastapi import HTTPException
 import pytest
 
 
-def test_estimate_text_tokens_roughly_chars_over_4():
-    assert estimate_text_tokens("abcd") == 1
-    assert estimate_text_tokens("a" * 8) == 2
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("", 0), ("a", 1), ("abc", 1), ("abcd", 1), ("abcde", 2), ("a" * 8, 2)],
+)
+def test_estimate_text_tokens_roughly_chars_over_4(text, expected):
+    assert estimate_text_tokens(text) == expected
 
 
 def test_parse_messages_rejects_oversize(monkeypatch):
@@ -21,6 +24,25 @@ def test_parse_messages_rejects_oversize(monkeypatch):
 def test_parse_messages_ok():
     ms = parse_messages([{"role": "user", "content": "hi"}])
     assert ms == [{"role": "user", "content": "hi"}]
+
+
+@pytest.mark.parametrize(
+    ("entry", "expected"),
+    [
+        (None, 2),
+        (("yesterday", 2), 2),
+        (("today", 1), 1),
+        (("today", 2), 0),
+        (("today", 3), 0),
+    ],
+)
+def test_remaining_daily_counter(monkeypatch, entry, expected):
+    import portfolio_backend.limits as limits
+
+    monkeypatch.setattr(limits, "DAILY_IP_LIMIT", 2)
+    monkeypatch.setattr(limits, "_today", lambda: "today")
+    monkeypatch.setattr(limits, "_counts", {} if entry is None else {"visitor": entry})
+    assert remaining("visitor") == expected
 
 
 def test_try_consume_daily_cap(monkeypatch):

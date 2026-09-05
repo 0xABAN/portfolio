@@ -58,10 +58,7 @@ def _prune(now: float) -> None:
 def remaining(ip: str) -> int:
     day = _today()
     with _lock:
-        entry = _counts.get(ip)
-        if entry is None or entry[0] != day:
-            return DAILY_IP_LIMIT
-        return max(0, DAILY_IP_LIMIT - entry[1])
+        return remaining_unlocked(ip, day)
 
 
 def rpm_tpm_status() -> dict[str, int]:

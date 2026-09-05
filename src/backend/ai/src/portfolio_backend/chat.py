@@ -50,7 +50,7 @@ async def close_http() -> None:
 
 
 def estimate_text_tokens(text: str) -> int:
-    return max(1, (len(text) + 3) // 4) if text else 0
+    return (len(text) + 3) // 4
 
 
 def parse_messages(data: object) -> list[dict[str, str]]:
@@ -158,9 +158,8 @@ async def stream_grok(messages: list[dict[str, Any]]) -> AsyncIterator[str]:
                 break
             try:
                 chunk = json.loads(data)
-            except json.JSONDecodeError as _err:
-                del _err  # malformed SSE frame — skip
-                continue
+            except json.JSONDecodeError:
+                continue  # skip malformed SSE frames
             choices = chunk.get("choices") or []
             if not choices:
                 continue
