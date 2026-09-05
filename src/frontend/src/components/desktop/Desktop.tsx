@@ -28,24 +28,6 @@ import {
 } from "./windows";
 import "./desktop.css";
 
-const DECOS = [
-	{
-		id: "branch",
-		className: "desktop__deco desktop__branch",
-		src: "/photos/branch.png",
-	},
-	{
-		id: "thorn-tl",
-		className: "desktop__deco desktop__thorn",
-		src: "/photos/thorn.png",
-	},
-	{
-		id: "thorn-br",
-		className: "desktop__deco desktop__thorn-br",
-		src: "/photos/thorn.png",
-	},
-] as const;
-
 type DeskIcon = {
 	id: string;
 	label: string;
@@ -342,17 +324,6 @@ export function Desktop() {
 
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"}>
-			{/* branch + both thorns mount together with the desktop */}
-			{DECOS.map((d) => (
-				// eslint-disable-next-line @next/next/no-img-element
-				<img
-					key={d.id}
-					className={d.className}
-					src={d.src}
-					alt=""
-					draggable={false}
-				/>
-			))}
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.filter(
 					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),

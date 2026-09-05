@@ -25,38 +25,14 @@
 	cursor: var(--cursor-wait) !important;
 }
 
-.desktop__deco {
+/* Decorative only: the fracture stays behind windows and never captures input. */
+.desktop::before {
+	content: "";
 	position: absolute;
-	height: auto;
-	pointer-events: none;
-	user-select: none;
-}
-
-.desktop__branch {
-	top: -18%;
-	left: -22%;
-	width: min(720px, 62vw);
+	inset: 0 0 36px;
 	z-index: 0;
-}
-
-.desktop__thorn {
-	top: -32%;
-	left: -26%;
-	width: min(1280px, 110vw);
-	transform: rotate(10deg);
-	z-index: 1;
-}
-
-/* Same thorn, upside-down + mirrored, much bigger — hangs from page BR */
-.desktop__thorn-br {
-	top: auto;
-	left: auto;
-	bottom: -12%;
-	right: calc(-8% - 400px);
-	width: min(2400px, 190vw);
-	/* flip both axes = upside-down mirror of the TL placement */
-	transform: scale(-1) rotate(-10deg);
-	z-index: 1;
+	background: url("/photos/shattered-screen.svg") center / cover no-repeat;
+	pointer-events: none;
 }
 
 .desktop__icons {
