@@ -263,14 +263,14 @@ export function Desktop() {
 		});
 	}
 
-	function withBusy(run: () => void) {
+	function withBusy(run: () => void, delay = 1500) {
 		if (busy) return;
 		setBusy(true);
 		// ponytail: fixed fake load delay — tune if it feels too snappy/slow
 		window.setTimeout(() => {
 			run();
 			setBusy(false);
-		}, 1500);
+		}, delay);
 	}
 
 	function openBio() {
@@ -278,7 +278,9 @@ export function Desktop() {
 	}
 
 	function openExplorer() {
-		openOrRaise("explorer", (z, current) => makeExplorerWindow(z, current.find((w) => w.id === "me")));
+		withBusy(() => {
+			openOrRaise("explorer", (z, current) => makeExplorerWindow(z, current.find((w) => w.id === "me")));
+		}, 500);
 	}
 
 	function openExperience() {

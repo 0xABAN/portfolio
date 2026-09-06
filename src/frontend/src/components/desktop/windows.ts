@@ -337,15 +337,16 @@ export function makeBioWindow(z: number): DesktopWindow {
 const EXPLORER_W = 520;
 const EXPLORER_H = 360;
 const EXPLORER_MIN_W = 320;
+const EXPLORER_LEFT_GAP = 35;
 
 export function makeExplorerWindow(z: number, anchor?: Rect, vw?: number, vh?: number): DesktopWindow {
 	const { vw: W, vh: H } = viewport(vw, vh);
-	const leftSpace = anchor ? anchor.x - PAINT_LEFT_GAP - MARGIN : 0;
+	const leftSpace = anchor ? anchor.x - EXPLORER_LEFT_GAP - MARGIN : 0;
 	const fitsLeft = leftSpace >= EXPLORER_MIN_W;
 	const w = Math.min(EXPLORER_W, Math.max(1, W - MARGIN * 2), fitsLeft ? leftSpace : EXPLORER_W);
 	const h = Math.min(EXPLORER_H, Math.max(1, H - TASKBAR_H - MARGIN * 2));
 	const centered = layoutCentered(w, h, W, H);
-	const x = anchor && fitsLeft ? anchor.x - w - PAINT_LEFT_GAP : centered.x;
+	const x = anchor && fitsLeft ? anchor.x - w - EXPLORER_LEFT_GAP : centered.x;
 	const y = anchor ? anchor.y + anchor.h - h : centered.y;
 	return {
 		id: "explorer",

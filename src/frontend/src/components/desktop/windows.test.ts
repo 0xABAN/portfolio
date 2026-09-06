@@ -14,7 +14,7 @@ test("secrets opens left of the current adam window with aligned bottom borders"
 		const adam = layoutDesktop(width, height).find((w) => w.id === "me")!;
 		for (const anchor of [adam, { ...adam, x: adam.x + 80, y: adam.y - 10 }]) {
 			const secrets = makeExplorerWindow(50, anchor, width, height);
-			assert.equal(anchor.x - (secrets.x + secrets.w), 70);
+			assert.equal(anchor.x - (secrets.x + secrets.w), 35);
 			assert.equal(secrets.y + secrets.h, anchor.y + anchor.h);
 			assert.ok(secrets.x >= 24);
 			assert.ok(secrets.w >= 320 && secrets.w <= 520);
