@@ -251,10 +251,10 @@ export function Desktop() {
 		clearMinOrder(id);
 	}
 
-	function openOrRaise(id: string, make: (z: number) => DesktopWindow) {
+	function openOrRaise(id: string, make: (z: number, current: DesktopWindow[]) => DesktopWindow) {
 		setWindows((prev) => {
 			const existing = prev.find((w) => w.id === id);
-			if (!existing) return [...prev, make(nextZ(prev))];
+			if (!existing) return [...prev, make(nextZ(prev), prev)];
 			if (existing.minimized) {
 				clearMinOrder(id);
 				return restoreTree(prev, id, nextZ(prev));
@@ -278,7 +278,7 @@ export function Desktop() {
 	}
 
 	function openExplorer() {
-		openOrRaise("explorer", makeExplorerWindow);
+		openOrRaise("explorer", (z, current) => makeExplorerWindow(z, current.find((w) => w.id === "me")));
 	}
 
 	function openExperience() {
@@ -335,7 +335,7 @@ export function Desktop() {
 
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"}>
-			<FractureBackground />
+			<FractureBackground active={revealed.has("fracture")} />
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.filter(
 					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),
@@ -346,6 +346,7 @@ export function Desktop() {
 							className={
 								[
 									"desk-icon",
+									icon.href ? "desk-icon--app" : "",
 									shouldBounce(icon.id) ? "desk-icon--bounce" : "",
 									draggingId === icon.id ? "desk-icon--dragging" : "",
 								]

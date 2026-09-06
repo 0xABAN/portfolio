@@ -3,10 +3,40 @@ import { test } from "node:test";
 import {
 	clampWindowPos,
 	layoutDesktop,
+	makeExplorerWindow,
 	nestBounds,
 	reflowDesktop,
 	type DesktopWindow,
 } from "./windows";
+
+test("secrets opens left of the current adam window with aligned bottom borders", () => {
+	for (const [width, height] of [[1920, 1080], [1440, 900]]) {
+		const adam = layoutDesktop(width, height).find((w) => w.id === "me")!;
+		for (const anchor of [adam, { ...adam, x: adam.x + 80, y: adam.y - 10 }]) {
+			const secrets = makeExplorerWindow(50, anchor, width, height);
+			assert.equal(anchor.x - (secrets.x + secrets.w), 70);
+			assert.equal(secrets.y + secrets.h, anchor.y + anchor.h);
+			assert.ok(secrets.x >= 24);
+			assert.ok(secrets.w >= 320 && secrets.w <= 520);
+			assert.equal(secrets.h, 360);
+			assert.equal(secrets.z, 50);
+		}
+	}
+});
+
+test("secrets stays fully accessible when there is no room beside adam", () => {
+	for (const [width, height] of [[390, 844], [844, 390]]) {
+		const adam = layoutDesktop(width, height).find((w) => w.id === "me")!;
+		const secrets = makeExplorerWindow(50, adam, width, height);
+		assert.ok(secrets.x >= 24 && secrets.y >= 24);
+		assert.ok(secrets.x + secrets.w <= width - 24);
+		assert.ok(secrets.y + secrets.h <= height - 36 - 24);
+		assert.equal(secrets.y + secrets.h, adam.y + adam.h);
+	}
+	const secrets = makeExplorerWindow(50, undefined, 1440, 900);
+	assert.equal(secrets.x + secrets.w / 2, 720);
+	assert.equal(secrets.y + secrets.h / 2, (900 - 36) / 2);
+});
 
 test("default windows reflow exactly between docked, mobile, and restored viewports", () => {
 	let previous = layoutDesktop(1440, 900);

@@ -150,7 +150,7 @@ export function clampToParent(child: Rect, parent: Rect): Rect {
 
 const BEEP_Y_FRAC = 0.18;
 /** Left of paint, right-aligned where the old notepad column sat. */
-const BEEP_LEFT_GAP = 70;
+const PAINT_LEFT_GAP = 70;
 
 function layoutBeepBoop(anchor: Rect): Rect {
 	const client = 96;
@@ -159,7 +159,7 @@ function layoutBeepBoop(anchor: Rect): Rect {
 	return {
 		w,
 		h,
-		x: Math.round(anchor.x - w - BEEP_LEFT_GAP),
+		x: Math.round(anchor.x - w - PAINT_LEFT_GAP),
 		y: Math.round(anchor.y + anchor.h * BEEP_Y_FRAC),
 	};
 }
@@ -336,15 +336,27 @@ export function makeBioWindow(z: number): DesktopWindow {
 
 const EXPLORER_W = 520;
 const EXPLORER_H = 360;
+const EXPLORER_MIN_W = 320;
 
-export function makeExplorerWindow(z: number): DesktopWindow {
+export function makeExplorerWindow(z: number, anchor?: Rect, vw?: number, vh?: number): DesktopWindow {
+	const { vw: W, vh: H } = viewport(vw, vh);
+	const leftSpace = anchor ? anchor.x - PAINT_LEFT_GAP - MARGIN : 0;
+	const fitsLeft = leftSpace >= EXPLORER_MIN_W;
+	const w = Math.min(EXPLORER_W, Math.max(1, W - MARGIN * 2), fitsLeft ? leftSpace : EXPLORER_W);
+	const h = Math.min(EXPLORER_H, Math.max(1, H - TASKBAR_H - MARGIN * 2));
+	const centered = layoutCentered(w, h, W, H);
+	const x = anchor && fitsLeft ? anchor.x - w - PAINT_LEFT_GAP : centered.x;
+	const y = anchor ? anchor.y + anchor.h - h : centered.y;
 	return {
 		id: "explorer",
 		title: "secrets",
 		kind: "explorer",
 		icon: "/icons/folder.png",
 		z,
-		...layoutCentered(EXPLORER_W, EXPLORER_H),
+		w,
+		h,
+		x: Math.max(MARGIN, Math.min(x, W - MARGIN - w)),
+		y: Math.max(MARGIN, Math.min(y, H - TASKBAR_H - MARGIN - h)),
 	};
 }
 

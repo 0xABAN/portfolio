@@ -9,10 +9,11 @@ const PIECES = [
 	"southeast", "south", "southwest", "left",
 ];
 
-export function FractureBackground() {
+export function FractureBackground({ active }: { active: boolean }) {
 	const svgRef = useRef<SVGSVGElement>(null);
 
 	useEffect(() => {
+		if (!active) return;
 		const svg = svgRef.current;
 		const desktop = svg?.parentElement;
 		if (!svg || !desktop) return;
@@ -74,7 +75,7 @@ export function FractureBackground() {
 			window.removeEventListener("resize", reset);
 			motion.removeEventListener("change", reset);
 		};
-	}, []);
+	}, [active]);
 
 	return (
 		<svg ref={svgRef} className="desktop__fracture" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true" focusable="false">

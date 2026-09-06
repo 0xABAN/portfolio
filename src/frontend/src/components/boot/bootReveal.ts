@@ -43,6 +43,7 @@ export const BOOT_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "sysmsg-3", at: 2020 },
 	{ id: "sysmsg-4", at: 2060 },
 	{ id: "neko", at: BOOT_MS },
+	{ id: "fracture", at: BOOT_MS },
 ];
 
 /** Initial-layout windows gated by the schedule. User-opened windows skip this. */
@@ -60,6 +61,7 @@ if (process.env.NODE_ENV !== "production") {
 		"recycle-bin",
 		...WINDOW_IDS,
 		"neko",
+		"fracture",
 	];
 	const seen = new Set<string>();
 	let max = 0;
