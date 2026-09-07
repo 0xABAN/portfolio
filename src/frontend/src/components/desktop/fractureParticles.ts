@@ -25,7 +25,7 @@ export function findEdgeHit(from: Point, to: Point, outline: readonly Point[], r
 	return hit;
 }
 
-type Piece = { element: SVGGElement; outline: readonly DOMPoint[] };
+export type Piece = { outline: readonly Point[]; getScreenMatrix: () => DOMMatrix | null };
 type Fragment = {
 	element: SVGPathElement;
 	x: number; y: number; dx: number; dy: number;
@@ -43,13 +43,14 @@ const MAX_FRAGMENTS = 160;
 
 export function installFractureParticles(
 	svg: SVGSVGElement, desktop: HTMLElement, motion: MediaQueryList, pieces: readonly Piece[],
+	getRootMatrix: () => DOMMatrix | null = () => svg.getScreenCTM(),
 ) {
 	const ns = "http://www.w3.org/2000/svg";
 	const layer = document.createElementNS(ns, "g");
 	layer.setAttribute("fill", "#120000");
 	layer.setAttribute("class", "fracture-fragments");
 	// Use the artwork's actual falloff so debris also becomes translucent at the ends.
-	// Keep the expensive displacement filter on the artwork alone.
+	// Detailed artwork is cached separately; debris stays lightweight.
 	layer.setAttribute("mask", "url(#screen)");
 	svg.append(layer);
 	let previous: Sample | null = null;
@@ -93,24 +94,23 @@ export function installFractureParticles(
 	}
 
 	function scatter(from: Sample, current: Sample, now: number) {
-		const rootMatrix = svg.getScreenCTM();
+		const rootMatrix = getRootMatrix();
 		if (!rootMatrix) return;
 		const scale = Math.hypot(rootMatrix.a, rootMatrix.b);
 		if (scale <= 0) return;
 		let hit: Point | null = null;
 		let nearest = Infinity;
 		for (const piece of pieces) {
-			const matrix = piece.element.getScreenCTM();
+			const matrix = piece.getScreenMatrix();
 			if (!matrix) continue;
-			// Transform two pointer samples instead of allocating a transformed outline each frame.
-			const inverse = matrix.inverse();
-			const localHit = findEdgeHit(
-				new DOMPoint(from.x, from.y).matrixTransform(inverse),
-				new DOMPoint(current.x, current.y).matrixTransform(inverse),
-				piece.outline, 18 / scale,
-			);
-			if (!localHit) continue;
-			const candidate = new DOMPoint(localHit.x, localHit.y).matrixTransform(matrix);
+			// Thickness grows across each branch, so hit distance must be measured
+			// in screen space rather than assuming a uniform SVG scale.
+			const screenOutline = piece.outline.map((point) => ({
+				x: matrix.a * point.x + matrix.c * point.y + matrix.e,
+				y: matrix.b * point.x + matrix.d * point.y + matrix.f,
+			}));
+			const candidate = findEdgeHit(from, current, screenOutline, 18);
+			if (!candidate) continue;
 			const distance = (candidate.x - current.x) ** 2 + (candidate.y - current.y) ** 2;
 			if (distance < nearest && document.elementFromPoint(candidate.x, candidate.y) === desktop) {
 				nearest = distance;

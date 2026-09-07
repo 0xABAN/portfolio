@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "assets:fracture": "node scripts/build-fracture-assets.mjs",
+    "benchmark:fracture": "node scripts/benchmark-fracture.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.2",
