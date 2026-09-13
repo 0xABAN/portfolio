@@ -75,7 +75,8 @@ test("only two random branches run, with independent handoffs after full retract
 test("random twitches stay small, snap after a pause, and settle exactly to zero", () => {
 	const a = createFractureTwitch(() => 0.1);
 	const b = createFractureTwitch(() => 0.9);
-	assert.notEqual(a.rest, b.rest);
+	assert.equal(a.rest, 5600);
+	assert.equal(b.rest, 18400);
 	assert.notEqual(a.settle, b.settle);
 	assert.ok(a.angle < 0 && b.angle > 0);
 

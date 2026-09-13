@@ -44,7 +44,7 @@ export function advanceFractureBranches(branches: FractureBranchClock[], delta: 
 
 /** Independent quiet intervals followed by a small angular glitch, in degrees. */
 export function createFractureTwitch(random = Math.random) {
-	const rest = 2000 + random() * 8000;
+	const rest = 4000 + random() * 16000;
 	const settle = 120 + random() * 160;
 	return {
 		rest,
