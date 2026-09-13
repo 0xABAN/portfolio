@@ -80,7 +80,7 @@ test("random twitches stay small, snap after a pause, and settle exactly to zero
 	assert.ok(a.angle < 0 && b.angle > 0);
 
 	for (const cycle of [a, b]) {
-		assert.ok(Math.abs(cycle.angle) <= 2);
+		assert.ok(Math.abs(cycle.angle) >= 0.3 && Math.abs(cycle.angle) <= 1);
 		assert.equal(fractureTwitchAt(cycle, 0), 0);
 		assert.equal(fractureTwitchAt(cycle, cycle.rest - 1), 0);
 		assert.equal(fractureTwitchAt(cycle, cycle.rest), cycle.angle);

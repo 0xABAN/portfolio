@@ -50,7 +50,7 @@ export function createFractureTwitch(random = Math.random) {
 		rest,
 		settle,
 		duration: rest + settle,
-		angle: (0.6 + random() * 1.4) * (random() < 0.5 ? -1 : 1),
+		angle: (0.3 + random() * 0.7) * (random() < 0.5 ? -1 : 1),
 	};
 }
 
