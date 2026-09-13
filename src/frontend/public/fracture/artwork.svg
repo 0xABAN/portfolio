@@ -90,6 +90,15 @@
 					<g id="fracture-left">
 						<path d="M800 503 746 514 698 511 646 505 602 529 570 526 553 516 521 505 487 521 452 519 441 538 416 542 401 529 365 531 331 512 288 516 243 503 180 518 122 515 71 541 0 542 72 535 121 507 178 511 243 494 292 508 334 503 368 520 396 519 410 510 432 521 447 511 483 513 521 492 554 506 575 516 600 520 645 496 699 504 746 507Z" />
 					</g>
+					<g id="fracture-north-northwest">
+						<path d="M800 500 771 462 751 420 733 398 721 354 698 324 696 279 678 255 667 216 638 194 621 149 590 121 572 77 542 12 564 82 576 132 607 161 615 204 648 229 656 270 678 293 678 334 706 367 716 409 744 437 767 471Z" />
+					</g>
+					<g id="fracture-east-southeast">
+						<path d="M805 504 866 515 918 531 956 550 1006 555 1039 577 1090 585 1119 615 1172 626 1203 652 1261 653 1304 681 1371 698 1413 723 1552 753 1410 733 1365 716 1297 703 1256 678 1194 672 1159 646 1108 639 1078 608 1030 599 996 575 951 566 911 542 861 525Z" />
+					</g>
+					<g id="fracture-south-southwest">
+						<path d="M795 510 778 552 758 590 749 641 723 671 708 717 683 740 677 785 650 818 638 862 607 891 582 945 542 1000 569 938 587 883 614 853 622 810 654 776 658 729 687 704 698 660 726 629 737 582 769 548Z" />
+					</g>
 					<path id="fracture-impact" d="M791 469 807 475 821 467 825 488 844 499 827 513 826 530 806 521 793 538 782 515 759 509 777 489 776 472Z" />
 				</g>
 			</defs>
@@ -120,6 +129,9 @@
 <g data-piece="southeast"><g filter="url(#rough)"><use href="#fracture-southeast" fill="url(#tear-density-outward)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1145 716 1208 687 1255 694 1293 672 1362 677 1418 651 1498 664 1555 642" /><path d="M1247 834 1227 878 1239 912 1231 956 1254 1000" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M1034 645l46 6 28 26" /><path d="M1172 796l29 25 46 13" /></g></g>
 <g data-piece="south"><g filter="url(#rough)"><use href="#fracture-south" fill="#120000" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M840 748 881 770 909 811 953 823 984 872" /></g></g></g>
 <g data-piece="southwest"><g filter="url(#rough)"><use href="#fracture-southwest" fill="url(#tear-density)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M417 774 367 771 313 799 257 794 205 823 148 831 100 867" /><path d="M520 824 494 874 503 908 470 955 474 1000" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M637 636l-34 17-16 28" /><path d="M471 741l-33 7-21 26" /></g></g>
+<g data-piece="north-northwest"><g filter="url(#rough)"><use href="#fracture-north-northwest" fill="url(#tear-density)" opacity=".85" /><g data-offshoot="" fill="none" stroke="#210000" stroke-width="1.2"><path d="M687 283 711 249 714 213 735 178 723 143 728 108" /></g></g></g>
+<g data-piece="east-southeast"><g filter="url(#rough)"><use href="#fracture-east-southeast" fill="url(#tear-density-outward)" opacity=".75" /><g data-offshoot="" fill="none" stroke="#210000" stroke-width="1.2"><path d="M1200 659 1236 621 1280 612 1306 585 1348 581" /></g></g></g>
+<g data-piece="south-southwest"><g filter="url(#rough)"><use href="#fracture-south-southwest" fill="url(#tear-density)" opacity=".9" /><g data-offshoot="" fill="none" stroke="#210000" stroke-width="1.3"><path d="M671 755 624 760 603 782 560 786 529 813" /></g></g></g>
 <g data-piece="left"><g filter="url(#rough)"><use href="#fracture-left" fill="#120000" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M243 503 207 469 178 463 152 428 89 407 51 365 0 351" /><path d="M487 521 467 558 439 572 413 605" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M521 505l-34 16-35-2" /></g></g>
 			</g>
 			<g mask="url(#screen)">
