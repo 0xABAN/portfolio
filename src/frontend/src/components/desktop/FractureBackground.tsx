@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
+import { spriteFalloff } from "./fractureInteraction";
 import { installFractureRenderer } from "./fractureRenderer";
 
 // Match xMidYMid slice: large windows need denser artwork even on a 1× display.
@@ -11,7 +12,7 @@ function spriteSizes(sprite: FractureSprite) {
 }
 
 /** Flatten alpha onto white before sibling darken blending selects the strongest coverage. */
-function Sprite({ sprite, piece, growth = false }: { sprite: FractureSprite; piece?: string; growth?: boolean }) {
+function Sprite({ sprite, piece, growth = false, edge = false }: { sprite: FractureSprite; piece?: string; growth?: boolean; edge?: boolean }) {
 	return (
 		<div className={`fracture-sprite${growth ? " fracture-growth" : ""}${piece ? "" : " fracture-details"}`}
 			data-piece={growth ? undefined : piece} data-growth={growth ? piece : undefined}
@@ -19,7 +20,8 @@ function Sprite({ sprite, piece, growth = false }: { sprite: FractureSprite; pie
 			{/* Baked decorative assets must bypass image re-encoding. */}
 			{/* eslint-disable-next-line @next/next/no-img-element */}
 			<img src={sprite.src} srcSet={sprite.srcSet} sizes={spriteSizes(sprite)}
-				width={sprite.width} height={sprite.height} alt="" draggable={false} decoding="async"/>
+				width={sprite.width} height={sprite.height} alt="" draggable={false} decoding="async"
+				style={{ maskImage: edge || growth ? undefined : spriteFalloff(sprite) }}/>
 		</div>
 	);
 }
@@ -69,8 +71,8 @@ export function FractureBackground({ active }: { active: boolean }) {
 				<div ref={layerRef} className="fracture-layer">
 					{FRACTURE_PIECES.map((piece) => (
 						<Fragment key={piece.id}>
-							<Sprite sprite={piece} piece={piece.id} growth/>
-							<Sprite sprite={piece} piece={piece.id}/>
+							<Sprite sprite={piece} piece={piece.id} edge={piece.edge} growth/>
+							<Sprite sprite={piece} piece={piece.id} edge={piece.edge}/>
 						</Fragment>
 					))}
 					<Sprite sprite={FRACTURE_DETAILS}/>

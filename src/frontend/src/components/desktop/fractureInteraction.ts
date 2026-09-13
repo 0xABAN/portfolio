@@ -32,6 +32,18 @@ export function viewportMatrix(width: number, height: number): Affine {
 	return { a: scale, b: 0, c: 0, d: scale, e: (width - 1600 * scale) / 2, f: (height - 1000 * scale) / 2 };
 }
 
+/** Keep a radial tip beyond the wallpaper rectangle, including hover/displacement slack. */
+export function edgeReachScale(angle: number, radius: number, width: number, height: number) {
+	if (radius <= 0 || width <= 0 || height <= 0) return 1;
+	const distance = Math.min(width / 2 / Math.abs(Math.cos(angle)), height / 2 / Math.abs(Math.sin(angle)));
+	return Math.max(1, (distance * 1.12 + 20) / radius);
+}
+
+/** Apply falloff before white-matte blending so edge-reaching branches can opt out. */
+export function spriteFalloff(sprite: { x: number; y: number }) {
+	return `radial-gradient(ellipse 950px 660px at ${800 - sprite.x}px ${500 - sprite.y}px, #000 0%, #000 8%, rgba(0,0,0,.9) 48%, rgba(0,0,0,.5) 82%, transparent 100%)`;
+}
+
 /** Stretch along/across a branch's radial axis, then rotate around the impact. */
 export function branchMatrix(angleRadians: number, rotationDegrees: number, expansion: number, thickness: number): Affine {
 	const x = Math.cos(angleRadians);

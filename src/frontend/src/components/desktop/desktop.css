@@ -69,7 +69,6 @@
 .fracture-background--ready .fracture-overlay { visibility: visible; }
 
 .fracture-layer {
-	mask-repeat: no-repeat;
 	/* White is neutral when this finished coverage layer multiplies over red. */
 	background: #fff;
 	isolation: isolate;
@@ -100,6 +99,7 @@
 .fracture-growth img {
 	opacity: 0;
 	mask-repeat: no-repeat;
+	mask-composite: intersect;
 }
 
 .desktop__icons {

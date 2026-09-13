@@ -3,7 +3,7 @@ import {
 	advanceFractureActivity, createFractureActivity, createFractureRotation, createFractureTwitch,
 	fractureDriftAt, fractureGrowthAt, fractureRotationAt, fractureTwitchAt, type FractureBranchClock,
 } from "./fractureDrift";
-import { branchMatrix, composeMatrix, easeOffset, hoverOffset, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
+import { branchMatrix, composeMatrix, easeOffset, edgeReachScale, hoverOffset, spriteFalloff, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
 import { installFractureParticles } from "./fractureParticles";
 
 const REST = { rotation: 0, scale: 1, thickness: 1 };
@@ -26,6 +26,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
 	const hover = window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
 	let viewport = viewportMatrix(1600, 1000);
+	let size = { width: 1600, height: 1000 };
 	let origin = ZERO;
 	let screenViewport = viewport;
 	let pointer: Point | null = null;
@@ -63,8 +64,11 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			const { pose } = piece;
 			const angle = piece.asset.angle * Math.PI / 180;
 			const turn = rotation + piece.twitch;
+			const reach = piece.asset.edge
+				? edgeReachScale(angle + turn * Math.PI / 180, piece.growthRadius * viewport.a, size.width, size.height)
+				: 1;
 			// The solid branch remains the interaction surface; growth is a translucent wake.
-			const ambient = composeMatrix(viewport, branchMatrix(angle, turn, 1, 1));
+			const ambient = composeMatrix(viewport, branchMatrix(angle, turn, reach, 1));
 			const screen = { ...ambient, e: ambient.e + origin.x, f: ambient.f + origin.y };
 			const target = pointer ? hoverOffset(pointer, piece.asset.outline, screen) : ZERO;
 			piece.offset = easeOffset(piece.offset, target, delta);
@@ -75,10 +79,11 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			const growth = piece.cycle ? fractureGrowthAt(piece.cycle, piece.elapsed) : 0;
 			piece.growthImage.style.opacity = String(Math.min(0.7, growth * 3));
 			if (growth > 0) {
-				const matrix = composeMatrix(viewport, branchMatrix(angle, turn, pose.scale, pose.thickness));
+				const matrix = composeMatrix(viewport, branchMatrix(angle, turn, reach * pose.scale, pose.thickness));
 				placeSprite(piece.growthElement, piece.asset, { ...matrix, e: matrix.e + piece.offset.x, f: matrix.f + piece.offset.y });
 				const radius = piece.growthRadius * growth;
-				piece.growthImage.style.maskImage = `radial-gradient(circle ${radius}px at ${800 - piece.asset.x}px ${500 - piece.asset.y}px, #000 75%, transparent 100%)`;
+				const reveal = `radial-gradient(circle ${radius}px at ${800 - piece.asset.x}px ${500 - piece.asset.y}px, #000 75%, transparent 100%)`;
+				piece.growthImage.style.maskImage = piece.asset.edge ? reveal : `${reveal}, ${spriteFalloff(piece.asset)}`;
 			}
 		}
 		placeSprite(details, FRACTURE_DETAILS, composeMatrix(viewport, branchMatrix(0, rotation, 1, 1)));
@@ -87,10 +92,10 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	function resize() {
 		// All geometry reads happen here; pointer and animation frames use cached matrices.
 		const bounds = root.getBoundingClientRect();
+		size = { width: bounds.width, height: bounds.height };
 		viewport = viewportMatrix(bounds.width, bounds.height);
 		origin = { x: bounds.left, y: bounds.top };
 		screenViewport = { ...viewport, e: viewport.e + origin.x, f: viewport.f + origin.y };
-		layer.style.maskImage = `radial-gradient(ellipse ${950 * viewport.a}px ${660 * viewport.a}px at 50% 50%, #000 0%, #000 8%, rgba(0,0,0,.9) 48%, rgba(0,0,0,.5) 82%, transparent 100%)`;
 		render(0);
 	}
 
