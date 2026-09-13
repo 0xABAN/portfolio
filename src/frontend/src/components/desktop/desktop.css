@@ -39,6 +39,7 @@
 	z-index: 0;
 	pointer-events: none;
 	contain: layout paint;
+	background: var(--desktop-bg);
 }
 
 .fracture-fallback,
@@ -69,6 +70,10 @@
 
 .fracture-layer {
 	mask-repeat: no-repeat;
+	/* White is neutral when this finished coverage layer multiplies over red. */
+	background: #fff;
+	isolation: isolate;
+	mix-blend-mode: multiply;
 }
 
 .fracture-sprite {
@@ -77,13 +82,22 @@
 	left: 0;
 	max-width: none;
 	transform-origin: 0 0;
+	/* Flatten each image's alpha first; darken then chooses, rather than adds, coverage. */
+	background: #fff;
+	isolation: isolate;
+	mix-blend-mode: darken;
+}
+
+.fracture-sprite img {
+	display: block;
+	max-width: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
 	.fracture-sprite:not(.fracture-growth) { will-change: transform; }
 }
 
-.fracture-growth {
+.fracture-growth img {
 	opacity: 0;
 	mask-repeat: no-repeat;
 }

@@ -13,7 +13,7 @@ function domMatrix(matrix: Affine) {
 	return new DOMMatrix([matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]);
 }
 
-function placeSprite(element: HTMLImageElement, sprite: FractureSprite, matrix: Affine) {
+function placeSprite(element: HTMLElement, sprite: FractureSprite, matrix: Affine) {
 	const x = matrix.a * sprite.x + matrix.c * sprite.y + matrix.e;
 	const y = matrix.b * sprite.x + matrix.d * sprite.y + matrix.f;
 	const transform = `matrix(${matrix.a},${matrix.b},${matrix.c},${matrix.d},${x},${y})`;
@@ -38,8 +38,9 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	let activity = createFractureActivity();
 	const pieces = FRACTURE_PIECES.map((asset) => ({
 		asset,
-		element: layer.querySelector<HTMLImageElement>(`[data-piece="${asset.id}"]`)!,
-		growthElement: layer.querySelector<HTMLImageElement>(`[data-growth="${asset.id}"]`)!,
+		element: layer.querySelector<HTMLElement>(`[data-piece="${asset.id}"]`)!,
+		growthElement: layer.querySelector<HTMLElement>(`[data-growth="${asset.id}"]`)!,
+		growthImage: layer.querySelector<HTMLImageElement>(`[data-growth="${asset.id}"] img`)!,
 		growthRadius: Math.max(...asset.outline.map((point) => Math.hypot(point.x - 800, point.y - 500))),
 		offset: ZERO,
 		screenMatrix: viewport,
@@ -52,7 +53,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		twitchReaction: false,
 	}));
 	const angularPieces = [...pieces].sort((a, b) => a.asset.angle - b.asset.angle);
-	const details = layer.querySelector<HTMLImageElement>(".fracture-details")!;
+	const details = layer.querySelector<HTMLElement>(".fracture-details")!;
 	const removeParticles = installFractureParticles(overlay, desktop, hover,
 		pieces.map((piece) => ({ outline: piece.asset.outline, getScreenMatrix: () => active ? domMatrix(piece.screenMatrix) : null })),
 		() => domMatrix(screenViewport));
@@ -72,12 +73,12 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			placeSprite(piece.element, piece.asset, { ...ambient, e: ambient.e + piece.offset.x, f: ambient.f + piece.offset.y });
 
 			const growth = piece.cycle ? fractureGrowthAt(piece.cycle, piece.elapsed) : 0;
-			piece.growthElement.style.opacity = String(Math.min(0.7, growth * 3));
+			piece.growthImage.style.opacity = String(Math.min(0.7, growth * 3));
 			if (growth > 0) {
 				const matrix = composeMatrix(viewport, branchMatrix(angle, turn, pose.scale, pose.thickness));
 				placeSprite(piece.growthElement, piece.asset, { ...matrix, e: matrix.e + piece.offset.x, f: matrix.f + piece.offset.y });
 				const radius = piece.growthRadius * growth;
-				piece.growthElement.style.maskImage = `radial-gradient(circle ${radius}px at ${800 - piece.asset.x}px ${500 - piece.asset.y}px, #000 75%, transparent 100%)`;
+				piece.growthImage.style.maskImage = `radial-gradient(circle ${radius}px at ${800 - piece.asset.x}px ${500 - piece.asset.y}px, #000 75%, transparent 100%)`;
 			}
 		}
 		placeSprite(details, FRACTURE_DETAILS, composeMatrix(viewport, branchMatrix(0, rotation, 1, 1)));

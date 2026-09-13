@@ -10,6 +10,20 @@ function spriteSizes(sprite: FractureSprite) {
 	return `max(${width / 16}vw, calc(${width / 10}dvh - ${width * 0.036}px))`;
 }
 
+/** Flatten alpha onto white before sibling darken blending selects the strongest coverage. */
+function Sprite({ sprite, piece, growth = false }: { sprite: FractureSprite; piece?: string; growth?: boolean }) {
+	return (
+		<div className={`fracture-sprite${growth ? " fracture-growth" : ""}${piece ? "" : " fracture-details"}`}
+			data-piece={growth ? undefined : piece} data-growth={growth ? piece : undefined}
+			style={{ width: sprite.width, height: sprite.height }}>
+			{/* Baked decorative assets must bypass image re-encoding. */}
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img src={sprite.src} srcSet={sprite.srcSet} sizes={spriteSizes(sprite)}
+				width={sprite.width} height={sprite.height} alt="" draggable={false} decoding="async"/>
+		</div>
+	);
+}
+
 export function FractureBackground({ active }: { active: boolean }) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const layerRef = useRef<HTMLDivElement>(null);
@@ -30,7 +44,7 @@ export function FractureBackground({ active }: { active: boolean }) {
 		if (!root || !layer || !overlay) return;
 		let disposed = false;
 		// Decode during boot. Keep the original detailed SVG if any asset cannot load.
-		const images = [...root.querySelectorAll<HTMLImageElement>(".fracture-sprite, .fracture-texture")];
+		const images = [...root.querySelectorAll<HTMLImageElement>(".fracture-sprite img, .fracture-texture")];
 		Promise.all(images.map((image) => image.decode())).then(() => {
 			if (disposed) return;
 			const controller = installFractureRenderer(root, layer, overlay);
@@ -55,16 +69,11 @@ export function FractureBackground({ active }: { active: boolean }) {
 				<div ref={layerRef} className="fracture-layer">
 					{FRACTURE_PIECES.map((piece) => (
 						<Fragment key={piece.id}>
-							<img className="fracture-sprite fracture-growth" data-growth={piece.id}
-								src={piece.src} srcSet={piece.srcSet} sizes={spriteSizes(piece)} width={piece.width} height={piece.height}
-								alt="" draggable={false} decoding="async"/>
-							<img className="fracture-sprite" data-piece={piece.id}
-								src={piece.src} srcSet={piece.srcSet} sizes={spriteSizes(piece)} width={piece.width} height={piece.height}
-								alt="" draggable={false} decoding="async"/>
+							<Sprite sprite={piece} piece={piece.id} growth/>
+							<Sprite sprite={piece} piece={piece.id}/>
 						</Fragment>
 					))}
-					<img className="fracture-sprite fracture-details" src={FRACTURE_DETAILS.src} srcSet={FRACTURE_DETAILS.srcSet}
-						sizes={spriteSizes(FRACTURE_DETAILS)} width={FRACTURE_DETAILS.width} height={FRACTURE_DETAILS.height} alt="" draggable={false} decoding="async"/>
+					<Sprite sprite={FRACTURE_DETAILS}/>
 				</div>
 				{/* eslint-enable @next/next/no-img-element */}
 				<svg ref={overlayRef} className="fracture-overlay" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" focusable="false">
