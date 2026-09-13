@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { advanceFractureBranches, createFractureDrift, createFractureRotation, createFractureTwitch, fractureDriftAt, fractureTwitchAt, type FractureBranchClock } from "./fractureDrift";
+import {
+	advanceFractureActivity, advanceFractureBranches, advanceFractureTwitches,
+	createFractureActivity, createFractureDrift, createFractureRotation, createFractureTwitch,
+	fractureDriftAt, fractureGrowthAt, fractureTwitchAt, type FractureBranchClock, type FractureTwitchClock,
+} from "./fractureDrift";
 
 test("the original fracture gently rotates and expands, then returns exactly", () => {
 	const cycle = createFractureDrift(() => 0.5);
@@ -15,6 +19,25 @@ test("the original fracture gently rotates and expands, then returns exactly", (
 	assert.ok(peak.thickness >= 1.25 && peak.thickness <= 1.4);
 	assert.ok(opening.thickness > 1 && opening.thickness < peak.thickness);
 	assert.ok(fractureDriftAt(cycle, cycle.duration - 1).scale - 1 < 0.000001);
+});
+
+test("normalized growth travels outward, holds, then retracts exactly to zero", () => {
+	const cycle = createFractureDrift(() => 0.5);
+	assert.equal(fractureGrowthAt(cycle, 0), 0);
+	assert.equal(fractureGrowthAt(cycle, cycle.rest), 0);
+	assert.equal(fractureGrowthAt(cycle, cycle.rest + cycle.expand), 1);
+	assert.equal(fractureGrowthAt(cycle, cycle.rest + cycle.expand + cycle.hold), 1);
+	assert.equal(fractureGrowthAt(cycle, cycle.duration), 0);
+	assert.equal(fractureGrowthAt(cycle, cycle.duration + 100), 0);
+	assert.ok(fractureGrowthAt(cycle, cycle.rest + cycle.expand / 4) < fractureGrowthAt(cycle, cycle.rest + cycle.expand / 2));
+	const retractStart = cycle.rest + cycle.expand + cycle.hold;
+	assert.ok(fractureGrowthAt(cycle, retractStart + cycle.retract / 4) > fractureGrowthAt(cycle, retractStart + cycle.retract / 2));
+	for (let elapsed = 0; elapsed < cycle.duration; elapsed += 173) {
+		const growth = fractureGrowthAt(cycle, elapsed);
+		assert.ok(growth >= 0 && growth <= 1);
+		assert.ok(Math.abs(growth - (fractureDriftAt(cycle, elapsed).scale - 1) / (cycle.scale - 1)) < 1e-12);
+	}
+	assert.equal(fractureGrowthAt({ ...cycle, scale: 1 }, cycle.rest + cycle.expand), 1);
 });
 
 test("successive motions can change direction, pace, and expansion without sudden endpoints", () => {
@@ -89,6 +112,116 @@ test("random twitches stay small, snap after a pause, and settle exactly to zero
 		assert.equal(fractureTwitchAt(cycle, cycle.duration), 0);
 		assert.equal(fractureTwitchAt(cycle, cycle.duration + 100), 0);
 	}
+});
+
+test("an occasional twitch triggers only an adjacent branch after a short delay, without cascading", () => {
+	const states: FractureTwitchClock[] = Array.from({ length: 4 }, () => ({
+		twitchCycle: createFractureTwitch(() => 0.5), twitchElapsed: 0,
+	}));
+	states[0].twitchElapsed = states[0].twitchCycle.rest - 1;
+	advanceFractureTwitches(states, 1, true, () => 0);
+
+	assert.equal(states[3].twitchReaction, true, "angular neighbors wrap around the array");
+	assert.equal(states[3].twitchCycle.rest - states[3].twitchElapsed, 80);
+	assert.equal(fractureTwitchAt(states[3].twitchCycle, states[3].twitchElapsed), 0);
+	assert.equal(states[1].twitchReaction, undefined);
+	assert.equal(states[2].twitchReaction, undefined);
+
+	advanceFractureTwitches(states, 80, true, () => 0);
+	assert.equal(fractureTwitchAt(states[3].twitchCycle, states[3].twitchElapsed), states[3].twitchCycle.angle);
+	assert.equal(states[2].twitchReaction, undefined, "a response must not start a chain");
+	advanceFractureTwitches(states, 300, true, () => 0);
+	assert.equal(states[3].twitchReaction, false);
+	assert.ok(states[3].twitchCycle.rest >= 4000);
+});
+
+test("most twitches remain independent and a reaction never interrupts an active neighbor", () => {
+	for (const randomValue of [0, 0.5]) {
+		const states: FractureTwitchClock[] = Array.from({ length: 2 }, () => ({
+			twitchCycle: createFractureTwitch(() => 0.5), twitchElapsed: 0,
+		}));
+		states[0].twitchElapsed = states[0].twitchCycle.rest - 1;
+		if (randomValue === 0) states[1].twitchElapsed = states[1].twitchCycle.rest + 10;
+		const neighborCycle = states[1].twitchCycle;
+		advanceFractureTwitches(states, 1, true, () => randomValue);
+		assert.equal(states[1].twitchCycle, neighborCycle);
+		assert.equal(states[1].twitchReaction, undefined);
+	}
+});
+
+test("quiet scheduling cancels pending reactions, freezes pauses, and lets visible twitches settle", () => {
+	const states: FractureTwitchClock[] = Array.from({ length: 3 }, () => ({
+		twitchCycle: createFractureTwitch(() => 0.5), twitchElapsed: 0,
+	}));
+	states[0].twitchElapsed = states[0].twitchCycle.rest + 10;
+	states[1].twitchElapsed = states[1].twitchCycle.rest - 1;
+	states[2].twitchReaction = true;
+	const visibleCycle = states[0].twitchCycle;
+	const before = Math.abs(fractureTwitchAt(visibleCycle, states[0].twitchElapsed));
+	advanceFractureTwitches(states, 50, false, () => 0.5);
+	assert.equal(states[0].twitchCycle, visibleCycle);
+	assert.ok(Math.abs(fractureTwitchAt(visibleCycle, states[0].twitchElapsed)) < before);
+	assert.equal(states[1].twitchElapsed, states[1].twitchCycle.rest - 1);
+	assert.equal(states[2].twitchReaction, false);
+	assert.equal(states[2].twitchElapsed, 0);
+	advanceFractureTwitches(states, 1000, false, () => 0.5);
+	assert.ok(states.every((state) => fractureTwitchAt(state.twitchCycle, state.twitchElapsed) === 0));
+});
+
+test("global quiet waits for full retraction and twitch settling, then resumes after its whole pause", () => {
+	assert.deepEqual(createFractureActivity(() => 0), { untilQuiet: 35000, quietRemaining: 5000 });
+	assert.deepEqual(createFractureActivity(() => 1), { untilQuiet: 65000, quietRemaining: 10000 });
+	const activity = { untilQuiet: 1, quietRemaining: 5000 };
+	const branches: (FractureBranchClock & FractureTwitchClock)[] = Array.from({ length: 4 }, () => ({
+		cycle: null, elapsed: 0, twitchCycle: createFractureTwitch(() => 0.5), twitchElapsed: 0,
+	}));
+	branches[0].cycle = createFractureDrift(() => 0.5);
+	branches[0].elapsed = branches[0].cycle.duration - 20;
+	branches[1].twitchElapsed = branches[1].twitchCycle.rest + 1;
+	const twitchCycle = branches[1].twitchCycle;
+
+	advanceFractureActivity(activity, branches, 1, () => 0.5);
+	assert.equal(activity.untilQuiet, 0);
+	assert.equal(activity.quietRemaining, 5000);
+	assert.ok(branches[0].cycle, "draining cannot snap an expanded branch to rest");
+	advanceFractureActivity(activity, branches, 19, () => 0.5);
+	assert.equal(branches[0].cycle, null);
+	assert.equal(branches[1].twitchCycle, twitchCycle);
+	assert.equal(activity.quietRemaining, 5000);
+	advanceFractureActivity(activity, branches, 300, () => 0.5);
+	assert.ok(branches.every((branch) => !branch.cycle));
+	assert.equal(activity.quietRemaining, 5000, "visible settling is not part of the quiet interval");
+
+	advanceFractureActivity(activity, branches, 4999, () => 0.5);
+	assert.equal(activity.quietRemaining, 1);
+	assert.ok(branches.every((branch) => !branch.cycle && fractureTwitchAt(branch.twitchCycle, branch.twitchElapsed) === 0));
+	advanceFractureActivity(activity, branches, 1, () => 0.5);
+	assert.equal(branches.filter((branch) => branch.cycle).length, 2);
+	assert.deepEqual(activity, createFractureActivity(() => 0.5));
+});
+
+test("random activity keeps its two-branch ceiling across repeated quiet intervals", () => {
+	let seed = 42;
+	const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+	const activity = createFractureActivity(random);
+	const branches: (FractureBranchClock & FractureTwitchClock)[] = Array.from({ length: 8 }, () => ({
+		cycle: null, elapsed: 0, twitchCycle: createFractureTwitch(random), twitchElapsed: 0,
+	}));
+	let quietFrames = 0;
+	let resumptions = 0;
+	for (let frame = 0; frame < 4000; frame++) {
+		const wasQuiet = activity.untilQuiet === 0;
+		advanceFractureActivity(activity, branches, 100, random);
+		assert.ok(branches.filter((branch) => branch.cycle).length <= 2);
+		assert.ok(branches.every((branch) => Math.abs(fractureTwitchAt(branch.twitchCycle, branch.twitchElapsed)) <= 1));
+		if (wasQuiet && activity.untilQuiet > 0) resumptions++;
+		if (activity.untilQuiet === 0 && branches.every((branch) => !branch.cycle)) {
+			quietFrames++;
+			assert.ok(branches.every((branch) => fractureTwitchAt(branch.twitchCycle, branch.twitchElapsed) === 0));
+		}
+	}
+	assert.ok(quietFrames >= 100);
+	assert.ok(resumptions >= 3);
 });
 
 test("branches expand quickly and can retract while shared rotation is still opening", () => {

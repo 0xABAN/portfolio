@@ -19,7 +19,7 @@ export type FractureBranchClock = {
 };
 
 /** Reserve two motion slots; hand each off only after its branch fully retracts. */
-export function advanceFractureBranches(branches: FractureBranchClock[], delta: number, random = Math.random) {
+export function advanceFractureBranches(branches: FractureBranchClock[], delta: number, random = Math.random, allowStarts = true) {
 	// Snapshot idle branches so a finishing branch cannot immediately select itself.
 	const idle = branches.filter((branch) => !branch.cycle);
 	let active = 0;
@@ -34,7 +34,7 @@ export function advanceFractureBranches(branches: FractureBranchClock[], delta: 
 		}
 	}
 
-	while (active < 2 && idle.length) {
+	while (allowStarts && active < 2 && idle.length) {
 		const [branch] = idle.splice(Math.floor(random() * idle.length), 1);
 		branch.elapsed = 0;
 		branch.cycle = createFractureDrift(random);
@@ -61,6 +61,81 @@ export function fractureTwitchAt(cycle: ReturnType<typeof createFractureTwitch>,
 	return cycle.angle * remaining * remaining;
 }
 
+export type FractureTwitchClock = {
+	twitchElapsed: number;
+	twitchCycle: ReturnType<typeof createFractureTwitch>;
+	/** A delayed neighbor response cannot trigger another response. */
+	twitchReaction?: boolean;
+};
+
+/** Pass clocks in physical angular order; the first and last are neighbors. */
+export function advanceFractureTwitches(states: FractureTwitchClock[], delta: number, allowStarts = true, random = Math.random) {
+	const started: number[] = [];
+	for (const [index, state] of states.entries()) {
+		const { twitchCycle: cycle, twitchElapsed: previous } = state;
+		if (!allowStarts && previous < cycle.rest) {
+			// Drop delayed responses during a quiet spell, but preserve ordinary pauses.
+			if (state.twitchReaction) {
+				state.twitchCycle = createFractureTwitch(random);
+				state.twitchElapsed = 0;
+				state.twitchReaction = false;
+			}
+			continue;
+		}
+
+		state.twitchElapsed += delta;
+		if (state.twitchElapsed >= cycle.duration) {
+			state.twitchCycle = createFractureTwitch(random);
+			state.twitchElapsed = 0;
+			state.twitchReaction = false;
+		} else if (previous < cycle.rest && state.twitchElapsed >= cycle.rest && !state.twitchReaction) {
+			started.push(index);
+		}
+	}
+
+	if (!allowStarts || states.length < 2) return;
+	for (const index of started) {
+		if (random() >= 0.18) continue;
+		const direction = random() < 0.5 ? -1 : 1;
+		const neighbor = states[(index + direction + states.length) % states.length];
+		const delay = 80 + random() * 160;
+		if (neighbor.twitchReaction || neighbor.twitchElapsed + delay >= neighbor.twitchCycle.rest) continue;
+
+		// Only bring an idle neighbor forward; never interrupt an existing twitch.
+		const rest = neighbor.twitchElapsed + delay;
+		neighbor.twitchCycle = { ...neighbor.twitchCycle, rest, duration: rest + neighbor.twitchCycle.settle };
+		neighbor.twitchReaction = true;
+	}
+}
+
+/** Millisecond clocks: activity runs for 35–65s, then settles before 5–10s of quiet. */
+export function createFractureActivity(random = Math.random) {
+	return { untilQuiet: 35000 + random() * 30000, quietRemaining: 5000 + random() * 5000 };
+}
+
+/**
+ * Advance growth and twitches together, using branches sorted by physical angle.
+ * Keep shared rotation on its separate clock. Quiet time begins only after all
+ * growth and visible twitches finish; idle clocks cannot start while settling.
+ */
+export function advanceFractureActivity(
+	activity: ReturnType<typeof createFractureActivity>,
+	branches: (FractureBranchClock & FractureTwitchClock)[],
+	delta: number,
+	random = Math.random,
+) {
+	if (activity.untilQuiet > 0) {
+		activity.untilQuiet = Math.max(0, activity.untilQuiet - delta);
+	} else if (branches.every((branch) => !branch.cycle && fractureTwitchAt(branch.twitchCycle, branch.twitchElapsed) === 0)) {
+		activity.quietRemaining -= delta;
+		if (activity.quietRemaining <= 0) Object.assign(activity, createFractureActivity(random));
+	}
+
+	const allowStarts = activity.untilQuiet > 0;
+	advanceFractureBranches(branches, delta, random, allowStarts);
+	advanceFractureTwitches(branches, delta, allowStarts, random);
+}
+
 /** Shared rotation always moves, independently of branch handoffs. */
 export function createFractureRotation(random = Math.random) {
 	const expand = 4000 + random() * 10000;
@@ -80,13 +155,18 @@ export function createFractureRotation(random = Math.random) {
 	};
 }
 
-export function fractureDriftAt(cycle: ReturnType<typeof createFractureDrift>, elapsed: number) {
+/** Normalized outward growth, independent of a branch's chosen scale or thickness. */
+export function fractureGrowthAt(cycle: ReturnType<typeof createFractureDrift>, elapsed: number) {
 	const time = elapsed - cycle.rest;
 	const progress = time <= cycle.expand ? time / cycle.expand
 		: 1 - (time - cycle.expand - cycle.hold) / cycle.retract;
 	const t = Math.max(0, Math.min(1, progress));
 	// Ease to a stop before reversing, with no jump between randomized cycles.
-	const eased = t * t * t * (t * (t * 6 - 15) + 10);
+	return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+export function fractureDriftAt(cycle: ReturnType<typeof createFractureDrift>, elapsed: number) {
+	const eased = fractureGrowthAt(cycle, elapsed);
 	return {
 		rotation: cycle.rotation * eased,
 		scale: 1 + (cycle.scale - 1) * eased,

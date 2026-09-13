@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
 import { installFractureRenderer } from "./fractureRenderer";
 
@@ -54,9 +54,14 @@ export function FractureBackground({ active }: { active: boolean }) {
 				<img className="fracture-texture" src="/fracture/texture.svg" alt="" draggable={false}/>
 				<div ref={layerRef} className="fracture-layer">
 					{FRACTURE_PIECES.map((piece) => (
-						<img key={piece.id} className="fracture-sprite" data-piece={piece.id}
-							src={piece.src} srcSet={piece.srcSet} sizes={spriteSizes(piece)} width={piece.width} height={piece.height}
-							alt="" draggable={false} decoding="async"/>
+						<Fragment key={piece.id}>
+							<img className="fracture-sprite fracture-growth" data-growth={piece.id}
+								src={piece.src} srcSet={piece.srcSet} sizes={spriteSizes(piece)} width={piece.width} height={piece.height}
+								alt="" draggable={false} decoding="async"/>
+							<img className="fracture-sprite" data-piece={piece.id}
+								src={piece.src} srcSet={piece.srcSet} sizes={spriteSizes(piece)} width={piece.width} height={piece.height}
+								alt="" draggable={false} decoding="async"/>
+						</Fragment>
 					))}
 					<img className="fracture-sprite fracture-details" src={FRACTURE_DETAILS.src} srcSet={FRACTURE_DETAILS.srcSet}
 						sizes={spriteSizes(FRACTURE_DETAILS)} width={FRACTURE_DETAILS.width} height={FRACTURE_DETAILS.height} alt="" draggable={false} decoding="async"/>

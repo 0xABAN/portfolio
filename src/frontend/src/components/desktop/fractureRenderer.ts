@@ -1,5 +1,8 @@
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
-import { advanceFractureBranches, createFractureRotation, createFractureTwitch, fractureDriftAt, fractureTwitchAt, type FractureBranchClock } from "./fractureDrift";
+import {
+	advanceFractureActivity, createFractureActivity, createFractureRotation, createFractureTwitch,
+	fractureDriftAt, fractureGrowthAt, fractureTwitchAt, type FractureBranchClock,
+} from "./fractureDrift";
 import { branchMatrix, composeMatrix, easeOffset, hoverOffset, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
 import { installFractureParticles } from "./fractureParticles";
 
@@ -17,7 +20,7 @@ function placeSprite(element: HTMLImageElement, sprite: FractureSprite, matrix: 
 	if (element.style.transform !== transform) element.style.transform = transform;
 }
 
-/** Cached image transforms only: no SVG filters, path mutations, or frame-time layout reads. */
+/** Cached sprites and reveal masks: no live SVG filters, path mutations, or frame-time layout reads. */
 export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, overlay: SVGSVGElement) {
 	const desktop = root.closest<HTMLElement>(".desktop")!;
 	const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
@@ -32,9 +35,12 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	let rotationElapsed = 0;
 	let rotationCycle = createFractureRotation();
 	let rotation = 0;
+	let activity = createFractureActivity();
 	const pieces = FRACTURE_PIECES.map((asset) => ({
 		asset,
 		element: layer.querySelector<HTMLImageElement>(`[data-piece="${asset.id}"]`)!,
+		growthElement: layer.querySelector<HTMLImageElement>(`[data-growth="${asset.id}"]`)!,
+		growthRadius: Math.max(...asset.outline.map((point) => Math.hypot(point.x - 800, point.y - 500))),
 		offset: ZERO,
 		screenMatrix: viewport,
 		elapsed: 0,
@@ -43,7 +49,9 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		twitchElapsed: 0,
 		twitchCycle: createFractureTwitch(),
 		twitch: 0,
+		twitchReaction: false,
 	}));
+	const angularPieces = [...pieces].sort((a, b) => a.asset.angle - b.asset.angle);
 	const details = layer.querySelector<HTMLImageElement>(".fracture-details")!;
 	const removeParticles = installFractureParticles(overlay, desktop, hover,
 		pieces.map((piece) => ({ outline: piece.asset.outline, getScreenMatrix: () => active ? domMatrix(piece.screenMatrix) : null })),
@@ -52,13 +60,25 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	function render(delta: number) {
 		for (const piece of pieces) {
 			const { pose } = piece;
-			const ambient = composeMatrix(viewport, branchMatrix(piece.asset.angle * Math.PI / 180, rotation + piece.twitch, pose.scale, pose.thickness));
+			const angle = piece.asset.angle * Math.PI / 180;
+			const turn = rotation + piece.twitch;
+			// The solid branch remains the interaction surface; growth is a translucent wake.
+			const ambient = composeMatrix(viewport, branchMatrix(angle, turn, 1, 1));
 			const screen = { ...ambient, e: ambient.e + origin.x, f: ambient.f + origin.y };
 			const target = pointer ? hoverOffset(pointer, piece.asset.outline, screen) : ZERO;
 			piece.offset = easeOffset(piece.offset, target, delta);
 			if (!pointer && Math.hypot(piece.offset.x, piece.offset.y) < 0.01) piece.offset = ZERO;
 			piece.screenMatrix = { ...screen, e: screen.e + piece.offset.x, f: screen.f + piece.offset.y };
 			placeSprite(piece.element, piece.asset, { ...ambient, e: ambient.e + piece.offset.x, f: ambient.f + piece.offset.y });
+
+			const growth = piece.cycle ? fractureGrowthAt(piece.cycle, piece.elapsed) : 0;
+			piece.growthElement.style.opacity = String(Math.min(0.7, growth * 3));
+			if (growth > 0) {
+				const matrix = composeMatrix(viewport, branchMatrix(angle, turn, pose.scale, pose.thickness));
+				placeSprite(piece.growthElement, piece.asset, { ...matrix, e: matrix.e + piece.offset.x, f: matrix.f + piece.offset.y });
+				const radius = piece.growthRadius * growth;
+				piece.growthElement.style.maskImage = `radial-gradient(circle ${radius}px at ${800 - piece.asset.x}px ${500 - piece.asset.y}px, #000 75%, transparent 100%)`;
+			}
 		}
 		placeSprite(details, FRACTURE_DETAILS, composeMatrix(viewport, branchMatrix(0, rotation, 1, 1)));
 	}
@@ -83,14 +103,9 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			rotationCycle = createFractureRotation();
 		}
 		rotation = fractureDriftAt(rotationCycle, rotationElapsed).rotation;
-		advanceFractureBranches(pieces, delta);
+		advanceFractureActivity(activity, angularPieces, delta);
 		for (const piece of pieces) {
 			piece.pose = piece.cycle ? fractureDriftAt(piece.cycle, piece.elapsed) : REST;
-			piece.twitchElapsed += delta;
-			if (piece.twitchElapsed >= piece.twitchCycle.duration) {
-				piece.twitchElapsed -= piece.twitchCycle.duration;
-				piece.twitchCycle = createFractureTwitch();
-			}
 			piece.twitch = fractureTwitchAt(piece.twitchCycle, piece.twitchElapsed);
 		}
 		render(delta);
@@ -105,11 +120,14 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		if (!active || !motion.matches) {
 			rotationElapsed = 0;
 			rotation = 0;
+			activity = createFractureActivity();
 			for (const piece of pieces) {
 				piece.elapsed = 0;
 				piece.cycle = null;
 				piece.pose = REST;
 				piece.twitchElapsed = 0;
+				piece.twitchCycle = createFractureTwitch();
+				piece.twitchReaction = false;
 				piece.twitch = 0;
 				piece.offset = ZERO;
 			}

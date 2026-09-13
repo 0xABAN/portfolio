@@ -80,7 +80,12 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-	.fracture-sprite { will-change: transform; }
+	.fracture-sprite:not(.fracture-growth) { will-change: transform; }
+}
+
+.fracture-growth {
+	opacity: 0;
+	mask-repeat: no-repeat;
 }
 
 .desktop__icons {
