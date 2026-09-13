@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createFractureDrift, createFractureRotation, fractureDriftAt } from "./fractureDrift";
+import { advanceFractureBranches, createFractureDrift, createFractureRotation, fractureDriftAt, type FractureBranchClock } from "./fractureDrift";
 
 test("the original fracture gently rotates and expands, then returns exactly", () => {
 	const cycle = createFractureDrift(() => 0.5);
@@ -21,9 +21,9 @@ test("successive motions can change direction, pace, and expansion without sudde
 	const a = createFractureDrift(() => 0.1);
 	const b = createFractureDrift(() => 0.9);
 	assert.notEqual(a.duration, b.duration);
-	assert.equal(a.scale, 1);
-	assert.equal(a.rotation, 0);
-	assert.equal(a.thickness, 1);
+	assert.ok(a.scale > 1);
+	assert.ok(a.rotation < 0);
+	assert.ok(a.thickness > 1);
 	assert.ok(b.scale >= 1.035 && b.scale <= 1.3);
 	assert.notEqual(a.expand, b.expand);
 	assert.notEqual(a.scale, b.scale);
@@ -36,7 +36,7 @@ test("successive motions can change direction, pace, and expansion without sudde
 	}
 });
 
-test("shared rotation always moves, including random values that pause expansion", () => {
+test("shared rotation always moves independently of branch selection", () => {
 	for (const randomValue of [0, 0.1, 0.34, 0.5, 0.9, 1]) {
 		const cycle = createFractureRotation(() => randomValue);
 		const peak = fractureDriftAt(cycle, cycle.rest + cycle.expand);
@@ -50,6 +50,27 @@ test("shared rotation always moves, including random values that pause expansion
 	}
 });
 
+
+test("only two random branches run, with independent handoffs after full retraction", () => {
+	const branches: FractureBranchClock[] = Array.from({ length: 8 }, () => ({ elapsed: 0, cycle: null }));
+	advanceFractureBranches(branches, 0, () => 0.5);
+	assert.deepEqual(branches.flatMap((branch, index) => branch.cycle ? [index] : []), [3, 4]);
+
+	const finishing = branches[3];
+	const continuing = branches[4];
+	const originalCycle = continuing.cycle;
+	finishing.elapsed = finishing.cycle!.duration - 1;
+	advanceFractureBranches(branches, 1, () => 0);
+	assert.equal(finishing.cycle, null);
+	assert.ok(branches[0].cycle);
+	assert.equal(continuing.cycle, originalCycle);
+	assert.equal(continuing.elapsed, 1);
+
+	for (let frame = 0; frame < 2000; frame++) {
+		advanceFractureBranches(branches, 100, () => 0.7);
+		assert.equal(branches.filter((branch) => branch.cycle).length, 2);
+	}
+});
 
 test("branches expand quickly and can retract while shared rotation is still opening", () => {
 	const branch = createFractureDrift(() => 0.5);

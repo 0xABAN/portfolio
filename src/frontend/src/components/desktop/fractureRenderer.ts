@@ -1,5 +1,5 @@
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
-import { createFractureDrift, createFractureRotation, fractureDriftAt } from "./fractureDrift";
+import { advanceFractureBranches, createFractureRotation, fractureDriftAt, type FractureBranchClock } from "./fractureDrift";
 import { branchMatrix, composeMatrix, easeOffset, hoverOffset, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
 import { installFractureParticles } from "./fractureParticles";
 
@@ -38,7 +38,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		offset: ZERO,
 		screenMatrix: viewport,
 		elapsed: 0,
-		cycle: createFractureDrift(),
+		cycle: null as FractureBranchClock["cycle"],
 		pose: REST,
 	}));
 	const details = layer.querySelector<HTMLImageElement>(".fracture-details")!;
@@ -80,13 +80,9 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			rotationCycle = createFractureRotation();
 		}
 		rotation = fractureDriftAt(rotationCycle, rotationElapsed).rotation;
+		advanceFractureBranches(pieces, delta);
 		for (const piece of pieces) {
-			piece.elapsed += delta;
-			if (piece.elapsed >= piece.cycle.duration) {
-				piece.elapsed -= piece.cycle.duration;
-				piece.cycle = createFractureDrift();
-			}
-			piece.pose = fractureDriftAt(piece.cycle, piece.elapsed);
+			piece.pose = piece.cycle ? fractureDriftAt(piece.cycle, piece.elapsed) : REST;
 		}
 		render(delta);
 		frame = requestAnimationFrame(draw);
@@ -102,6 +98,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			rotation = 0;
 			for (const piece of pieces) {
 				piece.elapsed = 0;
+				piece.cycle = null;
 				piece.pose = REST;
 				piece.offset = ZERO;
 			}

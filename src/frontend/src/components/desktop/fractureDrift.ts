@@ -4,17 +4,45 @@ export function createFractureDrift(random = Math.random) {
 	const expand = 1000 + random() * 2000;
 	const hold = 800 + random() * 1200;
 	const retract = 5000 + random() * 11000;
-	const moving = random() >= 0.35;
 	return {
 		rest, expand, hold, retract,
 		duration: rest + expand + hold + retract,
-		rotation: moving ? (6 + random() * 4) * (random() < 0.5 ? -1 : 1) : 0,
-		scale: moving ? 1.035 + random() * 0.265 : 1,
-		thickness: moving ? 1.25 + random() * 0.15 : 1,
+		rotation: (6 + random() * 4) * (random() < 0.5 ? -1 : 1),
+		scale: 1.035 + random() * 0.265,
+		thickness: 1.25 + random() * 0.15,
 	};
 }
 
-/** Shared rotation always moves; only individual expansion cycles may sit out. */
+export type FractureBranchClock = {
+	elapsed: number;
+	cycle: ReturnType<typeof createFractureDrift> | null;
+};
+
+/** Reserve two motion slots; hand each off only after its branch fully retracts. */
+export function advanceFractureBranches(branches: FractureBranchClock[], delta: number, random = Math.random) {
+	// Snapshot idle branches so a finishing branch cannot immediately select itself.
+	const idle = branches.filter((branch) => !branch.cycle);
+	let active = 0;
+	for (const branch of branches) {
+		if (!branch.cycle) continue;
+		branch.elapsed += delta;
+		if (branch.elapsed >= branch.cycle.duration) {
+			branch.cycle = null;
+			branch.elapsed = 0;
+		} else {
+			active++;
+		}
+	}
+
+	while (active < 2 && idle.length) {
+		const [branch] = idle.splice(Math.floor(random() * idle.length), 1);
+		branch.elapsed = 0;
+		branch.cycle = createFractureDrift(random);
+		active++;
+	}
+}
+
+/** Shared rotation always moves, independently of branch handoffs. */
 export function createFractureRotation(random = Math.random) {
 	const expand = 4000 + random() * 10000;
 	const hold = 800 + random() * 1200;
