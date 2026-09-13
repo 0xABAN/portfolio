@@ -42,6 +42,25 @@ export function advanceFractureBranches(branches: FractureBranchClock[], delta: 
 	}
 }
 
+/** Independent quiet intervals followed by a small angular glitch, in degrees. */
+export function createFractureTwitch(random = Math.random) {
+	const rest = 2000 + random() * 8000;
+	const settle = 120 + random() * 160;
+	return {
+		rest,
+		settle,
+		duration: rest + settle,
+		angle: (0.6 + random() * 1.4) * (random() < 0.5 ? -1 : 1),
+	};
+}
+
+export function fractureTwitchAt(cycle: ReturnType<typeof createFractureTwitch>, elapsed: number) {
+	if (elapsed < cycle.rest || elapsed >= cycle.duration) return 0;
+	// Deliberately snap outward, then quickly ease back without shifting the base rotation.
+	const remaining = 1 - (elapsed - cycle.rest) / cycle.settle;
+	return cycle.angle * remaining * remaining;
+}
+
 /** Shared rotation always moves, independently of branch handoffs. */
 export function createFractureRotation(random = Math.random) {
 	const expand = 4000 + random() * 10000;

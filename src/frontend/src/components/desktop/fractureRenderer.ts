@@ -1,5 +1,5 @@
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
-import { advanceFractureBranches, createFractureRotation, fractureDriftAt, type FractureBranchClock } from "./fractureDrift";
+import { advanceFractureBranches, createFractureRotation, createFractureTwitch, fractureDriftAt, fractureTwitchAt, type FractureBranchClock } from "./fractureDrift";
 import { branchMatrix, composeMatrix, easeOffset, hoverOffset, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
 import { installFractureParticles } from "./fractureParticles";
 
@@ -40,6 +40,9 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		elapsed: 0,
 		cycle: null as FractureBranchClock["cycle"],
 		pose: REST,
+		twitchElapsed: 0,
+		twitchCycle: createFractureTwitch(),
+		twitch: 0,
 	}));
 	const details = layer.querySelector<HTMLImageElement>(".fracture-details")!;
 	const removeParticles = installFractureParticles(overlay, desktop, hover,
@@ -49,7 +52,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	function render(delta: number) {
 		for (const piece of pieces) {
 			const { pose } = piece;
-			const ambient = composeMatrix(viewport, branchMatrix(piece.asset.angle * Math.PI / 180, rotation, pose.scale, pose.thickness));
+			const ambient = composeMatrix(viewport, branchMatrix(piece.asset.angle * Math.PI / 180, rotation + piece.twitch, pose.scale, pose.thickness));
 			const screen = { ...ambient, e: ambient.e + origin.x, f: ambient.f + origin.y };
 			const target = pointer ? hoverOffset(pointer, piece.asset.outline, screen) : ZERO;
 			piece.offset = easeOffset(piece.offset, target, delta);
@@ -83,6 +86,12 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		advanceFractureBranches(pieces, delta);
 		for (const piece of pieces) {
 			piece.pose = piece.cycle ? fractureDriftAt(piece.cycle, piece.elapsed) : REST;
+			piece.twitchElapsed += delta;
+			if (piece.twitchElapsed >= piece.twitchCycle.duration) {
+				piece.twitchElapsed -= piece.twitchCycle.duration;
+				piece.twitchCycle = createFractureTwitch();
+			}
+			piece.twitch = fractureTwitchAt(piece.twitchCycle, piece.twitchElapsed);
 		}
 		render(delta);
 		frame = requestAnimationFrame(draw);
@@ -100,6 +109,8 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 				piece.elapsed = 0;
 				piece.cycle = null;
 				piece.pose = REST;
+				piece.twitchElapsed = 0;
+				piece.twitch = 0;
 				piece.offset = ZERO;
 			}
 			render(0);

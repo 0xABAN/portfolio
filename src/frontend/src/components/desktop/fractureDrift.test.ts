@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { advanceFractureBranches, createFractureDrift, createFractureRotation, fractureDriftAt, type FractureBranchClock } from "./fractureDrift";
+import { advanceFractureBranches, createFractureDrift, createFractureRotation, createFractureTwitch, fractureDriftAt, fractureTwitchAt, type FractureBranchClock } from "./fractureDrift";
 
 test("the original fracture gently rotates and expands, then returns exactly", () => {
 	const cycle = createFractureDrift(() => 0.5);
@@ -69,6 +69,24 @@ test("only two random branches run, with independent handoffs after full retract
 	for (let frame = 0; frame < 2000; frame++) {
 		advanceFractureBranches(branches, 100, () => 0.7);
 		assert.equal(branches.filter((branch) => branch.cycle).length, 2);
+	}
+});
+
+test("random twitches stay small, snap after a pause, and settle exactly to zero", () => {
+	const a = createFractureTwitch(() => 0.1);
+	const b = createFractureTwitch(() => 0.9);
+	assert.notEqual(a.rest, b.rest);
+	assert.notEqual(a.settle, b.settle);
+	assert.ok(a.angle < 0 && b.angle > 0);
+
+	for (const cycle of [a, b]) {
+		assert.ok(Math.abs(cycle.angle) <= 2);
+		assert.equal(fractureTwitchAt(cycle, 0), 0);
+		assert.equal(fractureTwitchAt(cycle, cycle.rest - 1), 0);
+		assert.equal(fractureTwitchAt(cycle, cycle.rest), cycle.angle);
+		assert.ok(Math.abs(fractureTwitchAt(cycle, cycle.rest + cycle.settle / 2)) < Math.abs(cycle.angle));
+		assert.equal(fractureTwitchAt(cycle, cycle.duration), 0);
+		assert.equal(fractureTwitchAt(cycle, cycle.duration + 100), 0);
 	}
 });
 
