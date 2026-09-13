@@ -136,23 +136,27 @@ export function advanceFractureActivity(
 	advanceFractureTwitches(branches, delta, allowStarts, random);
 }
 
-/** Shared rotation always moves, independently of branch handoffs. */
+/** Two slow, independently phased drifts avoid a repeated wind-up/return-to-zero rhythm. */
 export function createFractureRotation(random = Math.random) {
-	const expand = 4000 + random() * 10000;
-	const hold = 800 + random() * 1200;
-	const retract = 5000 + random() * 11000;
-	const angle = 5 + random() * 15;
-
 	return {
-		rest: 0,
-		expand,
-		hold,
-		retract,
-		duration: expand + hold + retract,
-		rotation: angle * (random() < 0.5 ? -1 : 1),
-		scale: 1,
-		thickness: 1,
+		sway: 9 + random() * 3,
+		swayPeriod: 90000 + random() * 60000,
+		swayPhase: random() * Math.PI * 2,
+		wander: 1.5 + random() * 1.5,
+		wanderPeriod: 31000 + random() * 20000,
+		wanderPhase: random() * Math.PI * 2,
 	};
+}
+
+/** Continuous angle in degrees; the shared clock never resets between oscillations. */
+export function fractureRotationAt(motion: ReturnType<typeof createFractureRotation>, elapsed: number) {
+	const time = Math.max(0, elapsed);
+	const t = Math.min(1, time / 10000);
+	// Enter from neutral gently, including when reduced motion is turned off.
+	const entrance = t * t * t * (t * (t * 6 - 15) + 10);
+	const sway = motion.sway * Math.sin(time * Math.PI * 2 / motion.swayPeriod + motion.swayPhase);
+	const wander = motion.wander * Math.sin(time * Math.PI * 2 / motion.wanderPeriod + motion.wanderPhase);
+	return entrance * (sway + wander);
 }
 
 /** Normalized outward growth, independent of a branch's chosen scale or thickness. */

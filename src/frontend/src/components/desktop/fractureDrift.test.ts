@@ -3,7 +3,7 @@ import { test } from "node:test";
 import {
 	advanceFractureActivity, advanceFractureBranches, advanceFractureTwitches,
 	createFractureActivity, createFractureDrift, createFractureRotation, createFractureTwitch,
-	fractureDriftAt, fractureGrowthAt, fractureTwitchAt, type FractureBranchClock, type FractureTwitchClock,
+	fractureDriftAt, fractureGrowthAt, fractureRotationAt, fractureTwitchAt, type FractureBranchClock, type FractureTwitchClock,
 } from "./fractureDrift";
 
 test("the original fracture gently rotates and expands, then returns exactly", () => {
@@ -59,17 +59,34 @@ test("successive motions can change direction, pace, and expansion without sudde
 	}
 });
 
-test("shared rotation always moves independently of branch selection", () => {
+test("shared rotation enters gently and stays slow and bounded across many oscillations", () => {
 	for (const randomValue of [0, 0.1, 0.34, 0.5, 0.9, 1]) {
-		const cycle = createFractureRotation(() => randomValue);
-		const peak = fractureDriftAt(cycle, cycle.rest + cycle.expand);
+		const motion = createFractureRotation(() => randomValue);
+		assert.equal(Math.abs(fractureRotationAt(motion, 0)), 0);
+		assert.ok(Math.abs(fractureRotationAt(motion, 1)) < 1e-7);
+		let previous = 0;
+		let furthest = 0;
+		for (let elapsed = 100; elapsed <= 600000; elapsed += 100) {
+			const angle = fractureRotationAt(motion, elapsed);
+			assert.ok(Math.abs(angle) <= 15);
+			assert.ok(Math.abs(angle - previous) < 0.5, "no sudden turns or resets");
+			furthest = Math.max(furthest, Math.abs(angle));
+			previous = angle;
+		}
+		assert.ok(furthest > 5, "rotation should remain visibly alive");
+	}
+});
 
-		assert.ok(Math.abs(peak.rotation) >= 5 && Math.abs(peak.rotation) <= 20);
-		assert.ok(Math.abs(fractureDriftAt(cycle, cycle.expand / 2).rotation) > 0);
-		assert.equal(peak.scale, 1);
-		assert.equal(peak.thickness, 1);
-		assert.equal(Math.abs(fractureDriftAt(cycle, 0).rotation), 0);
-		assert.equal(Math.abs(fractureDriftAt(cycle, cycle.duration).rotation), 0);
+test("overlapping rotational drifts do not return to neutral at a cycle boundary", () => {
+	const motion = createFractureRotation(() => 0.5);
+	assert.notDeepEqual(motion, createFractureRotation(() => 0.1));
+	assert.ok(Math.abs(fractureRotationAt(motion, motion.swayPeriod)) > 0.1);
+	for (const boundary of [10000, motion.swayPeriod, motion.wanderPeriod]) {
+		const before = fractureRotationAt(motion, boundary - 1);
+		const at = fractureRotationAt(motion, boundary);
+		const after = fractureRotationAt(motion, boundary + 1);
+		assert.ok(Math.abs(after - before) < 0.004);
+		assert.ok(Math.abs((after - at) - (at - before)) < 1e-6, "velocity remains continuous");
 	}
 });
 
@@ -224,7 +241,7 @@ test("random activity keeps its two-branch ceiling across repeated quiet interva
 	assert.ok(resumptions >= 3);
 });
 
-test("branches expand quickly and can retract while shared rotation is still opening", () => {
+test("branches expand quickly and retract independently of the shared rotational drift", () => {
 	const branch = createFractureDrift(() => 0.5);
 	const rotation = createFractureRotation(() => 0.5);
 	const retractStart = branch.rest + branch.expand + branch.hold;
@@ -232,5 +249,5 @@ test("branches expand quickly and can retract while shared rotation is still ope
 
 	assert.ok(branch.expand >= 1000 && branch.expand <= 3000);
 	assert.ok(fractureDriftAt(branch, later).scale < fractureDriftAt(branch, retractStart).scale);
-	assert.ok(fractureDriftAt(rotation, later).rotation > fractureDriftAt(rotation, retractStart).rotation);
+	assert.notEqual(fractureRotationAt(rotation, later), fractureRotationAt(rotation, retractStart));
 });

@@ -1,7 +1,7 @@
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
 import {
 	advanceFractureActivity, createFractureActivity, createFractureRotation, createFractureTwitch,
-	fractureDriftAt, fractureGrowthAt, fractureTwitchAt, type FractureBranchClock,
+	fractureDriftAt, fractureGrowthAt, fractureRotationAt, fractureTwitchAt, type FractureBranchClock,
 } from "./fractureDrift";
 import { branchMatrix, composeMatrix, easeOffset, hoverOffset, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
 import { installFractureParticles } from "./fractureParticles";
@@ -33,7 +33,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	let frame = 0;
 	let lastTime = 0;
 	let rotationElapsed = 0;
-	let rotationCycle = createFractureRotation();
+	const rotationMotion = createFractureRotation();
 	let rotation = 0;
 	let activity = createFractureActivity();
 	const pieces = FRACTURE_PIECES.map((asset) => ({
@@ -99,11 +99,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		lastTime = now;
 		// One rotation clock for the whole fracture; expansion clocks stay per branch.
 		rotationElapsed += delta;
-		if (rotationElapsed >= rotationCycle.duration) {
-			rotationElapsed -= rotationCycle.duration;
-			rotationCycle = createFractureRotation();
-		}
-		rotation = fractureDriftAt(rotationCycle, rotationElapsed).rotation;
+		rotation = fractureRotationAt(rotationMotion, rotationElapsed);
 		advanceFractureActivity(activity, angularPieces, delta);
 		for (const piece of pieces) {
 			piece.pose = piece.cycle ? fractureDriftAt(piece.cycle, piece.elapsed) : REST;
