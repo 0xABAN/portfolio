@@ -1,6 +1,8 @@
 /** Bounded Chromium rendering benchmark. Run after production server starts:
  * node scripts/benchmark-fracture.mjs http://localhost:3001 /tmp/fracture-benchmark.json
  * CPU throttling is host-relative; this does not emulate a low-end GPU.
+ * FRACTURE_CASE selects a case; FRACTURE_SEED and FRACTURE_DURATION_MS control repeats.
+ * FRACTURE_CSS injects a CSS experiment; FRACTURE_TRACE saves raw trace events.
  */
 import { spawn } from "node:child_process";
 import { readFile, writeFile, mkdtemp, rm, access } from "node:fs/promises";
@@ -96,26 +98,40 @@ try {
     const request = pending.get(message.id);
     if (!request) return;
     pending.delete(message.id);
+    clearTimeout(request.timer);
     if (message.error) request.reject(new Error(message.error.message));
     else request.resolve(message.result);
   };
-  const send = (method, params = {}) =>
+  const send = (method, params = {}, timeout = 45000) =>
     new Promise((resolve, reject) => {
       const id = ++sequence;
-      pending.set(id, { resolve, reject });
+      if (process.env.FRACTURE_DEBUG) console.error(method);
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`${method} timed out after ${timeout}ms`));
+      }, timeout);
+      pending.set(id, { resolve, reject, timer });
       socket.send(JSON.stringify({ id, method, params }));
     });
-  const evaluate = async (expression) => {
+  const evaluate = async (expression, timeout) => {
     const result = await send("Runtime.evaluate", {
       expression,
       awaitPromise: true,
       returnByValue: true,
-    });
+    }, timeout);
     if (result.exceptionDetails)
       throw new Error(JSON.stringify(result.exceptionDetails));
     return result.result.value;
   };
   await send("Page.enable");
+  const seed = Number(process.env.FRACTURE_SEED || 42);
+  await send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `Math.random = (() => { let seed = ${seed}; return () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32); })();`,
+  });
+  const extraCss = process.env.FRACTURE_CSS
+    ? await readFile(process.env.FRACTURE_CSS, "utf8")
+    : "";
+  const duration = Number(process.env.FRACTURE_DURATION_MS || 24000);
   await send("LayerTree.enable");
   const results = [];
   for (const scenario of [
@@ -148,6 +164,9 @@ try {
       await evaluate(
         `new Promise((resolve,reject)=>{const start=Date.now();const poll=()=>{const button=document.querySelector('.rsod');if(button)button.click();if(document.querySelector('.fracture-background--ready'))resolve(true);else if(Date.now()-start>25000)reject('Ready timeout');else setTimeout(poll,100)};poll()})`,
       );
+      if (extraCss) {
+        await evaluate(`{ const style = document.createElement('style'); style.textContent = ${JSON.stringify(extraCss)}; document.head.append(style); }`);
+      }
       await delay(3500);
     } else {
       await evaluate(
@@ -167,13 +186,17 @@ try {
       transferMode: "ReportEvents",
     });
     const browserMetrics = await evaluate(
-      `(${measure.toString()})(${JSON.stringify(assets)},${JSON.stringify(scenario.mode)})`,
+      `(${measure.toString()})(${JSON.stringify(assets)},${JSON.stringify(scenario.mode)},${duration})`,
+      duration + 15000,
     );
     const done = new Promise((resolve) => {
       tracingDone = resolve;
     });
     await send("Tracing.end");
     await done;
+    if (process.env.FRACTURE_TRACE) {
+      await writeFile(`${output}.${results.length}.trace.json`, JSON.stringify({ traceEvents: trace }));
+    }
     const totals = {};
     const frameEvents = {};
     for (const event of trace) {
@@ -235,6 +258,8 @@ try {
     }
     const result = {
       ...scenario,
+      seed,
+      duration,
       browserMetrics,
       traceTotals: totals,
       frameEvents,
@@ -249,7 +274,9 @@ try {
     JSON.stringify(
       {
         limitations: [
-          "One run per case; exploratory stress test, not statistical confidence.",
+          "One run per invocation; repeat with the same seed to compare changes.",
+          "Missed-frame percentages are estimates from RAF intervals against a 60Hz budget, not presentation telemetry.",
+          "Synthetic pointer dispatch includes harness work and does not measure field INP or native dragging.",
           "Headless Chrome and CPU throttling do not emulate low-end GPU/memory.",
           "Filtered SVG baseline is isolated and lacks full app/hover load; conservative comparison.",
           "Trace frame event counts are emitted events, not a guaranteed presented-FPS measure.",
@@ -263,12 +290,15 @@ try {
   console.log(`Saved ${output}`);
 } finally {
   socket?.close();
-  chrome.kill();
-  await new Promise((resolve) => chrome.once("exit", resolve));
+  if (chrome.exitCode === null && chrome.signalCode === null) {
+    const exited = new Promise((resolve) => chrome.once("exit", resolve));
+    chrome.kill();
+    await exited;
+  }
   await rm(profile, { recursive: true, force: true });
 }
 
-async function measure(assets, mode) {
+async function measure(assets, mode, duration) {
   const intervals = { ambient: [], interactive: [] };
   const longTasks = [];
   let maxParticles = 0;
@@ -280,7 +310,7 @@ async function measure(assets, mode) {
   );
   observer.observe({ type: "longtask", buffered: false });
   const timer = setInterval(() => {
-    if (performance.now() - start < 4000 || mode !== "cached-app") return;
+    if (performance.now() - start < duration / 2 || mode !== "cached-app") return;
     const desktop = document.querySelector(".desktop");
     for (const asset of assets) {
       const image = document.querySelector('[data-piece="' + asset.id + '"]');
@@ -317,7 +347,7 @@ async function measure(assets, mode) {
     function frame(now) {
       const elapsed = now - start;
       if (previous)
-        intervals[elapsed < 4000 ? "ambient" : "interactive"].push(
+        intervals[elapsed < duration / 2 ? "ambient" : "interactive"].push(
           now - previous,
         );
       previous = now;
@@ -325,7 +355,7 @@ async function measure(assets, mode) {
         maxParticles,
         document.querySelector(".fracture-fragments")?.childElementCount || 0,
       );
-      if (elapsed >= 8000) resolve();
+      if (elapsed >= duration) resolve();
       else requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -334,11 +364,17 @@ async function measure(assets, mode) {
   observer.disconnect();
   const summarize = (values) => {
     values.sort((a, b) => a - b);
+    const missed = values.reduce(
+      (total, value) => total + Math.max(0, Math.round(value / (1000 / 60)) - 1),
+      0,
+    );
     return {
       frames: values.length,
       medianMs: values[Math.floor(values.length * 0.5)],
       p95Ms: values[Math.floor(values.length * 0.95)],
       p99Ms: values[Math.floor(values.length * 0.99)],
+      maxMs: values.at(-1),
+      estimatedMissedFramePct: missed / (values.length + missed) * 100,
       over33ms: values.filter((v) => v > 33.4).length,
       over50ms: values.filter((v) => v > 50).length,
     };
