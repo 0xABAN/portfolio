@@ -108,7 +108,7 @@ async function bakeInBrowser(source) {
   const render = async (group, id) => {
     const box = group.getBBox();
     // The 12-unit displacement moves pixels at most 6 units in each direction;
-    // extra padding includes the red highlight stroke and anti-aliased edges.
+    // extra padding includes offshoot strokes and anti-aliased edges.
     const x = Math.floor(box.x - 10), y = Math.floor(box.y - 10);
     const width = Math.ceil(box.x + box.width + 10) - x;
     const height = Math.ceil(box.y + box.height + 10) - y;
