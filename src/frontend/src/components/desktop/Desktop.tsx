@@ -54,6 +54,7 @@ const DESK_ICONS: DeskIcon[] = [
 	game("roblox", "Roblox", "https://www.roblox.com/"),
 	game("persona-3-reload", "Persona 3 Reload", "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
 	game("persona-5-royal", "Persona 5 Royal", "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
+	game("undertale", "Undertale", "https://store.steampowered.com/app/391540/Undertale/"),
 	{ id: "secrets", label: "secrets", src: "/icons/folder.png", open: "explorer" },
 ];
 
