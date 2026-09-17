@@ -78,7 +78,7 @@ async function checkTerminal(page) {
 		} });
 	});
 
-	check(await page.locator(".win--dos .win-titlebar").evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(175, 0, 0)", "Portfolio-red title bar missing");
+	check(await page.locator(".win--dos .win-titlebar").evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(10, 10, 10)", "Black DOS title bar missing");
 	check(await page.locator(".win--dos .win-titlebar__text").innerText() === "MS-DOS Prompt", "Wrong window title");
 	await page.evaluate(() => document.fonts.load('16px "IBM VGA"'));
 	check(await page.evaluate(() => document.fonts.check('16px "IBM VGA"')), "DOS font did not load");

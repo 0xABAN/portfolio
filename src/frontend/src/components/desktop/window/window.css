@@ -75,7 +75,6 @@
 }
 
 .win--dos .win-titlebar {
-	background: var(--desktop-bg);
 	color: #fff;
 }
 
