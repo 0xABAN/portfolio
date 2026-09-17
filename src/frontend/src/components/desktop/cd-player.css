@@ -1,8 +1,8 @@
 .cd-wrap {
 	position: relative;
-	flex: 0 1 auto;
-	min-width: 0;
-	max-width: min(320px, 42vw);
+	flex: 0 1 220px;
+	min-width: 70px;
+	max-width: 220px;
 }
 
 .cd-wrap::before {
@@ -23,7 +23,7 @@
 .cd-pop {
 	position: fixed;
 	z-index: 120;
-	width: 340px;
+	width: min(340px, calc(100vw - 8px));
 	font:
 		11px / 1.2 "MS Sans Serif",
 		Tahoma,

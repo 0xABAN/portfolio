@@ -27,7 +27,8 @@ export type DesktopWindow = {
 	launched?: boolean;
 };
 
-const TASKBAR_H = 36;
+/** Shared with the desktop CSS variable so bounds and chrome cannot drift. */
+export const TASKBAR_H = 32;
 const TITLE_H = 22;
 
 /** pad+border+client margin — keep in sync with window.css */

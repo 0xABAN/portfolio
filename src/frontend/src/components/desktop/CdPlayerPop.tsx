@@ -136,6 +136,7 @@ export function CdPlayerPop({
 	return (
 		<div
 			ref={rootRef}
+			id="cd-player-pop"
 			className="cd-pop win"
 			role="dialog"
 			aria-label="CD Player"

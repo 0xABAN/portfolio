@@ -256,7 +256,7 @@ export function usePaintCanvas({
 		}
 
 		function onKey(e: KeyboardEvent) {
-			if (!cfg.current.active) return;
+			if (!cfg.current.active || !canvas.closest(".win")?.contains(document.activeElement)) return;
 			if (
 				!(e.metaKey || e.ctrlKey) ||
 				e.key.toLowerCase() !== "z" ||

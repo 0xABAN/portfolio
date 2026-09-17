@@ -12,7 +12,7 @@
 
 .start-menu {
 	position: fixed;
-	inset: auto auto var(--taskbar-height, 36px) 4px;
+	inset: auto auto var(--taskbar-height) 4px;
 	margin: 0;
 	width: min(238px, calc(100vw - 8px));
 	overflow: visible;
@@ -45,7 +45,7 @@
 	position: relative;
 }
 
-.start-menu button {
+.start-menu :is(button, a[role="menuitem"]) {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -58,22 +58,23 @@
 	color: inherit;
 	font: inherit;
 	text-align: left;
+	text-decoration: none;
 	white-space: nowrap;
 	cursor: var(--cursor-arrow);
 }
 
-.start-menu button > span:not(.start-menu__arrow) {
+.start-menu :is(button, a[role="menuitem"]) > span:not(.start-menu__arrow) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.start-menu button:not(:disabled):is(:hover, :focus) {
+.start-menu :is(button, a[role="menuitem"]):not(:disabled):is(:hover, :focus) {
 	background: var(--desktop-bg);
 	color: #fff;
 	outline: none;
 }
 
-.start-menu button:focus-visible {
+.start-menu :is(button, a[role="menuitem"]):focus-visible {
 	outline: 1px dotted #fff;
 	outline-offset: -3px;
 }
@@ -108,7 +109,7 @@
 	bottom: -3px;
 	z-index: 1;
 	width: 188px;
-	max-height: calc(100dvh - var(--taskbar-height, 36px) - 12px);
+	max-height: calc(100dvh - var(--taskbar-height) - 12px);
 	overflow-y: auto;
 }
 

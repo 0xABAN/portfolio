@@ -47,7 +47,7 @@
 /* Cached fracture artwork: only the cropped sprite transforms animate. */
 .fracture-viewport {
 	position: absolute;
-	inset: 0 0 36px;
+	inset: 0 0 var(--taskbar-height);
 	overflow: hidden;
 	pointer-events: none;
 }
@@ -124,7 +124,7 @@
 .desktop__icons {
 	position: absolute;
 	top: 12px;
-	bottom: 52px;
+	bottom: calc(var(--taskbar-height) + 16px);
 	left: 10px;
 	z-index: 2;
 	display: flex;
@@ -266,8 +266,7 @@
 	border-bottom: 2px solid var(--chrome-lo);
 }
 
-.chrome-raised:active,
-.task-btn--active {
+.chrome-raised:active {
 	border-top-color: var(--chrome-lo);
 	border-left-color: var(--chrome-lo);
 	border-right-color: var(--chrome-hi);
@@ -284,193 +283,4 @@
 	border-left: 2px solid var(--chrome-lo);
 	border-right: 2px solid var(--chrome-hi);
 	border-bottom: 2px solid var(--chrome-hi);
-}
-
-.taskbar {
-	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	z-index: 100;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 6px;
-	height: 36px;
-	padding: 3px 4px;
-	box-sizing: border-box;
-	background: var(--chrome-face);
-	border-top: 2px solid var(--chrome-hi);
-	color: var(--chrome-text);
-}
-
-.taskbar__left {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	min-width: 0;
-	flex: 1;
-}
-
-.taskbar__tasks {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	min-width: 0;
-	flex: 1;
-	overflow: hidden;
-}
-
-.task-btn,
-.taskbar__speaker,
-.start-btn {
-	display: inline-flex;
-	align-items: center;
-	height: 28px;
-	margin: 0;
-	background: var(--chrome-btn);
-	color: var(--chrome-text);
-	font: inherit;
-	cursor: var(--cursor-arrow);
-	user-select: none;
-}
-
-.task-btn,
-.start-btn {
-	gap: 6px;
-	font-size: 12px;
-	line-height: 1;
-}
-
-.task-btn {
-	min-width: 0;
-	max-width: 160px;
-	padding: 0 10px;
-	box-sizing: border-box;
-	text-decoration: none;
-	overflow: hidden;
-}
-
-.task-btn--cd {
-	max-width: min(320px, 42vw);
-	flex: 0 1 auto;
-}
-
-.task-btn__icon {
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	object-fit: contain;
-	image-rendering: pixelated;
-}
-
-.task-btn__label {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.taskbar__right {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	flex-shrink: 0;
-}
-
-.taskbar__views {
-	font-size: 12px;
-	line-height: 1;
-	white-space: nowrap;
-	color: var(--chrome-text);
-	font-variant-numeric: tabular-nums;
-	user-select: none;
-	padding: 0 4px;
-}
-
-.taskbar__tray {
-	display: flex;
-	align-items: center;
-	flex-shrink: 0;
-	height: 28px;
-	padding: 0 8px;
-	background: var(--chrome-btn);
-	color: var(--chrome-text);
-	font-size: 12px;
-	line-height: 1;
-	white-space: nowrap;
-}
-
-.taskbar__speaker {
-	justify-content: center;
-	width: 28px;
-	padding: 0;
-	flex-shrink: 0;
-	line-height: 0;
-}
-
-.taskbar__speaker-svg {
-	display: block;
-	width: 16px;
-	height: 16px;
-	overflow: visible;
-}
-
-.taskbar__speaker-wave {
-	animation: taskbar-speaker-wave 0.9s ease-in-out infinite;
-}
-
-.taskbar__speaker--muted .taskbar__speaker-wave {
-	/* still “playing”, just quieter under the X */
-	animation-duration: 1.2s;
-}
-
-.taskbar__speaker-wave--1 {
-	animation-delay: 0s;
-}
-
-.taskbar__speaker-wave--2 {
-	animation-delay: 0.18s;
-}
-
-@keyframes taskbar-speaker-wave {
-	0%,
-	100% {
-		opacity: 0.2;
-	}
-	50% {
-		opacity: 1;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.taskbar__speaker-wave {
-		animation: none;
-		opacity: 0.55;
-	}
-}
-
-.taskbar__clock {
-	font-size: 12px;
-	line-height: 1;
-	white-space: nowrap;
-	color: var(--chrome-text);
-}
-
-.start-btn {
-	justify-content: center;
-	padding: 0 8px;
-	font-weight: 700;
-	flex-shrink: 0;
-}
-
-.start-btn__logo {
-	display: block;
-	width: 16px;
-	height: 14px;
-	flex-shrink: 0;
-	object-fit: contain;
-}
-
-.start-btn__label {
-	letter-spacing: 0.02em;
 }

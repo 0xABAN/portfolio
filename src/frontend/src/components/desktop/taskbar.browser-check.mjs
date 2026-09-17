@@ -13,6 +13,7 @@ async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.emulateMedia({ reducedMotion: "reduce" });
+	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
 	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
@@ -130,7 +131,52 @@ async function checkTaskbar(page) {
 	check(await win("sysmsg-4").isVisible(), "Start did not restore decorations");
 	check(await page.locator('[data-task-id^="sysmsg"], [data-task-id="new"]').count() === 0, "Dismissal or restoration created decoration tasks");
 	check(await input.inputValue() === "keep my draft", "Decoration restore reset an app");
-	return "PASS: activation, stacking, stable tasks, preserved sessions, Paint undo and Start menu";
+	check(await page.evaluate(async () => {
+		const regular = await document.fonts.load('11px "Win95 UI"');
+		const bold = await document.fonts.load('700 11px "Win95 UI"');
+		return regular.length === 1 && bold.length === 1;
+	}), "Win95 fonts did not load");
+	check(await page.locator(".taskbar").evaluate((el) => el.getBoundingClientRect().height === 32), "Taskbar height drifted");
+	check(await start.evaluate((el) => getComputedStyle(el).borderTopWidth === "1px"), "Start lost its layered 1px bevel");
+	check(await page.locator(".taskbar__tray .taskbar__speaker").count() === 1, "Speaker is not inside the recessed tray");
+	check(await page.locator(".taskbar__views").innerText() === "2,717 views", "View counter was lost");
+	await task("terminal").click();
+	const music = page.locator(".task-btn--cd");
+	await music.focus();
+	const player = page.getByRole("dialog", { name: "CD Player" });
+	await player.waitFor();
+	await page.keyboard.press("Tab");
+	check(await player.evaluate((el) => el.contains(document.activeElement)), "Keyboard cannot reach CD controls");
+	await page.keyboard.press("Escape");
+	check(!(await player.isVisible()), "Escape did not dismiss CD Player");
+	check(await music.evaluate((el) => el === document.activeElement), "CD dismissal lost trigger focus");
+	check(await music.evaluate((el) => getComputedStyle(el).backgroundImage) === "none", "Music playback masquerades as an active app");
+	const speaker = page.locator(".taskbar__speaker");
+	const muted = await speaker.getAttribute("aria-pressed");
+	await speaker.click();
+	check(await speaker.getAttribute("aria-pressed") !== muted, "Mute toggle stopped working");
+	check(await task("terminal").getAttribute("aria-pressed") === "true", "Music controls changed the active app");
+
+	for (const width of [390, 320]) {
+		await page.setViewportSize({ width, height: 844 });
+		for (const control of [start, music, page.locator(".taskbar__tray")]) {
+			const r = await control.boundingBox();
+			check(r.x >= 0 && r.x + r.width <= width, "Fixed taskbar controls clipped on narrow screens");
+		}
+		await page.locator("#task-strip").evaluate((el) => { el.scrollLeft = 0; });
+		await page.getByRole("button", { name: "Next tasks", exact: true }).click();
+		check(await page.locator("#task-strip").evaluate((el) => el.scrollLeft > 0), "Task overflow arrows did not scroll");
+		await task("bio").focus();
+		await task("bio").press("Enter");
+		check(await task("bio").getAttribute("aria-pressed") === "true", "An overflowed task was unreachable");
+		await start.click();
+		await menu.getByRole("menuitem", { name: "Programs", exact: true }).click();
+		const submenu = await page.getByRole("menu", { name: "Programs", exact: true }).boundingBox();
+		check(submenu.x >= 0 && submenu.y >= 0 && submenu.x + submenu.width <= width, "Start flyout left the viewport");
+		await page.keyboard.press("Escape");
+		await page.keyboard.press("Escape");
+	}
+	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD keyboard access and narrow overflow";
 }
 
 try {

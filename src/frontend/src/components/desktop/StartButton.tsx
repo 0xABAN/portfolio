@@ -24,6 +24,11 @@ type Props = {
 	canRestoreDecorations: boolean;
 };
 
+function menuItems(scope: Element) {
+	return Array.from(scope.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+		.filter((item) => !item.matches(":disabled") && item.closest('[role="menu"]') === scope);
+}
+
 /** Native light-dismiss owns opening/closing; only menu navigation needs JavaScript. */
 export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRestoreDecorations }: Props) {
 	const menu = useRef<HTMLDivElement>(null);
@@ -39,9 +44,8 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRes
 		const target = event.target as HTMLElement;
 		const scope = target.closest('[role="menu"]');
 		if (!scope) return;
-		const items = Array.from(scope.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
-			.filter((item) => !item.disabled && item.closest('[role="menu"]') === scope);
-		const index = items.indexOf(target as HTMLButtonElement);
+		const items = menuItems(scope);
+		const index = items.indexOf(target);
 		const direction = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
 		if (direction || event.key === "Home" || event.key === "End") {
 			event.preventDefault();
@@ -78,7 +82,9 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRes
 					if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
 					event.preventDefault();
 					menu.current?.showPopover();
-					menu.current?.querySelector<HTMLButtonElement>("[data-group]")?.focus();
+					if (!menu.current) return;
+					const items = menuItems(menu.current);
+					items.at(event.key === "ArrowUp" ? -1 : 0)?.focus();
 				}}
 			>
 				<WindowsLogo className="start-btn__logo" />
@@ -130,6 +136,12 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRes
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
 					</button>
+					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"
+						onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }}
+						onClick={() => menu.current?.hidePopover()}>
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img src="/icons/notepad.svg" alt="" width={32} height={32} /><span>Font credits</span>
+					</a>
 				</div>
 			</div>
 		</>

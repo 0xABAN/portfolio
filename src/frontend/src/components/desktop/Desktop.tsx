@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
@@ -18,6 +18,7 @@ import { Window } from "./window/Window";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./windowState";
 import {
 	GITHUB_URL,
+	TASKBAR_H,
 	altCropStyle,
 	clampToParent,
 	nestBounds,
@@ -288,7 +289,7 @@ export function Desktop() {
 	const activeId = activeWindowId(visibleWindows);
 
 	return (
-		<div className={busy ? "desktop desktop--busy" : "desktop"}>
+		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}>
 			<FractureBackground active={revealed.has("fracture")} />
 			<ul className="desktop__icons" aria-label="Desktop">
 				{DESK_ICONS.filter(

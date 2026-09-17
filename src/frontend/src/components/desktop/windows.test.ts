@@ -6,6 +6,7 @@ import {
 	makeExplorerWindow,
 	nestBounds,
 	reflowDesktop,
+	TASKBAR_H,
 	type DesktopWindow,
 } from "./windows";
 
@@ -30,12 +31,12 @@ test("secrets stays fully accessible when there is no room beside adam", () => {
 		const secrets = makeExplorerWindow(50, adam, width, height);
 		assert.ok(secrets.x >= 24 && secrets.y >= 24);
 		assert.ok(secrets.x + secrets.w <= width - 24);
-		assert.ok(secrets.y + secrets.h <= height - 36 - 24);
+		assert.ok(secrets.y + secrets.h <= height - TASKBAR_H - 24);
 		assert.equal(secrets.y + secrets.h, adam.y + adam.h);
 	}
 	const secrets = makeExplorerWindow(50, undefined, 1440, 900);
 	assert.equal(secrets.x + secrets.w / 2, 720);
-	assert.equal(secrets.y + secrets.h / 2, (900 - 36) / 2);
+	assert.equal(secrets.y + secrets.h / 2, (900 - TASKBAR_H) / 2);
 });
 
 test("default windows reflow exactly between docked, mobile, and restored viewports", () => {
@@ -47,7 +48,7 @@ test("default windows reflow exactly between docked, mobile, and restored viewpo
 		assert.deepEqual(current, next);
 		const adam = current.find((w) => w.id === "me")!;
 		assert.ok(Math.abs(adam.x + adam.w / 2 - width / 2) <= 0.5);
-		assert.ok(Math.abs(adam.y + adam.h / 2 - (height - 36) / 2) <= 0.5);
+		assert.ok(Math.abs(adam.y + adam.h / 2 - (height - TASKBAR_H) / 2) <= 0.5);
 		previous = next;
 	}
 });
@@ -72,7 +73,8 @@ test("reflow preserves dragged offsets, nested placement, and user window state"
 	}
 	assert.equal(result.find((w) => w.id === "terminal")?.minimized, true);
 	assert.equal(result.find((w) => w.id === "terminal")?.z, 88);
-	assert.deepEqual(result.find((w) => w.id === "explorer"), { ...current.at(-1), x: 220, y: 120 });
+	// The 32px taskbar makes the resized Paint width odd; its center shifts by 0.5px.
+	assert.deepEqual(result.find((w) => w.id === "explorer"), { ...current.at(-1), x: 220.5, y: 120 });
 	const restored = reflowDesktop(result, next, previous, 1440, 900);
 	assert.deepEqual(restored, current);
 });
@@ -87,7 +89,7 @@ test("resized parents stay reachable and nested windows stay inside their canvas
 	const parent = result.find((w) => w.id === "me")!;
 	const child = result.find((w) => w.id === "alt")!;
 	assert.equal(parent.x, 960 - 48);
-	assert.equal(parent.y, 600 - 36 - 22);
+	assert.equal(parent.y, 600 - TASKBAR_H - 22);
 	const bounds = nestBounds(parent);
 	assert.ok(child.x >= bounds.x && child.y >= bounds.y);
 	assert.ok(child.x + child.w <= bounds.x + bounds.w);
