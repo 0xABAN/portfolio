@@ -61,16 +61,17 @@ export function GitHubGraph() {
 
 		let stopped = false;
 		let timer = 0;
+		let all: SVGRectElement[] = [];
+		let active: SVGRectElement[] = [];
 
 		const pop = (el: Element) => {
-			el.classList.remove("git-cell-pop");
-			void (el as SVGElement).getBoundingClientRect();
 			el.classList.add("git-cell-pop");
-			const done = () => {
-				el.classList.remove("git-cell-pop");
-				el.removeEventListener("animationend", done);
-			};
-			el.addEventListener("animationend", done);
+			const animation = el.getAnimations().find((animation) =>
+				animation instanceof CSSAnimation && animation.animationName === "git-cell-pop");
+			// Keep CSS as the timing/keyframe source, including its reduced-motion rule.
+			if (!animation) return;
+			animation.currentTime = 0;
+			animation.onfinish = () => el.classList.remove("git-cell-pop");
 		};
 
 		const tick = () => {
@@ -79,16 +80,18 @@ export function GitHubGraph() {
 				timer = window.setTimeout(tick, 800);
 				return;
 			}
-			const all = [
-				...root.querySelectorAll<SVGRectElement>(
-					".react-activity-calendar__calendar rect[data-level]",
-				),
-			];
+			// Cells keep their DOM identity until data changes and this effect restarts.
+			// Retry only if the calendar has not committed its cells yet.
 			if (all.length === 0) {
-				timer = window.setTimeout(tick, 200);
-				return;
+				all = [...root.querySelectorAll<SVGRectElement>(
+					".react-activity-calendar__calendar rect[data-level]",
+				)];
+				active = all.filter((e) => Number(e.dataset.level) > 0);
+				if (all.length === 0) {
+					timer = window.setTimeout(tick, 200);
+					return;
+				}
 			}
-			const active = all.filter((e) => Number(e.dataset.level) > 0);
 			const pool = active.length > 0 && Math.random() < 0.75 ? active : all;
 			const el = pool[Math.floor(Math.random() * pool.length)];
 			if (el) pop(el);
