@@ -245,7 +245,6 @@
 	object-fit: contain;
 	image-rendering: pixelated;
 	overflow: hidden;
-	box-shadow: 1px 1px 0 #0006;
 }
 
 .desk-icon__label {
