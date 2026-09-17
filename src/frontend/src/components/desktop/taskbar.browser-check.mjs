@@ -16,11 +16,15 @@ async function checkTaskbar(page) {
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
 	await page.evaluate(() => {
 		// Observe the real page-lifetime transport without adding production test hooks.
+		window.audioActions = [];
 		window.Audio = class extends window.Audio {
 			constructor(...args) {
 				super(...args);
 				window.taskbarAudio = this;
 			}
+			play() { window.audioActions.push("play"); return super.play(); }
+			pause() { window.audioActions.push("pause"); return super.pause(); }
+			load() { window.audioActions.push("load"); return super.load(); }
 		};
 	});
 	await page.locator(".rsod").click();
@@ -173,32 +177,73 @@ async function checkTaskbar(page) {
 	check(await page.locator(".taskbar__views").innerText() === "2,717 views", "View counter was lost");
 	await task("terminal").click();
 	await page.waitForFunction(() => document.getElementById("desktop-window-terminal").contains(document.activeElement));
-	const music = page.locator(".task-btn--cd");
-	await music.focus();
+	const music = page.getByRole("button", { name: "Open CD Player", exact: true });
 	const player = page.getByRole("dialog", { name: "CD Player" });
+	const audioState = () => page.evaluate(() => {
+		const { paused, muted, volume, src } = window.taskbarAudio;
+		return JSON.stringify({ paused, muted, volume, src, actions: window.audioActions.length });
+	});
+	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2);
+	await music.hover();
+	await music.focus();
+	await page.evaluate(() => new Promise(requestAnimationFrame));
+	check(!(await player.isVisible()), "Hover or focus opened CD Player without a click");
+	const beforeOpen = await audioState();
+	await music.click();
 	await player.waitFor();
+	check(await audioState() === beforeOpen, "Opening CD Player changed existing music");
+	await music.click();
+	check(await player.isVisible() && await audioState() === beforeOpen, "Repeated CD clicks closed the player or changed music");
+	const playerBounds = await player.boundingBox();
+	await page.mouse.move(playerBounds.x + 60, playerBounds.y + 12);
+	await page.mouse.down();
+	await page.mouse.move(playerBounds.x + 140, playerBounds.y - 38, { steps: 4 });
+	await page.mouse.up();
+	const movedPlayer = await player.boundingBox();
+	check(movedPlayer.x === playerBounds.x + 80 && movedPlayer.y === playerBounds.y - 50, "CD Player stopped being draggable");
+	await page.mouse.move(600, 40);
+	await start.focus();
+	check(await player.isVisible(), "Leaving CD Player dismissed it");
+	await music.focus();
 	await page.keyboard.press("Tab");
 	check(await player.evaluate((el) => el.contains(document.activeElement)), "Keyboard cannot reach CD controls");
 	await page.keyboard.press("Escape");
 	check(!(await player.isVisible()), "Escape did not dismiss CD Player");
 	check(await music.evaluate((el) => el === document.activeElement), "CD dismissal lost trigger focus");
+	check(await audioState() === beforeOpen, "Dismissing CD Player changed music");
+	await music.press("Enter");
+	await player.waitFor();
+	check(await audioState() === beforeOpen, "Keyboard opening changed music");
+	check(await music.getAttribute("aria-pressed") === null, "CD launcher still reports playback state");
 	check(await music.evaluate((el) => getComputedStyle(el).backgroundImage) === "none", "Music playback masquerades as an active app");
+
 	const speaker = page.locator(".taskbar__speaker");
 	const muted = await speaker.getAttribute("aria-pressed");
 	await speaker.click();
 	check(await speaker.getAttribute("aria-pressed") !== muted, "Mute toggle stopped working");
 	check(await task("terminal").getAttribute("aria-pressed") === "true", "Music controls changed the active app");
-	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2);
-	if (await page.evaluate(() => window.taskbarAudio.paused)) await music.click();
-	await page.waitForFunction(() => !window.taskbarAudio.paused);
+	if (await page.evaluate(() => window.taskbarAudio.paused)) await player.getByRole("button", { name: "Play", exact: true }).click();
+	await player.getByRole("button", { name: "Pause", exact: true }).waitFor();
+	const playingState = await audioState();
 	await music.click();
-	await page.locator('.task-btn--cd[aria-pressed="false"]').waitFor();
-	check(await page.evaluate(() => window.taskbarAudio.paused), "CD click did not pause playback");
-	await music.click();
-	await page.locator('.task-btn--cd[aria-pressed="true"]').waitFor();
-	check(await page.evaluate(() => !window.taskbarAudio.paused), "CD click did not resume playback");
-	await music.press("Escape");
-	check(!(await player.isVisible()) && await page.evaluate(() => !window.taskbarAudio.paused), "Closing the CD popup stopped its transport");
+	check(await audioState() === playingState, "CD launcher interrupted playing music");
+	await player.getByRole("button", { name: "Pause", exact: true }).click();
+	await player.getByRole("button", { name: "Play", exact: true }).waitFor();
+	check(await page.evaluate(() => window.taskbarAudio.paused), "Pause control did not pause playback");
+	const pausedState = await audioState();
+	await player.getByRole("button", { name: "Close CD Player" }).click();
+	check(!(await player.isVisible()), "Close button did not dismiss CD Player");
+	await music.press("Space");
+	await player.waitFor();
+	check(await audioState() === pausedState, "Reopening CD Player resumed paused music");
+	const restoredPlayer = await player.boundingBox();
+	check(restoredPlayer.x === movedPlayer.x && restoredPlayer.y === movedPlayer.y, "Reopening CD Player reset its dragged position");
+	await player.getByRole("button", { name: "Play", exact: true }).click();
+	await player.getByRole("button", { name: "Pause", exact: true }).waitFor();
+	check(await page.evaluate(() => !window.taskbarAudio.paused), "Play control did not resume playback");
+	const resumedState = await audioState();
+	await player.getByRole("button", { name: "Close CD Player" }).click();
+	check(!(await player.isVisible()) && await audioState() === resumedState, "Closing CD Player stopped its transport");
 
 	// Complete a paused chat stream while Terminal is hidden, then recall the request.
 	await page.evaluate(() => {

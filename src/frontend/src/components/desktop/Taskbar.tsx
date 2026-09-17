@@ -121,8 +121,6 @@ export function Taskbar({
 	const [cdPos, setCdPos] = useState({ left: 0, top: 0, bottom: TASKBAR_H + 4 });
 	const [cdDragged, setCdDragged] = useState(false);
 	const cdWrapRef = useRef<HTMLDivElement | null>(null);
-	const cdHide = useRef<number | null>(null);
-	const cdPinned = useRef(false);
 	const views = useViewCount();
 	const {
 		muted,
@@ -146,18 +144,7 @@ export function Taskbar({
 		return () => window.clearInterval(id);
 	}, []);
 
-	useEffect(() => () => {
-		if (cdHide.current != null) window.clearTimeout(cdHide.current);
-	}, []);
-
-	function clearCdHide() {
-		if (cdHide.current == null) return;
-		window.clearTimeout(cdHide.current);
-		cdHide.current = null;
-	}
-
 	function openCdPop() {
-		clearCdHide();
 		if (!cdDragged) {
 			const r = cdWrapRef.current?.getBoundingClientRect();
 			if (r) {
@@ -172,13 +159,8 @@ export function Taskbar({
 	}
 
 	function closeCdPop() {
-		if (cdPinned.current || cdWrapRef.current?.contains(document.activeElement)) return;
-		clearCdHide();
-		// Allow the pointer to cross the gap without closing keyboard-focused controls.
-		cdHide.current = window.setTimeout(() => {
-			cdHide.current = null;
-			if (!cdPinned.current && !cdWrapRef.current?.contains(document.activeElement)) setCdOpen(false);
-		}, 120);
+		setCdOpen(false);
+		cdWrapRef.current?.querySelector<HTMLButtonElement>(".task-btn--cd")?.focus();
 	}
 
 	return (
@@ -189,19 +171,14 @@ export function Taskbar({
 				)}
 				{show("tb:cd") && (
 					<div ref={cdWrapRef} className="cd-wrap"
-						onMouseEnter={openCdPop} onMouseLeave={closeCdPop}
-						onFocusCapture={openCdPop}
-						onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) closeCdPop(); }}
 						onKeyDown={(event) => {
 							if (event.key !== "Escape") return;
 							event.stopPropagation();
-							clearCdHide();
-							event.currentTarget.querySelector<HTMLButtonElement>(".task-btn--cd")?.focus();
-							setCdOpen(false);
+							closeCdPop();
 						}}>
 						<TaskButton icon="/icons/cd.png" className="task-btn task-btn--cd chrome-raised"
-							title={trackLabel} aria-label={playing ? "Pause music" : "Play music"}
-							aria-pressed={playing} aria-haspopup="dialog" aria-expanded={cdOpen} aria-controls="cd-player-pop" onClick={togglePlay}>
+							title={trackLabel} aria-label="Open CD Player"
+							aria-haspopup="dialog" aria-expanded={cdOpen} aria-controls="cd-player-pop" onClick={openCdPop}>
 							{trackLabel}{"  "}<span ref={bindElapsed}>0:00</span>
 						</TaskButton>
 						{cdOpen && (
@@ -222,8 +199,7 @@ export function Taskbar({
 									setCdDragged(true);
 									setCdPos({ left, top, bottom: 0 });
 								}}
-								onDragStartAction={() => { cdPinned.current = true; }}
-								onDragEndAction={() => { cdPinned.current = false; }}
+								onCloseAction={closeCdPop}
 							/>
 						)}
 					</div>

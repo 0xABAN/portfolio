@@ -19,8 +19,7 @@ type Props = {
 	onVolumeAction: (v: number) => void;
 	onStopAction: () => void;
 	onMoveAction: (left: number, top: number) => void;
-	onDragStartAction?: () => void;
-	onDragEndAction?: () => void;
+	onCloseAction: () => void;
 };
 
 function Field({
@@ -78,8 +77,7 @@ export function CdPlayerPop({
 	onVolumeAction,
 	onStopAction,
 	onMoveAction,
-	onDragStartAction,
-	onDragEndAction,
+	onCloseAction,
 }: Props) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const drag = useRef<{
@@ -100,7 +98,6 @@ export function CdPlayerPop({
 			el.style.left = `${ol}px`;
 			el.style.top = `${ot}px`;
 		}
-		onDragStartAction?.();
 	}
 
 	function onTitleMove(e: PointerEvent<HTMLElement>) {
@@ -123,7 +120,6 @@ export function CdPlayerPop({
 			el?.offsetLeft ?? d.ol + (e.clientX - d.px),
 			el?.offsetTop ?? d.ot + (e.clientY - d.py),
 		);
-		onDragEndAction?.();
 	}
 
 	const transport: [string, () => void, string][] = [
@@ -161,6 +157,15 @@ export function CdPlayerPop({
 					draggable={false}
 				/>
 				<span className="win-titlebar__text">CD Player</span>
+				<button
+					type="button"
+					className="win-min chrome-raised cd-pop__close"
+					aria-label="Close CD Player"
+					onPointerDown={(event) => event.stopPropagation()}
+					onClick={onCloseAction}
+				>
+					×
+				</button>
 			</header>
 
 			<div className="cd-pop__body">
