@@ -107,7 +107,45 @@ async function checkTerminal(page) {
 	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
 	check(await fontSize.evaluate((el) => el === document.activeElement), "Reply completion stole focus from the toolbar");
 	check((await page.locator(".term__line").allTextContents()).includes("ADAM> hello there"), "Streamed tokens were not assembled");
-	return "PASS: DOS chrome, font, clipboard, native editing, long input, IME, focus, and streamed reply";
+
+	await input.fill("VeR");
+	await input.press("Enter");
+	check((await page.locator(".term__line").allTextContents()).includes("Windows 95. [Version 4.00.950]"), "VER did not run locally");
+	await input.fill("help");
+	await input.press("Enter");
+	check((await page.locator(".term__body").innerText()).includes("CLEAR  Alias for CLS."), "HELP omitted supported commands");
+	await input.fill("unsent draft");
+	for (const [key, expected] of [
+		["ArrowUp", "help"], ["ArrowUp", "VeR"], ["ArrowUp", "hello"],
+		["ArrowUp", "hello"], ["ArrowDown", "VeR"], ["ArrowDown", "help"],
+		["ArrowDown", "unsent draft"], ["ArrowDown", "unsent draft"], ["Escape", ""],
+	]) {
+		await input.press(key);
+		check(await input.inputValue() === expected, `${key}: expected ${expected}`);
+	}
+	await input.press("ArrowUp");
+	await input.pressSequentially("!");
+	await input.press("ArrowUp");
+	await input.press("ArrowDown");
+	check(await input.inputValue() === "help!", "Editing recalled input lost the new draft");
+	await input.fill(" ClS ");
+	await input.press("Enter");
+	check(await page.locator(".term__line").count() === 0, "CLS did not clear output without rebooting");
+	check(await page.evaluate(() => window.testChatRequests.length) === 1, "Local commands reached the chat API");
+	await input.press("ArrowUp");
+	check(await input.inputValue() === "ClS", "CLS erased input recall");
+	await input.fill("follow-up");
+	await input.press("Enter");
+	await page.waitForFunction(() => typeof window.finishChat === "function");
+	const messages = await page.evaluate(() => window.testChatRequests[1].messages);
+	check(JSON.stringify(messages.map((message) => message.content)) === JSON.stringify(["how u doing :)", "hello", "hello there", "follow-up"]), "CLS reset or polluted the conversation");
+	await page.evaluate(() => window.finishChat());
+	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+	await input.fill("clear");
+	await input.press("Enter");
+	check(await page.locator(".term__line").count() === 0, "CLEAR alias failed");
+	check(await page.evaluate(() => window.testChatRequests.length) === 2, "CLEAR sent a chat request");
+	return "PASS: DOS visuals, clipboard, editing, IME, focus, streaming, recall, local commands, and conversation-preserving clear";
 }
 
 try {

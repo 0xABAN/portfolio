@@ -15,6 +15,7 @@ const GREETING = "how u doing :)";
 const BOT = "ADAM> ";
 const YOU = "YOU> ";
 const SHELL = "C:\\PORTFOLIO>";
+const WINDOWS_VERSION = "Windows 95. [Version 4.00.950]";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 // keep in sync with portfolio_backend.chat.BROKE_MSG
 const BROKE_MSG = "sry i'm too broke to afford this rn";
@@ -143,6 +144,11 @@ export function Terminal() {
 	const aliveRef = useRef(true);
 	const runGen = useRef(0);
 
+	// Shell recall is independent of the conversation sent to the chat API.
+	const submittedInput = useRef<string[]>([]);
+	const recallIndex = useRef<number | null>(null);
+	const draft = useRef("");
+
 	useEffect(() => {
 		aliveRef.current = true;
 		return () => {
@@ -248,15 +254,33 @@ export function Terminal() {
 		};
 	}, [playBoot]);
 
+	function editInput(value: string) {
+		recallIndex.current = null;
+		setInput(value);
+		setClipboardStatus("");
+	}
+
 	const runLocal = (cmd: string): boolean => {
-		const c = cmd.trim().toLowerCase();
+		const c = cmd.toLowerCase();
 		if (c === "clear" || c === "cls") {
-			void playBoot();
+			setLines([]);
 			return true;
 		}
 		if (c === "help") {
-			append("commands: help, clear");
-			append("anything else goes to adam");
+			for (const line of [
+				"CLS    Clear the screen; keep the conversation.",
+				"CLEAR  Alias for CLS.",
+				"HELP   Show this help.",
+				"VER    Show the Windows version.",
+				"",
+				"Up/Down recalls input; Esc clears the entry.",
+				"Anything else goes to Adam.",
+				"",
+			]) append(line);
+			return true;
+		}
+		if (c === "ver") {
+			append(WINDOWS_VERSION);
 			append("");
 			return true;
 		}
@@ -268,8 +292,9 @@ export function Terminal() {
 		const text = input.trim();
 		if (busy || !text) return;
 
+		submittedInput.current.push(text);
 		append(`${YOU}${text}`);
-		setInput("");
+		editInput("");
 		if (runLocal(text)) return;
 
 		const userMsg: ChatMessage = { role: "user", content: text };
@@ -300,10 +325,24 @@ export function Terminal() {
 	};
 
 	const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-		if (e.nativeEvent.isComposing) return;
+		if (busy || e.nativeEvent.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
 		if (e.key === "Enter") {
 			e.preventDefault();
 			void submit();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			editInput("");
+		} else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+			e.preventDefault();
+			const entries = submittedInput.current;
+			if (!entries.length) return;
+
+			// Keep the unfinished entry so Down past the newest command restores it.
+			const current = recallIndex.current ?? entries.length;
+			if (recallIndex.current === null) draft.current = input;
+			const next = Math.max(0, Math.min(entries.length, current + (e.key === "ArrowUp" ? -1 : 1)));
+			recallIndex.current = next === entries.length ? null : next;
+			setInput(next === entries.length ? draft.current : entries[next]);
 		}
 	};
 
@@ -332,9 +371,8 @@ export function Terminal() {
 			// A clipboard permission prompt can outlive this particular input row.
 			if (field !== inputRef.current || field.readOnly) return;
 			field.setRangeText(text.replace(/[\r\n]+/g, " "), field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
-			setInput(field.value);
+			editInput(field.value);
 			field.focus({ preventScroll: true });
-			setClipboardStatus("");
 		} catch {
 			setClipboardStatus("Clipboard unavailable. Use your paste shortcut in the prompt.");
 		}
@@ -392,7 +430,7 @@ export function Terminal() {
 							className="term__input"
 							readOnly={busy}
 							value={input}
-							onChange={(e) => setInput(e.target.value)}
+							onChange={(e) => editInput(e.target.value)}
 							onKeyDown={onKeyDown}
 							spellCheck={false}
 							autoComplete="off"
