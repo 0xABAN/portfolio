@@ -97,7 +97,12 @@ try {
         await sharp(image).png().toFile(file);
         await writeFile(file + '.json', JSON.stringify(styles));
       } else {
-        assert.deepEqual(styles, JSON.parse(await readFile(file + '.json', 'utf8')), `Component layout/styles: ${name}`);
+        // Ignore server origins and the minifier's equivalent background-position
+        // units when there is no background image; layout and colors stay exact.
+        const normalize = value => JSON.parse(JSON.stringify(value)
+          .replace(/https?:\/\/(?:127\.0\.0\.1|localhost):\d+/g, '')
+          .replaceAll('none repeat scroll 0px 0px', 'none repeat scroll 0% 0%'));
+        assert.deepEqual(normalize(styles), normalize(JSON.parse(await readFile(file + '.json', 'utf8'))), `Component layout/styles: ${name}`);
         const actual = await sharp(image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
         const expected = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
         assert.deepEqual(actual.info, expected.info, name);
@@ -236,11 +241,39 @@ try {
       failContributions = false;
       await remountCalendar();
       assert.equal(contributionsRequests, 3, 'Failed requests retry on remount');
+
+      await page.unroute('**/photos/street.png');
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await page.reload();
+      await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
+      await page.keyboard.press('Enter');
+      await page.locator('.restarting__line').first().waitFor();
+      assert.equal(await page.locator('.restarting__line').first().textContent(), 'ATAPI CD-ROM: CD-ROM DRIVE');
+      await page.locator('.fracture-background--ready').waitFor();
+      await page.locator('.desk-icon--bounce[title="secrets"]').waitFor();
+      assert.equal(await secrets.locator('.desk-icon__art').evaluate(el => getComputedStyle(el).animationName), 'desk-icon-bounce');
+      await page.locator('.git-cell-pop').first().waitFor();
+      await checkCalendar();
+      await secrets.dispatchEvent('click');
+      await secrets.locator('.desk-icon__badge').waitFor({ state: 'hidden' });
+      assert.ok(!(await secrets.getAttribute('class')).includes('desk-icon--bounce'));
+
+      await page.route('**/chat', route => route.fulfill({ contentType: 'text/event-stream', body:
+        'event: token\ndata: {"content":"hello "}\n\nevent: token\ndata: {"content":"there"}\n\nevent: done\ndata: {"remaining":9}\n\n',
+      }));
+      const input = page.getByRole('textbox', { name: 'Terminal input' });
+      await input.fill('hi');
+      await input.press('Enter');
+      await page.locator('.term__line').filter({ hasText: '> adam bot: hello there' }).waitFor();
+      await page.route('**/chat', route => route.fulfill({ status: 429, json: { detail: 'quota exceeded' } }));
+      await input.fill('again');
+      await input.press('Enter');
+      await page.locator('.term__line').filter({ hasText: "sry i'm too broke to afford this rn" }).waitFor();
     }
     assert.deepEqual(errors, [], 'Browser errors');
     await context.close();
   }
-  console.log(`${mode}: ${count} screenshots; playback interactions and browser errors checked`);
+  console.log(`${mode}: ${count} screenshots; media, windows, Paint, GitHub, boot/motion and Terminal checks passed`);
 } finally {
   await browser.close();
 }
