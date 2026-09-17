@@ -153,6 +153,7 @@ export function Desktop() {
 	);
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
+	const launchTimer = useRef<number | null>(null);
 	const [trashed, setTrashed] = useState<ReadonlySet<string>>(() => new Set());
 	const [binFull, setBinFull] = useState(false);
 	const [binHot, setBinHot] = useState(false);
@@ -164,6 +165,11 @@ export function Desktop() {
 	const revealed = useBootReveal();
 	const cdWindow = windows.find((w) => w.id === "cd-player");
 	const audio = useCdPlayerAudio(revealed.has("fracture"), Boolean(cdWindow));
+
+	useEffect(() => () => {
+		if (launchTimer.current !== null) window.clearTimeout(launchTimer.current);
+		launchTimer.current = null;
+	}, []);
 
 	useEffect(() => {
 		const resize = () => {
@@ -286,31 +292,25 @@ export function Desktop() {
 		focusWindow(id);
 	}, [focusWindow]);
 
+	/** All launchers share the wait; taskbar restores deliberately bypass it. */
 	const launchApp = useCallback((id: AppId) => {
-		const { innerWidth, innerHeight } = window;
-		if (id === "explorer") setSecretsOpened(true);
-		setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
-		focusWindow(id);
-	}, [focusWindow]);
-
-	const withBusy = useCallback((app: AppId, delay = 1500) => {
-		if (busy) return;
+		if (launchTimer.current !== null) return;
 		setBusy(true);
 		// ponytail: fixed fake load delay — tune if it feels too snappy/slow
-		window.setTimeout(() => {
-			launchApp(app);
+		launchTimer.current = window.setTimeout(() => {
+			launchTimer.current = null;
+			const { innerWidth, innerHeight } = window;
+			if (id === "explorer") setSecretsOpened(true);
+			setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
 			setBusy(false);
-		}, delay);
-	}, [busy, launchApp]);
-
-	function openExplorer() {
-		withBusy("explorer", 500);
-	}
+			focusWindow(id);
+		}, id === "explorer" ? 500 : 1500);
+	}, [focusWindow]);
 
 	const openExplorerFile = useCallback((file: ExplorerFile) => {
-		if (file.action === "bio" || file.action === "experience") withBusy(file.action);
+		if (file.action === "bio" || file.action === "experience") launchApp(file.action);
 		else window.open(file.href, "_blank", "noopener,noreferrer");
-	}, [withBusy]);
+	}, [launchApp]);
 
 	const moveWindow = useCallback((id: string, x: number, y: number) => {
 		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
@@ -355,9 +355,7 @@ export function Desktop() {
 			skipClick.current = false;
 			return;
 		}
-		if (icon.id === "secrets") setSecretsOpened(true);
-		if (icon.open === "explorer") openExplorer();
-		else if (icon.open) launchApp(icon.open);
+		if (icon.open) launchApp(icon.open);
 		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
 	}
 

@@ -70,7 +70,7 @@ async function checkAudio(page) {
 	near((await state()).volume, 0.25);
 	await speaker.click();
 	check((await state()).muted, "Mute did not immediately silence the fade");
-	await launcher.click();
+	await task.click();
 	const volume = player.getByRole("slider", { name: "Volume" });
 	check(await volume.inputValue() === "1", "Fade moved the user's volume slider");
 	await volume.fill("0.4");
@@ -108,7 +108,7 @@ async function checkAudio(page) {
 	near((await state()).volume, 1);
 
 	await boot(true);
-	await launcher.click();
+	await task.click();
 	await player.getByRole("button", { name: "Stop", exact: true }).click();
 	const stopped = await state();
 	await page.evaluate(() => { window.blockAudio = false; });
@@ -117,7 +117,7 @@ async function checkAudio(page) {
 	check((await state()).paused && (await state()).attempts === stopped.attempts, "Stop left autoplay retries armed");
 
 	await boot();
-	await launcher.click();
+	await task.click();
 	await page.clock.runFor(100);
 	await page.clock.runFor(4000);
 	check((await state()).volume > 0, "Quit check did not start during the fade");
@@ -134,13 +134,15 @@ async function checkAudio(page) {
 	check(await task.count() === 0, "Resize resurrected the closed player");
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await launcher.click();
+	await page.clock.runFor(1500);
+	await player.waitFor();
 	check(await page.evaluate(() => window.audioStarted), "Desktop icon did not restart the closed player");
 	check(await player.isVisible() && await task.getAttribute("aria-pressed") === "true", "Relaunch did not open and activate the app");
 	await page.clock.runFor(5000);
 	near((await state()).volume, 0.25);
 
 	await boot(true);
-	await launcher.click();
+	await task.click();
 	await page.evaluate(() => {
 		window.pendingPlayCalls = 0;
 		window.taskbarAudio.play = () => {

@@ -11,6 +11,7 @@ function browser(...args) {
 
 async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
+	const waitForLaunch = () => page.locator(".desktop--busy").waitFor({ state: "hidden" });
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
@@ -192,12 +193,14 @@ async function checkTaskbar(page) {
 	check(Math.abs(flyoutBounds.y - parentBounds.y) <= 4, "Desktop Start flyout is not aligned with its parent row");
 	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
+	await waitForLaunch();
 	check(!(await menu.isVisible()), "Launch did not dismiss Start");
 	check(await input.inputValue() === "keep my draft", "Start relaunched an existing terminal");
 
 	await start.click();
 	await menu.getByRole("menuitem", { name: "Documents", exact: true }).hover();
 	await menu.getByRole("menuitem", { name: "bio.txt", exact: true }).click();
+	await waitForLaunch();
 	check(await win("bio").isVisible(), "Documents did not open bio.txt");
 	await win("bio").evaluate((el) => { window.savedBio = el; });
 	await win("bio").getByRole("button", { name: "Minimize", exact: true }).click();
@@ -206,6 +209,7 @@ async function checkTaskbar(page) {
 	await page.waitForFunction(() => document.activeElement?.textContent === "secrets");
 	await page.keyboard.press("End");
 	await page.keyboard.press("Enter");
+	await waitForLaunch();
 	check(await win("bio").evaluate((el) => el === window.savedBio && !el.inert), "Start replaced rather than restored bio.txt");
 	await page.waitForFunction(() => document.getElementById("desktop-window-bio").contains(document.activeElement));
 
@@ -259,12 +263,14 @@ async function checkTaskbar(page) {
 	check(!(await player.isVisible()), "Hover or focus opened CD Player without a click");
 	const beforeOpen = await audioState();
 	await cdIcon.click();
+	await waitForLaunch();
 	await player.waitFor();
 	check(await player.locator("button:not(:disabled)").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "CD controls lost the hand cursor");
 	check(await player.evaluate((el) => el.parentElement.classList.contains("desktop__windows")), "CD Player is not a desktop app");
 	check(await music.getAttribute("aria-pressed") === "true", "CD Player did not become the active task");
 	check(await audioState() === beforeOpen, "Opening CD Player changed existing music");
 	await cdIcon.click();
+	await waitForLaunch();
 	check(await player.count() === 1 && await music.count() === 1 && await audioState() === beforeOpen, "Repeated launches duplicated the app or restarted music");
 	const playerBounds = await player.boundingBox();
 	const musicBounds = await music.boundingBox();
@@ -422,6 +428,7 @@ async function checkTaskbar(page) {
 		const submenu = await page.getByRole("menu", { name: "Programs", exact: true }).boundingBox();
 		check(submenu.x >= 0 && submenu.y >= 0 && submenu.x + submenu.width <= width, "Start flyout left the viewport");
 		await menu.getByRole("menuitem", { name: "CD Player", exact: true }).click();
+		await waitForLaunch();
 		await player.waitFor();
 		await page.waitForFunction(() => document.getElementById("desktop-window-cd-player").contains(document.activeElement));
 		const bounds = await player.boundingBox();
