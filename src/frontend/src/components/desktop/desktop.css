@@ -254,6 +254,21 @@
 	inset: 0;
 }
 
+.desk-icon__bubble-art {
+	position: absolute;
+	inset: 0 auto auto 0;
+	width: 50%;
+	height: 50%;
+	transform: scale(2);
+	transform-origin: 0 0;
+	image-rendering: pixelated;
+}
+
+.desk-icon__bubble-label {
+	position: relative;
+	z-index: 1;
+}
+
 .desk-icon__bubble-x {
 	animation: secrets-bubble-horizontal 11s ease-in-out infinite;
 	will-change: transform;
@@ -268,8 +283,6 @@
 	display: grid;
 	place-items: center;
 	padding: 0 20px 15px 24px;
-	background: url("/icons/secrets-bubble.svg") no-repeat center / 100% 100%;
-	image-rendering: pixelated;
 	color: #fff;
 	font: 12px / 14px "Win95 UI", Tahoma, sans-serif;
 	white-space: nowrap;

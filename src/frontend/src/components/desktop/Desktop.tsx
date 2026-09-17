@@ -91,7 +91,18 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 					<span className="desk-icon__bubble" aria-hidden="true">
 						<span className="desk-icon__bubble-x">
 							<span className="desk-icon__bubble-y">
-								<span className="desk-icon__bubble-body">don&apos;t click me!</span>
+								<span className="desk-icon__bubble-body">
+									{/* eslint-disable-next-line @next/next/no-img-element */}
+									<img
+										className="desk-icon__bubble-art"
+										src="/icons/secrets-bubble.svg"
+										alt=""
+										width={120}
+										height={58}
+										draggable={false}
+									/>
+									<span className="desk-icon__bubble-label">don&apos;t click me!</span>
+								</span>
 							</span>
 						</span>
 					</span>
