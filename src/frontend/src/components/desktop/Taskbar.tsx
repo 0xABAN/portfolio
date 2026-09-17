@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { CdPlayerPop } from "./CdPlayerPop";
 import { StartButton } from "./StartButton";
 import { useTaskbarAudio } from "./useTaskbarAudio";
@@ -39,6 +39,18 @@ const LINKS = [
 ] as const;
 
 const viewFmt = new Intl.NumberFormat("en-US");
+
+function TaskButton({ icon, children, ...props }: ComponentProps<"button"> & { icon?: string }) {
+	return (
+		<button type="button" className="task-btn chrome-raised" {...props}>
+			{icon ? (
+				// eslint-disable-next-line @next/next/no-img-element
+				<img className="task-btn__icon" src={icon} alt="" width={16} height={16} draggable={false} />
+			) : null}
+			<span className="task-btn__label">{children}</span>
+		</button>
+	);
+}
 
 type Props = {
 	minimized?: DesktopWindow[];
@@ -123,26 +135,14 @@ export function Taskbar({ minimized = [], onRestoreAction, revealed }: Props) {
 				{show("tb:start") ? <StartButton /> : null}
 				<div className="taskbar__tasks">
 					{LINKS.filter((link) => show(`tb:${link.id}`)).map((link) => (
-						<button
+						<TaskButton
 							key={link.id}
-							type="button"
-							className="task-btn chrome-raised"
+							icon={link.icon}
 							title={link.label}
-							onClick={() =>
-								window.open(link.href, "_blank", "noopener,noreferrer")
-							}
+							onClick={() => window.open(link.href, "_blank", "noopener,noreferrer")}
 						>
-							{/* eslint-disable-next-line @next/next/no-img-element */}
-							<img
-								className="task-btn__icon"
-								src={link.icon}
-								alt=""
-								width={16}
-								height={16}
-								draggable={false}
-							/>
-							<span className="task-btn__label">{link.label}</span>
-						</button>
+							{link.label}
+						</TaskButton>
 					))}
 					{show("tb:cd") ? (
 						<div
@@ -177,29 +177,16 @@ export function Taskbar({ minimized = [], onRestoreAction, revealed }: Props) {
 									}}
 								/>
 							) : null}
-							<button
-								type="button"
+							<TaskButton
+								icon="/icons/cd.png"
 								className={`task-btn task-btn--cd chrome-raised${playing ? " task-btn--active" : ""}`}
 								title={trackLabel}
 								aria-label={playing ? "Pause music" : "Play music"}
 								aria-pressed={playing}
 								onClick={togglePlay}
 							>
-								{/* eslint-disable-next-line @next/next/no-img-element */}
-								<img
-									className="task-btn__icon"
-									src="/icons/cd.png"
-									alt=""
-									width={16}
-									height={16}
-									draggable={false}
-								/>
-								<span className="task-btn__label">
-									{trackLabel}
-									{"  "}
-									<span ref={bindElapsed}>0:00</span>
-								</span>
-							</button>
+								{trackLabel}{"  "}<span ref={bindElapsed}>0:00</span>
+							</TaskButton>
 						</div>
 					) : null}
 					{minimized.map((w) => {
@@ -207,26 +194,15 @@ export function Taskbar({ minimized = [], onRestoreAction, revealed }: Props) {
 						const label =
 							w.title || (w.kind === "github" ? "github" : w.id);
 						return (
-							<button
+							<TaskButton
 								key={w.id}
-								type="button"
+								icon={w.icon}
 								className="task-btn task-btn--active chrome-raised"
 								title={label}
 								onClick={() => onRestoreAction?.(w.id)}
 							>
-								{w.icon ? (
-									// eslint-disable-next-line @next/next/no-img-element
-									<img
-										className="task-btn__icon"
-										src={w.icon}
-										alt=""
-										width={16}
-										height={16}
-										draggable={false}
-									/>
-								) : null}
-								<span className="task-btn__label">{label}</span>
-							</button>
+								{label}
+							</TaskButton>
 						);
 					})}
 				</div>

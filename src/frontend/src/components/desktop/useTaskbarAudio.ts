@@ -3,13 +3,6 @@
 import { useEffect, useState } from "react";
 import { formatElapsed, PLAYLIST, randomTrackIndex, trackAt } from "./playlist";
 
-type Handlers = {
-	onPlay: () => void;
-	onPause: () => void;
-	onEnded: () => void;
-	onTime: () => void;
-};
-
 /**
  * Page-lifetime audio. Not torn down on Strict Mode remount.
  * Transport starts muted on Desktop mount (post-intro); unmute only reveals sound.
@@ -18,7 +11,6 @@ let sharedAudio: HTMLAudioElement | null = null;
 let sharedTrackIdx = randomTrackIndex();
 let mediaStarted = false;
 let loadGen = 0;
-const handlerSet = new Set<Handlers>();
 const elapsedNodes = new Set<HTMLElement>();
 let lastElapsedSec = -1;
 
@@ -26,21 +18,12 @@ let lastElapsedSec = -1;
 let setTrackIdxBridge: ((n: number) => void) | null = null;
 let setPlayingBridge: ((b: boolean) => void) | null = null;
 
-function emit(fn: (h: Handlers) => void) {
-	for (const h of handlerSet) fn(h);
-}
-
 function getSharedAudio(): HTMLAudioElement {
 	if (sharedAudio) return sharedAudio;
 	const el = new Audio();
 	el.preload = "none";
 	el.muted = true;
 	el.volume = 1;
-	el.addEventListener("timeupdate", () => emit((h) => h.onTime()));
-	el.addEventListener("play", () => emit((h) => h.onPlay()));
-	el.addEventListener("pause", () => emit((h) => h.onPause()));
-	el.addEventListener("ended", () => emit((h) => h.onEnded()));
-	el.addEventListener("durationchange", () => emit((h) => h.onTime()));
 	sharedAudio = el;
 	return el;
 }
@@ -112,21 +95,16 @@ export function useTaskbarAudio() {
 	useEffect(() => {
 		setTrackIdxBridge = setTrackIdx;
 		setPlayingBridge = setPlaying;
-		return () => {
-			if (setTrackIdxBridge === setTrackIdx) setTrackIdxBridge = null;
-			if (setPlayingBridge === setPlaying) setPlayingBridge = null;
-		};
-	}, [setTrackIdx, setPlaying]);
-
-	useEffect(() => {
 		const el = getSharedAudio();
-		const handlers: Handlers = {
-			onPlay: () => setPlaying(true),
-			onPause: () => setPlaying(false),
-			onTime: () => writeElapsed(Math.floor(el.currentTime || 0)),
-			onEnded: () => loadTrack(randomTrackIndex(sharedTrackIdx), true),
-		};
-		handlerSet.add(handlers);
+		const onTime = () => writeElapsed(Math.floor(el.currentTime || 0));
+		const listeners = Object.entries({
+			play: () => setPlaying(true),
+			pause: () => setPlaying(false),
+			timeupdate: onTime,
+			durationchange: onTime,
+			ended: () => loadTrack(randomTrackIndex(sharedTrackIdx), true),
+		});
+		for (const [event, listener] of listeners) el.addEventListener(event, listener);
 		if (mediaStarted) writeElapsed(Math.floor(el.currentTime || 0));
 
 		// Muted autoplay is allowed without a gesture — start once Desktop mounts.
@@ -137,7 +115,9 @@ export function useTaskbarAudio() {
 		}
 
 		return () => {
-			handlerSet.delete(handlers);
+			if (setTrackIdxBridge === setTrackIdx) setTrackIdxBridge = null;
+			if (setPlayingBridge === setPlaying) setPlayingBridge = null;
+			for (const [event, listener] of listeners) el.removeEventListener(event, listener);
 		};
 	}, []);
 

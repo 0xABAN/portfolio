@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GITHUB_URL } from "../windows";
+import { ExplorerHeader, ExplorerStatus } from "../explorer/ExplorerChrome";
 import {
 	ALL_ITEMS,
 	PROJECTS,
@@ -79,26 +80,7 @@ export function Experience() {
 
 	return (
 		<div className="exp" aria-label="Experience">
-			<div className="exp__menu" aria-hidden>
-				{EXP_MENUS.map((m) => (
-					<span key={m} className="exp__menu-item">
-						{m}
-					</span>
-				))}
-			</div>
-
-			<div className="exp__toolbar" aria-hidden>
-				{EXP_TOOLBAR.map((t) => (
-					<span key={t} className="exp__tool">
-						{t}
-					</span>
-				))}
-			</div>
-
-			<div className="exp__address" aria-hidden>
-				<span className="exp__address-label">Address</span>
-				<div className="exp__address-field">experience</div>
-			</div>
+			<ExplorerHeader prefix="exp" menus={EXP_MENUS} tools={EXP_TOOLBAR} address="experience" />
 
 			<div className="exp__search">
 				<div className="exp__search-field" aria-hidden>
@@ -174,9 +156,7 @@ export function Experience() {
 				</main>
 			</div>
 
-			<div className="exp__status" aria-live="polite">
-				{ALL_ITEMS.length} object{ALL_ITEMS.length === 1 ? "" : "s"}
-			</div>
+			<ExplorerStatus prefix="exp" count={ALL_ITEMS.length} />
 		</div>
 	);
 }

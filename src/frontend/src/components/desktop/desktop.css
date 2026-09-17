@@ -247,7 +247,8 @@
 	border-bottom: 2px solid var(--chrome-lo);
 }
 
-.chrome-raised:active {
+.chrome-raised:active,
+.task-btn--active {
 	border-top-color: var(--chrome-lo);
 	border-left-color: var(--chrome-lo);
 	border-right-color: var(--chrome-hi);
@@ -301,37 +302,39 @@
 	overflow: hidden;
 }
 
-.task-btn {
+.task-btn,
+.taskbar__speaker,
+.start-btn {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
 	height: 28px;
-	min-width: 0;
-	max-width: 160px;
 	margin: 0;
-	padding: 0 10px;
-	box-sizing: border-box;
 	background: var(--chrome-btn);
 	color: var(--chrome-text);
 	font: inherit;
-	font-size: 12px;
-	line-height: 1;
-	text-decoration: none;
 	cursor: var(--cursor-arrow);
 	user-select: none;
+}
+
+.task-btn,
+.start-btn {
+	gap: 6px;
+	font-size: 12px;
+	line-height: 1;
+}
+
+.task-btn {
+	min-width: 0;
+	max-width: 160px;
+	padding: 0 10px;
+	box-sizing: border-box;
+	text-decoration: none;
 	overflow: hidden;
 }
 
 .task-btn--cd {
 	max-width: min(320px, 42vw);
 	flex: 0 1 auto;
-}
-
-.task-btn--active {
-	border-top-color: var(--chrome-lo);
-	border-left-color: var(--chrome-lo);
-	border-right-color: var(--chrome-hi);
-	border-bottom-color: var(--chrome-hi);
 }
 
 .task-btn__icon {
@@ -379,20 +382,11 @@
 }
 
 .taskbar__speaker {
-	display: inline-flex;
-	align-items: center;
 	justify-content: center;
 	width: 28px;
-	height: 28px;
-	margin: 0;
 	padding: 0;
 	flex-shrink: 0;
-	background: var(--chrome-btn);
-	color: var(--chrome-text);
-	font: inherit;
 	line-height: 0;
-	cursor: var(--cursor-arrow);
-	user-select: none;
 }
 
 .taskbar__speaker-svg {
@@ -444,22 +438,10 @@
 }
 
 .start-btn {
-	display: inline-flex;
-	align-items: center;
 	justify-content: center;
-	gap: 6px;
-	height: 28px;
-	margin: 0;
 	padding: 0 8px;
-	background: var(--chrome-btn);
-	color: var(--chrome-text);
-	font: inherit;
-	font-size: 12px;
 	font-weight: 700;
-	line-height: 1;
 	flex-shrink: 0;
-	cursor: var(--cursor-arrow);
-	user-select: none;
 }
 
 .start-btn__logo {

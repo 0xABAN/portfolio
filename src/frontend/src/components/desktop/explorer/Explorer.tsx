@@ -5,7 +5,7 @@ import {
 	EXPLORER_TOOLBAR,
 	type ExplorerFile,
 } from "./explorerData";
-import "./explorer.css";
+import { ExplorerHeader, ExplorerStatus } from "./ExplorerChrome";
 
 type Props = {
 	/** *Action suffix satisfies Next TS 71007 */
@@ -13,30 +13,9 @@ type Props = {
 };
 
 export function Explorer({ onOpenFileAction }: Props) {
-	const count = EXPLORER_FILES.length;
-
 	return (
 		<div className="explorer" aria-label="File explorer">
-			<div className="explorer__menu" aria-hidden>
-				{EXPLORER_MENUS.map((m) => (
-					<span key={m} className="explorer__menu-item">
-						{m}
-					</span>
-				))}
-			</div>
-
-			<div className="explorer__toolbar" aria-hidden>
-				{EXPLORER_TOOLBAR.map((t) => (
-					<span key={t} className="explorer__tool">
-						{t}
-					</span>
-				))}
-			</div>
-
-			<div className="explorer__address" aria-hidden>
-				<span className="explorer__address-label">Address</span>
-				<div className="explorer__address-field">{EXPLORER_PATH}</div>
-			</div>
+			<ExplorerHeader prefix="explorer" menus={EXPLORER_MENUS} tools={EXPLORER_TOOLBAR} address={EXPLORER_PATH} />
 
 			<ul className="explorer__list">
 				{EXPLORER_FILES.map((file) => (
@@ -61,9 +40,7 @@ export function Explorer({ onOpenFileAction }: Props) {
 				))}
 			</ul>
 
-			<div className="explorer__status" aria-live="polite">
-				{count} object{count === 1 ? "" : "s"}
-			</div>
+			<ExplorerStatus prefix="explorer" count={EXPLORER_FILES.length} />
 		</div>
 	);
 }

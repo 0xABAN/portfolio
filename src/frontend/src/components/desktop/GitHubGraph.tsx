@@ -11,28 +11,23 @@ const THEME = {
 };
 
 /** One fetch per page load — avoids AbortError from Strict Mode remount. */
-const contribCache = new Map<string, Promise<Activity[]>>();
+let contributionsRequest: Promise<Activity[]> | null = null;
 
-function loadContributions(username: string): Promise<Activity[]> {
-	const key = `${username}:last`;
-	let p = contribCache.get(key);
-	if (!p) {
-		p = fetch(`${API}${username}?y=last`)
-			.then(async (res) => {
-				const data = (await res.json()) as {
-					contributions?: Activity[];
-					error?: string;
-				};
-				if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-				return data.contributions ?? [];
-			})
-			.catch((err: unknown) => {
-				contribCache.delete(key);
-				throw err;
-			});
-		contribCache.set(key, p);
-	}
-	return p;
+function loadContributions(): Promise<Activity[]> {
+	contributionsRequest ??= fetch(`${API}${GITHUB_USER}?y=last`)
+		.then(async (res) => {
+			const data = (await res.json()) as {
+				contributions?: Activity[];
+				error?: string;
+			};
+			if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+			return data.contributions ?? [];
+		})
+		.catch((err: unknown) => {
+			contributionsRequest = null;
+			throw err;
+		});
+	return contributionsRequest;
 }
 
 export function GitHubGraph() {
@@ -42,7 +37,7 @@ export function GitHubGraph() {
 
 	useEffect(() => {
 		let alive = true;
-		void loadContributions(GITHUB_USER)
+		void loadContributions()
 			.then((rows) => {
 				if (alive) setData(rows);
 			})
@@ -58,24 +53,11 @@ export function GitHubGraph() {
 		const root = rootRef.current;
 		if (!root || !data) return;
 
-		const scrollEnd = () => {
-			const sc = root.querySelector<HTMLElement>(
-				".react-activity-calendar__scroll-container",
-			);
-			if (!sc) return false;
-			sc.scrollLeft = sc.scrollWidth;
-			return true;
-		};
+		// With loading=false the calendar commits its scroll container with data.
+		const sc = root.querySelector<HTMLElement>(".react-activity-calendar__scroll-container");
+		if (sc) sc.scrollLeft = sc.scrollWidth;
 
-		const mo = new MutationObserver(() => {
-			if (scrollEnd()) mo.disconnect();
-		});
-		mo.observe(root, { childList: true, subtree: true });
-		if (scrollEnd()) mo.disconnect();
-
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-			return () => mo.disconnect();
-		}
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
 		let stopped = false;
 		let timer = 0;
@@ -116,7 +98,6 @@ export function GitHubGraph() {
 		tick();
 		return () => {
 			stopped = true;
-			mo.disconnect();
 			window.clearTimeout(timer);
 		};
 	}, [data]);
