@@ -206,7 +206,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	};
 	const terminal = {
 		id: "terminal",
-		title: "Command Prompt",
+		title: "MS-DOS Prompt",
 		z: 12,
 		kind: "terminal" as const,
 		icon: "/icons/terminal.svg",

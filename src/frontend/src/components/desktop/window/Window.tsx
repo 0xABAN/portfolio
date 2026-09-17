@@ -17,7 +17,7 @@ type Props = {
 	w: number;
 	h: number;
 	z: number;
-	variant?: "genesis";
+	variant?: "genesis" | "dos";
 	/** Report moves every frame (nested crop / child follow). Default: commit on pointerup. */
 	liveMove?: boolean;
 	minimizable?: boolean;

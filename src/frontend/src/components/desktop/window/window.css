@@ -69,6 +69,24 @@
 	text-transform: uppercase;
 }
 
+.win--dos {
+	border-color: #dfdfdf #000 #000 #dfdfdf;
+	box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+}
+
+.win--dos .win-titlebar {
+	background: #000080;
+	color: #fff;
+}
+
+.win--dos .win-min {
+	border-color: #fff #808080 #808080 #fff;
+}
+
+.win--dos .win-min:active {
+	border-color: #808080 #fff #fff #808080;
+}
+
 .win-min {
 	position: relative;
 	flex-shrink: 0;
