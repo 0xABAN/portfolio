@@ -309,13 +309,14 @@ export function Terminal() {
 
 		let assistant = "";
 		const assistId = nextId();
-		setLines((prev) => [...prev, { id: assistId, text: BOT }]);
+		setLines((prev) => [...prev, { id: assistId, text: BOT + "..." }]);
 
 		try {
 			await streamChat(nextHistory, (tok) => {
 				assistant += tok;
 				setLineText(assistId, BOT + assistant);
 			});
+			if (!assistant.trim()) throw new Error("No reply received. Please try again.");
 			setHistory([...nextHistory, { role: "assistant", content: assistant }]);
 			append("");
 		} catch (err) {
@@ -429,12 +430,13 @@ export function Terminal() {
 				))}
 				{/* Keep the field mounted during replies: native focus and selection survive. */}
 				{booted && (
-					<form className="term__input-row" onSubmit={submit} aria-busy={busy}>
+					<form className="term__input-row" onSubmit={submit} aria-busy={busy} data-empty={!input}>
 						<span className="term__prompt" aria-hidden="true">{YOU}</span>
 						<input
 							ref={inputRef}
 							className="term__input"
 							readOnly={busy}
+							tabIndex={busy ? -1 : 0}
 							value={input}
 							onChange={(e) => editInput(e.target.value)}
 							onKeyDown={onKeyDown}

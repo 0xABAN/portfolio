@@ -26,6 +26,10 @@ async function checkTerminal(page) {
 	await page.locator(".rsod").click();
 	const input = page.getByRole("textbox", { name: "Terminal input" });
 	await input.waitFor();
+	const prompt = page.locator(".term__prompt");
+	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").content) === '"_"', "Empty unfocused prompt has no cursor cue");
+	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "none", "Idle cursor ignores reduced motion");
+	check(await input.evaluate((el) => el.placeholder === "" && el !== document.activeElement), "Ready prompt added a hint or stole focus");
 	const opening = await page.locator(".term__line").allTextContents();
 	check(opening[0] === "Microsoft(R) Windows 95", "Wrong DOS banner");
 	check(opening.includes("   (C)Copyright Microsoft Corp 1981-1995."), "Wrong copyright year");
@@ -46,14 +50,23 @@ async function checkTerminal(page) {
 		window.fetch = (resource, init) => {
 			if (new URL(String(resource), location.href).pathname !== "/chat") return nativeFetch(resource, init);
 			window.testChatRequests.push(JSON.parse(init.body));
-			return new Promise((resolve) => {
-				window.finishChat = () => {
+			// Keep the response open between tokens to test the visible waiting states.
+			const stream = new ReadableStream({ start(controller) {
+				const send = (event, data) => controller.enqueue(new TextEncoder().encode(
+					`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+				));
+				window.chatToken = (content) => send("token", { content });
+				window.finishChat = (error) => {
+					if (error) send("error", { detail: error });
+					else send("done", { remaining: 10 });
+					controller.close();
 					delete window.finishChat;
-					resolve(new Response('event: token\ndata: {"content":"hello"}\n\nevent: token\ndata: {"content":" there"}\n\n', {
-						headers: { "Content-Type": "text/event-stream" },
-					}));
+					delete window.chatToken;
 				};
-			});
+			} });
+			return Promise.resolve(new Response(stream, {
+				headers: { "Content-Type": "text/event-stream" },
+			}));
 		};
 		Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
 			writeText: async (text) => {
@@ -91,6 +104,7 @@ async function checkTerminal(page) {
 	await input.pressSequentially("X");
 	check(await input.inputValue() === "abXcd", "Mid-line editing failed");
 	check(await input.evaluate((el) => el.selectionStart) === 3, "Caret lost the insertion point");
+	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").content) === "none", "Idle cursor overlaps the native editing caret");
 	check(await input.evaluate((el) => getComputedStyle(el).color) === "rgb(192, 192, 192)", "Native input text is invisible");
 	await input.fill("long command ".repeat(100));
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Long input overflowed the terminal");
@@ -105,9 +119,21 @@ async function checkTerminal(page) {
 	await input.press("Enter");
 	await page.waitForFunction(() => typeof window.finishChat === "function");
 	check(await input.evaluate((el) => el.readOnly && el === document.activeElement), "Reply lost the input or its focus");
+	check(!(await prompt.isVisible()), "YOU prompt appeared before Adam replied");
+	check((await page.locator(".term__line").allTextContents()).at(-1) === "ADAM> ...", "No waiting indicator before the first token");
+	await input.press("Enter");
+	check(await page.evaluate(() => window.testChatRequests.length) === 1, "Enter submitted during a pending reply");
+	await page.evaluate(() => window.chatToken("hello"));
+	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> hello"));
+	check(!(await prompt.isVisible()), "YOU prompt appeared during the partial reply");
+	await page.evaluate(() => window.chatToken(" there"));
+	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> hello there"));
+	check(!(await prompt.isVisible()), "YOU prompt appeared before the stream completed");
 	await fontSize.focus();
 	await page.evaluate(() => window.finishChat());
 	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+	check(await prompt.isVisible(), "YOU prompt did not return after completion");
+	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").content) === '"_"', "Idle cursor did not return after completion");
 	check(await fontSize.evaluate((el) => el === document.activeElement), "Reply completion stole focus from the toolbar");
 	check((await page.locator(".term__line").allTextContents()).includes("ADAM> hello there"), "Streamed tokens were not assembled");
 
@@ -142,12 +168,24 @@ async function checkTerminal(page) {
 	await page.waitForFunction(() => typeof window.finishChat === "function");
 	const messages = await page.evaluate(() => window.testChatRequests[1].messages);
 	check(JSON.stringify(messages.map((message) => message.content)) === JSON.stringify(["how u doing :)", "hello", "hello there", "follow-up"]), "CLS reset or polluted the conversation");
-	await page.evaluate(() => window.finishChat());
+	await page.evaluate(() => { window.chatToken("hello there"); window.finishChat(); });
 	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
 	await input.fill("clear");
 	await input.press("Enter");
 	check(await page.locator(".term__line").count() === 0, "CLEAR alias failed");
 	check(await page.evaluate(() => window.testChatRequests.length) === 2, "CLEAR sent a chat request");
+
+	for (const error of ["test stream failure", undefined]) {
+		await input.fill("try again");
+		await input.press("Enter");
+		await page.waitForFunction(() => typeof window.finishChat === "function");
+		await page.evaluate((message) => window.finishChat(message), error);
+		await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+		const expected = error || "No reply received. Please try again.";
+		check((await page.locator(".term__line").allTextContents()).includes(`error: ${expected}`), "Stream failure left a blank Adam message");
+		check(await prompt.isVisible(), "Prompt did not recover after a stream failure");
+		check(await input.evaluate((el) => el === document.activeElement), "Stream failure lost input focus");
+	}
 
 	// Check narrow text wrapping; preserve the desktop's existing off-screen placement.
 	await page.setViewportSize({ width: 390, height: 844 });
@@ -177,7 +215,8 @@ async function checkTerminal(page) {
 	const frames = await page.evaluate(() => [...window.startupCommands]);
 	check(frames.includes("C:\\PORTFOLIO>hel") && frames.includes("C:\\PORTFOLIO>ADA"), "Startup did not animate both commands");
 	check((await page.locator(".term__line").allTextContents()).includes("ADAM> how u doing :)"), "Animated startup did not reach chat");
-	return "PASS: red DOS chrome, animated HELP/ADAM.EXE sequence, clipboard, editing, IME, focus, streaming, recall, local commands, preserved conversation, narrow text wrapping, and reduced motion";
+	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "term-cursor-blink", "Ready cursor does not blink");
+	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, recall, commands, conversation, wrapping, and reduced motion";
 }
 
 try {

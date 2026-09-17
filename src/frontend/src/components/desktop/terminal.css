@@ -127,8 +127,30 @@
 }
 
 .term__prompt {
+	position: relative;
 	flex-shrink: 0;
 	white-space: pre;
+}
+
+/* Keep the input focused, but do not invite another turn during a reply. */
+.term__input-row[aria-busy="true"] .term__prompt {
+	visibility: hidden;
+}
+
+.term__prompt::after {
+	position: absolute;
+	left: 100%;
+	pointer-events: none;
+	animation: term-cursor-blink 1s step-end infinite;
+}
+
+/* Advertise an empty prompt without taking focus from another window. */
+.term__input-row[data-empty="true"][aria-busy="false"]:not(:focus-within) .term__prompt::after {
+	content: "_";
+}
+
+@keyframes term-cursor-blink {
+	50% { opacity: 0; }
 }
 
 /* Native input scrolling/selection keeps long commands and the caret in sync. */
@@ -163,5 +185,9 @@
 @media (prefers-reduced-motion: reduce) {
 	.term__input {
 		caret-animation: manual;
+	}
+
+	.term__prompt::after {
+		animation: none;
 	}
 }
