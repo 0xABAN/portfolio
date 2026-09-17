@@ -34,7 +34,11 @@ async function checkTaskbar(page) {
 	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
 	const icons = await page.locator(".desktop__icons .desk-icon__label").allTextContents();
-	check(JSON.stringify(icons.slice(-2)) === JSON.stringify(["secrets", "Recycle Bin"]), "App shortcuts must precede Secrets and Recycle Bin");
+	check(JSON.stringify(icons.slice(-3)) === JSON.stringify(["CD Player", "secrets", "Recycle Bin"]), "CD Player must sit immediately above Secrets");
+	const cdIcon = page.locator('[data-app-id="cd-player"]');
+	const cdIconBounds = await cdIcon.boundingBox();
+	const secretsBounds = await page.locator('[data-app-id="explorer"]').boundingBox();
+	check(cdIconBounds.x === secretsBounds.x && cdIconBounds.y < secretsBounds.y, "CD Player icon is not above Secrets");
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
 		window.openedLinks = [];
@@ -109,7 +113,8 @@ async function checkTaskbar(page) {
 	const task = (id) => page.locator(`[data-task-id="${id}"]`);
 	const win = (id) => page.locator(`#desktop-window-${id}`);
 	const order = await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId));
-	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github"]), "Decorations leaked into main-app tasks");
+	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github", "cd-player"]), "Running apps or decorations have incorrect tasks");
+	check(await win("cd-player").evaluate((el) => el.inert) && await task("cd-player").getAttribute("aria-pressed") === "false", "CD Player did not start minimized");
 
 	await task("github").click();
 	check(await task("github").innerText() === "Activity", "Activity task has the wrong name");
@@ -235,26 +240,36 @@ async function checkTaskbar(page) {
 	check(await page.locator(".taskbar__views").innerText() === "2,717 views", "View counter was lost");
 	await task("terminal").click();
 	await page.waitForFunction(() => document.getElementById("desktop-window-terminal").contains(document.activeElement));
-	const music = page.getByRole("button", { name: "Open CD Player", exact: true });
-	const player = page.getByRole("dialog", { name: "CD Player" });
+	const music = task("cd-player");
+	const player = win("cd-player");
 	const audioState = () => page.evaluate(() => {
 		const { paused, muted, volume, src } = window.taskbarAudio;
 		return JSON.stringify({ paused, muted, volume, src, actions: window.audioActions.length });
 	});
 	// Compare CD launcher actions only after the independent startup fade settles.
 	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2 && window.taskbarAudio.volume === 1);
-	await music.hover();
-	await music.focus();
+	const elapsed = music.locator(".task-btn__elapsed");
+	const firstElapsed = await elapsed.innerText();
+	check((await music.getAttribute("title")).includes(" - "), "CD task lost its artist and track label");
+	await page.waitForFunction((previous) => document.querySelector('[data-task-id="cd-player"] .task-btn__elapsed').textContent !== previous, firstElapsed);
+	check(await page.evaluate(() => document.querySelector('.task-btn__elapsed').textContent === document.querySelector('#desktop-window-cd-player [aria-label="Elapsed time"]').textContent), "Taskbar and player progress drifted apart");
+	await cdIcon.hover();
+	await cdIcon.focus();
 	await page.evaluate(() => new Promise(requestAnimationFrame));
 	check(!(await player.isVisible()), "Hover or focus opened CD Player without a click");
 	const beforeOpen = await audioState();
-	await music.click();
+	await cdIcon.click();
 	await player.waitFor();
 	check(await player.locator("button:not(:disabled)").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "CD controls lost the hand cursor");
+	check(await player.evaluate((el) => el.parentElement.classList.contains("desktop__windows")), "CD Player is not a desktop app");
+	check(await music.getAttribute("aria-pressed") === "true", "CD Player did not become the active task");
 	check(await audioState() === beforeOpen, "Opening CD Player changed existing music");
-	await music.click();
-	check(await player.isVisible() && await audioState() === beforeOpen, "Repeated CD clicks closed the player or changed music");
+	await cdIcon.click();
+	check(await player.count() === 1 && await music.count() === 1 && await audioState() === beforeOpen, "Repeated launches duplicated the app or restarted music");
 	const playerBounds = await player.boundingBox();
+	const musicBounds = await music.boundingBox();
+	check(Math.abs(playerBounds.y + playerBounds.height - musicBounds.y + 4) <= 1, "CD Player did not open directly above its task");
+	check(Math.abs(playerBounds.x - Math.max(4, Math.min(musicBounds.x, 1440 - playerBounds.width - 4))) <= 1, "CD Player is not aligned to its taskbar entry");
 	await page.mouse.move(playerBounds.x + 60, playerBounds.y + 12);
 	await page.mouse.down();
 	await page.mouse.move(playerBounds.x + 140, playerBounds.y - 38, { steps: 4 });
@@ -264,24 +279,23 @@ async function checkTaskbar(page) {
 	await page.mouse.move(600, 40);
 	await start.focus();
 	check(await player.isVisible(), "Leaving CD Player dismissed it");
-	await music.focus();
+	await music.press("Enter");
+	await page.waitForFunction(() => document.getElementById("desktop-window-cd-player").contains(document.activeElement));
 	await page.keyboard.press("Tab");
 	check(await player.evaluate((el) => el.contains(document.activeElement)), "Keyboard cannot reach CD controls");
 	await page.keyboard.press("Escape");
-	check(!(await player.isVisible()), "Escape did not dismiss CD Player");
-	check(await music.evaluate((el) => el === document.activeElement), "CD dismissal lost trigger focus");
-	check(await audioState() === beforeOpen, "Dismissing CD Player changed music");
+	check(await player.isVisible() && await audioState() === beforeOpen, "Escape quit the standalone player");
+	await player.getByRole("button", { name: "Minimize", exact: true }).click();
+	check(await player.evaluate((el) => el.inert) && await audioState() === beforeOpen, "Minimizing CD Player stopped its music");
 	await music.press("Enter");
 	await player.waitFor();
-	check(await audioState() === beforeOpen, "Keyboard opening changed music");
-	check(await music.getAttribute("aria-pressed") === null, "CD launcher still reports playback state");
-	check(await music.evaluate((el) => getComputedStyle(el).backgroundImage) === "none", "Music playback masquerades as an active app");
+	check(await audioState() === beforeOpen, "Keyboard restoration changed music");
 
 	const speaker = page.locator(".taskbar__speaker");
 	const muted = await speaker.getAttribute("aria-pressed");
 	await speaker.click();
 	check(await speaker.getAttribute("aria-pressed") !== muted, "Mute toggle stopped working");
-	check(await task("terminal").getAttribute("aria-pressed") === "true", "Music controls changed the active app");
+	check(await music.getAttribute("aria-pressed") === "true", "Speaker toggle changed the active app");
 	if (await page.evaluate(() => window.taskbarAudio.paused)) await player.getByRole("button", { name: "Play", exact: true }).click();
 	await player.getByRole("button", { name: "Pause", exact: true }).waitFor();
 	const playingState = await audioState();
@@ -291,19 +305,19 @@ async function checkTaskbar(page) {
 	await player.getByRole("button", { name: "Play", exact: true }).waitFor();
 	check(await page.evaluate(() => window.taskbarAudio.paused), "Pause control did not pause playback");
 	const pausedState = await audioState();
-	await player.getByRole("button", { name: "Close CD Player" }).click();
-	check(!(await player.isVisible()), "Close button did not dismiss CD Player");
+	await player.getByRole("button", { name: "Minimize", exact: true }).click();
+	check(!(await player.isVisible()), "Minimize did not hide CD Player");
 	await music.press("Space");
 	await player.waitFor();
-	check(await audioState() === pausedState, "Reopening CD Player resumed paused music");
+	check(await audioState() === pausedState, "Restoring CD Player resumed paused music");
 	const restoredPlayer = await player.boundingBox();
 	check(restoredPlayer.x === movedPlayer.x && restoredPlayer.y === movedPlayer.y, "Reopening CD Player reset its dragged position");
 	await player.getByRole("button", { name: "Play", exact: true }).click();
 	await player.getByRole("button", { name: "Pause", exact: true }).waitFor();
 	check(await page.evaluate(() => !window.taskbarAudio.paused), "Play control did not resume playback");
 	const resumedState = await audioState();
-	await player.getByRole("button", { name: "Close CD Player" }).click();
-	check(!(await player.isVisible()) && await audioState() === resumedState, "Closing CD Player stopped its transport");
+	await player.getByRole("button", { name: "Minimize", exact: true }).click();
+	check(!(await player.isVisible()) && await audioState() === resumedState, "Minimizing CD Player stopped its transport");
 
 	// Ordinary desktop typing uses native input insertion, not a simulated keyboard.
 	await input.fill("");
@@ -312,7 +326,7 @@ async function checkTaskbar(page) {
 	check(await input.inputValue() === "Hello ", "Desktop typing lost or duplicated the first character");
 	check(await input.evaluate((el) => el === document.activeElement), "Desktop typing did not focus Terminal");
 	check(await task("terminal").getAttribute("aria-pressed") === "true", "Desktop typing did not raise Terminal");
-	check(!(await player.isVisible()) && await audioState() === resumedState, "Typing left CD Player in front or changed music");
+	check(await player.isVisible() && await music.getAttribute("aria-pressed") === "false" && await audioState() === resumedState, "Typing quit CD Player or changed its music");
 	await win("terminal").getByRole("button", { name: "Minimize", exact: true }).click();
 	await page.keyboard.type("there!");
 	check(await input.inputValue() === "Hello there!" && !(await win("terminal").evaluate((el) => el.inert)), "Typing did not restore Terminal and preserve its draft");
@@ -335,6 +349,9 @@ async function checkTaskbar(page) {
 	await volume.press("x");
 	check(await volume.evaluate((el) => el === document.activeElement) && await input.inputValue() === "aZd", "Typing redirect intercepted a slider");
 	await player.getByRole("button", { name: "Close CD Player" }).click();
+	check(await player.count() === 0 && await music.count() === 0, "Close did not remove the app and its task");
+	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Close did not quit the audio transport");
+	await page.waitForFunction(() => document.activeElement?.getAttribute("data-app-id") === "cd-player");
 
 	for (const editable of ["textarea", "contenteditable"]) {
 		await page.evaluate((kind) => {
@@ -390,7 +407,7 @@ async function checkTaskbar(page) {
 		await page.setViewportSize({ width, height: 844 });
 		check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 12, "Narrow screens did not reduce spark density");
 		check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), "Sparks added horizontal overflow");
-		for (const control of [start, music, page.locator(".taskbar__tray")]) {
+		for (const control of [start, page.locator(".taskbar__tray")]) {
 			const r = await control.boundingBox();
 			check(r.x >= 0 && r.x + r.width <= width, "Fixed taskbar controls clipped on narrow screens");
 		}
@@ -404,8 +421,20 @@ async function checkTaskbar(page) {
 		await menu.getByRole("menuitem", { name: "Programs", exact: true }).click();
 		const submenu = await page.getByRole("menu", { name: "Programs", exact: true }).boundingBox();
 		check(submenu.x >= 0 && submenu.y >= 0 && submenu.x + submenu.width <= width, "Start flyout left the viewport");
-		await page.keyboard.press("Escape");
-		await page.keyboard.press("Escape");
+		await menu.getByRole("menuitem", { name: "CD Player", exact: true }).click();
+		await player.waitFor();
+		await page.waitForFunction(() => document.getElementById("desktop-window-cd-player").contains(document.activeElement));
+		const bounds = await player.boundingBox();
+		const trigger = await music.boundingBox();
+		check(Math.abs(bounds.y + bounds.height - trigger.y + 4) <= 1, "CD Player lost its taskbar anchor on a narrow screen");
+		check(bounds.x >= 0 && bounds.x + bounds.width <= width, `CD Player left the ${width}px viewport: ${JSON.stringify(bounds)}`);
+		check(await player.locator(".win__client").evaluate((el) => el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth), "CD controls are clipped");
+		check(await elapsed.evaluate((el) => {
+			const text = el.getBoundingClientRect();
+			const button = el.closest("button").getBoundingClientRect();
+			return text.x >= button.x && text.right <= button.right;
+		}), "Taskbar truncation hid the music progress");
+		await player.getByRole("button", { name: "Minimize", exact: true }).click();
 	}
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	check(!(await sparks.isVisible()) && await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Sparks did not stop after a reduced-motion change");

@@ -94,6 +94,15 @@
 	background: var(--chrome-lo);
 }
 
+.win-close {
+	color: var(--chrome-text);
+	font: 700 12px / 1 Arial, sans-serif;
+}
+
+.win-close::after {
+	content: none;
+}
+
 .win__client {
 	position: relative;
 	flex: 1;

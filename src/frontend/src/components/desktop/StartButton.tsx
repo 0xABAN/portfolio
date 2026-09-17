@@ -11,6 +11,7 @@ const GROUPS = [
 		{ id: "terminal", label: "MS-DOS Prompt", icon: "/icons/terminal.svg" },
 		{ id: "github", label: "Activity", icon: "/icons/code.svg" },
 		{ id: "experience", label: "Experience", icon: "/icons/exe.png" },
+		{ id: "cd-player", label: "CD Player", icon: "/icons/cd.png" },
 	] },
 	{ label: "Documents", icon: "/icons/folder.png", items: [
 		{ id: "explorer", label: "secrets", icon: "/icons/folder.png" },

@@ -6,7 +6,7 @@ import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDec
 test("task order survives switching, minimizing and restoring", () => {
 	let windows = layoutDesktop(1440, 900);
 	const order = taskWindows(windows).map((w) => w.id);
-	assert.deepEqual(order, ["me", "terminal", "github"]);
+	assert.deepEqual(order, ["me", "terminal", "github", "cd-player"]);
 	assert.equal(activeWindowId(activateWindow(windows, "sysmsg-0")), undefined);
 	windows = activateWindow(windows, "terminal");
 	assert.equal(activeWindowId(windows), "terminal");
@@ -21,7 +21,7 @@ test("task order survives switching, minimizing and restoring", () => {
 
 test("launching opens missing apps once and restores without resetting geometry", () => {
 	let windows = layoutDesktop(1440, 900).filter((w) => w.id !== "me" && w.id !== "alt");
-	for (const id of ["me", "terminal", "github", "explorer", "bio", "experience"] as AppId[]) {
+	for (const id of ["me", "terminal", "github", "explorer", "bio", "experience", "cd-player"] as AppId[]) {
 		windows = openApp(windows, id, 1440, 900);
 		const opened = windows.find((w) => w.id === id)!;
 		windows = minimizeWindowTree(windows.map((w) => w.id === id ? { ...w, x: w.x + 17 } : w), id);
@@ -32,6 +32,21 @@ test("launching opens missing apps once and restores without resetting geometry"
 		assert.equal(activeWindowId(windows), id);
 	}
 	assert.equal(windows.filter((w) => w.id === "alt").length, 1);
+});
+
+test("CD Player starts minimized and can be fully removed and relaunched", () => {
+	let windows = layoutDesktop(1440, 900);
+	assert.equal(windows.find((w) => w.id === "cd-player")?.minimized, true);
+	windows = openApp(windows, "cd-player", 1440, 900);
+	assert.equal(activeWindowId(windows), "cd-player");
+	windows = windows.filter((w) => w.id !== "cd-player");
+	assert.ok(!taskWindows(windows).some((w) => w.id === "cd-player"));
+	assert.ok(!restoreDecorations(windows).some((w) => w.id === "cd-player"));
+	windows = openApp(windows, "cd-player", 390, 844);
+	const player = windows.find((w) => w.id === "cd-player")!;
+	assert.equal(player.minimized, false);
+	assert.equal(player.launched, true);
+	assert.ok(player.x >= 0 && player.x + player.w <= 390);
 });
 
 test("restoring decorations leaves app state and removed windows alone", () => {

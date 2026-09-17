@@ -26,6 +26,7 @@ type Props = {
 	liveMove?: boolean;
 	minimizable?: boolean;
 	onMinimizeAction: () => void;
+	onCloseAction?: () => void;
 	onMoveAction: (x: number, y: number) => void;
 	onTrashAction?: () => void;
 	onTrashHoverAction?: (hot: boolean) => void;
@@ -89,6 +90,7 @@ function WindowInner({
 	liveMove = false,
 	minimizable = true,
 	onMinimizeAction,
+	onCloseAction,
 	onMoveAction,
 	onTrashAction,
 	onTrashHoverAction,
@@ -236,6 +238,17 @@ function WindowInner({
 						onClick={onMinimizeAction}
 						onPointerDown={(ev) => ev.stopPropagation()}
 					/>
+				) : null}
+				{onCloseAction ? (
+					<button
+						type="button"
+						className="win-min win-close chrome-raised"
+						aria-label={`Close ${title}`}
+						onClick={onCloseAction}
+						onPointerDown={(ev) => ev.stopPropagation()}
+					>
+						×
+					</button>
 				) : null}
 			</header>
 			<div className="win__client chrome-sunken">{children}</div>

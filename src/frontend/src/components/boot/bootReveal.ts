@@ -7,6 +7,7 @@ const WINDOW_IDS = [
 	"new",
 	"terminal",
 	"github",
+	"cd-player",
 	"sysmsg-0",
 	"sysmsg-1",
 	"sysmsg-2",
@@ -17,7 +18,7 @@ const WINDOW_IDS = [
 /** Ids match Desktop / Taskbar reveal gates. */
 export const BOOT_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "tb:start", at: 40 },
-	{ id: "tb:cd", at: 230 },
+	{ id: "cd-player", at: 230 },
 	{ id: "tb:tray", at: 290 },
 	{ id: "tb:speaker", at: 340 },
 	{ id: "tb:views", at: 390 },
@@ -28,6 +29,7 @@ export const BOOT_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "persona-5-royal", at: 940 },
 	{ id: "undertale", at: 980 },
 	{ id: "roblox", at: 1020 },
+	{ id: "cd-player-icon", at: 1100 },
 	{ id: "secrets", at: 1120 },
 	{ id: "social-github", at: 1140 },
 	{ id: "social-linkedin", at: 1170 },
@@ -59,6 +61,7 @@ if (process.env.NODE_ENV !== "production") {
 		"persona-3-reload",
 		"persona-5-royal",
 		"undertale",
+		"cd-player-icon",
 		"secrets",
 		"social-github",
 		"social-linkedin",

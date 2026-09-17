@@ -17,7 +17,8 @@ export type DesktopWindow = {
 		| "experience"
 		| "terminal"
 		| "bio"
-		| "explorer";
+		| "explorer"
+		| "cd-player";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -240,6 +241,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			kind: "github" as const,
 			...layoutGitHubWindow(terminal),
 		},
+		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
 		...layoutErrorStack(me),
 	];
 	return windows.map((w) => w.parentId ? w : {
@@ -320,6 +322,22 @@ export function makeExperienceWindow(
 		w,
 		h,
 		z: baseZ,
+	};
+}
+
+export function makeCdPlayerWindow(z: number, vw?: number, vh?: number): DesktopWindow {
+	const { vw: width, vh: height } = viewport(vw, vh);
+	return {
+		id: "cd-player",
+		title: "CD Player",
+		kind: "cd-player",
+		icon: "/icons/cd.png",
+		z,
+		w: Math.min(360, width - 16),
+		h: 188,
+		// Desktop aligns this to the actual task button when the app is restored.
+		x: 8,
+		y: Math.max(0, height - TASKBAR_H - 188 - 4),
 	};
 }
 

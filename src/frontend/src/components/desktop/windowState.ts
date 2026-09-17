@@ -1,6 +1,6 @@
 import { layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, type DesktopWindow } from "./windows";
 
-export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience";
+export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience" | "cd-player";
 
 export function isDecoration(w: DesktopWindow) {
 	return w.kind === "error" || w.id === "new";

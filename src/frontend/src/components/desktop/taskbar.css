@@ -127,6 +127,11 @@
 	white-space: nowrap;
 }
 
+.task-btn__elapsed {
+	flex: none;
+	font-variant-numeric: tabular-nums;
+}
+
 .taskbar .start-btn {
 	flex: none;
 	gap: 4px;
@@ -203,22 +208,6 @@
 	}
 
 	.taskbar__views-label {
-		display: none;
-	}
-}
-
-@media (max-width: 520px) {
-	.taskbar .cd-wrap {
-		flex: 0 0 28px;
-		min-width: 28px;
-	}
-
-	.taskbar .task-btn--cd {
-		justify-content: center;
-		padding-inline: 4px;
-	}
-
-	.task-btn--cd .task-btn__label {
 		display: none;
 	}
 }

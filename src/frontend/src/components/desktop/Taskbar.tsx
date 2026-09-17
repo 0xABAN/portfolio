@@ -1,12 +1,10 @@
 "use client";
 
-import { type ComponentProps, useEffect, useRef, useState } from "react";
-import { CdPlayerPop } from "./CdPlayerPop";
+import { type ComponentProps, type ReactNode, type RefCallback, useEffect, useRef, useState } from "react";
 import { StartButton } from "./StartButton";
 import type { AppId } from "./windowState";
-import { useTaskbarAudio } from "./useTaskbarAudio";
 import { useViewCount } from "./useViewCount";
-import { TASKBAR_H, type DesktopWindow } from "./windows";
+import type { DesktopWindow } from "./windows";
 import "./taskbar.css";
 
 function formatClock(d: Date) {
@@ -21,7 +19,7 @@ function formatClock(d: Date) {
 
 const viewFmt = new Intl.NumberFormat("en-US");
 
-function TaskButton({ icon, children, ...props }: ComponentProps<"button"> & { icon?: string }) {
+function TaskButton({ icon, children, progress, ...props }: ComponentProps<"button"> & { icon?: string; progress?: ReactNode }) {
 	return (
 		<button type="button" className="task-btn chrome-raised" {...props}>
 			{icon ? (
@@ -29,13 +27,16 @@ function TaskButton({ icon, children, ...props }: ComponentProps<"button"> & { i
 				<img className="task-btn__icon" src={icon} alt="" width={16} height={16} draggable={false} />
 			) : null}
 			<span className="task-btn__label">{children}</span>
+			{progress}
 		</button>
 	);
 }
 
 type Props = {
-	cdOpen: boolean;
-	onCdOpenChangeAction: (open: boolean) => void;
+	muted: boolean;
+	onToggleMuteAction: () => void;
+	trackLabel: string;
+	bindElapsed: RefCallback<HTMLSpanElement>;
 	tasks: DesktopWindow[];
 	activeId?: string;
 	onActivateAction: (id: string) => void;
@@ -46,8 +47,8 @@ type Props = {
 	revealed?: ReadonlySet<string>;
 };
 
-/** Only the task strip scrolls; Start, music and the tray remain reachable. */
-function WindowTasks({ tasks, activeId, onActivateAction }: Pick<Props, "tasks" | "activeId" | "onActivateAction">) {
+/** Only the task strip scrolls; Start and the tray remain reachable. */
+function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapsed }: Pick<Props, "tasks" | "activeId" | "onActivateAction" | "trackLabel" | "bindElapsed">) {
 	const strip = useRef<HTMLDivElement>(null);
 	const [arrows, setArrows] = useState({ previous: false, next: false });
 
@@ -78,12 +79,15 @@ function WindowTasks({ tasks, activeId, onActivateAction }: Pick<Props, "tasks" 
 			<div ref={strip} id="task-strip" className="taskbar__tasks" role="group" aria-label="Open applications"
 				onFocusCapture={(event) => (event.target as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" })}>
 				{tasks.map((w) => {
-					const label = w.title || w.id;
+					const isMusic = w.id === "cd-player";
+					const label = isMusic ? trackLabel : w.title || w.id;
 					return (
 						<TaskButton
 							key={w.id}
 							icon={w.icon}
 							title={label}
+							aria-label={isMusic ? `CD Player: ${label}` : undefined}
+							progress={isMusic ? <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span> : undefined}
 							data-task-id={w.id}
 							aria-controls={`desktop-window-${w.id}`}
 							aria-pressed={w.id === activeId}
@@ -109,8 +113,10 @@ function WindowTasks({ tasks, activeId, onActivateAction }: Pick<Props, "tasks" 
 }
 
 export function Taskbar({
-	cdOpen,
-	onCdOpenChangeAction,
+	muted,
+	onToggleMuteAction,
+	trackLabel,
+	bindElapsed,
 	tasks,
 	activeId,
 	onActivateAction,
@@ -121,24 +127,7 @@ export function Taskbar({
 }: Props) {
 	const show = (id: string) => !revealed || revealed.has(id);
 	const [clock, setClock] = useState(() => formatClock(new Date()));
-	const [cdPos, setCdPos] = useState({ left: 0, top: 0, bottom: TASKBAR_H + 4 });
-	const [cdDragged, setCdDragged] = useState(false);
-	const cdWrapRef = useRef<HTMLDivElement | null>(null);
 	const views = useViewCount();
-	const {
-		muted,
-		playing,
-		track,
-		trackLabel,
-		volume,
-		bindElapsed,
-		toggleMute,
-		togglePlay,
-		playPrev,
-		playNext,
-		stop,
-		setVolume,
-	} = useTaskbarAudio(show("fracture")); // Fracture is the final boot reveal.
 
 	useEffect(() => {
 		const tick = () => setClock(formatClock(new Date()));
@@ -147,67 +136,13 @@ export function Taskbar({
 		return () => window.clearInterval(id);
 	}, []);
 
-	function openCdPop() {
-		if (!cdDragged) {
-			const r = cdWrapRef.current?.getBoundingClientRect();
-			if (r) {
-				setCdPos({
-					left: Math.max(4, Math.min(Math.round(r.left), window.innerWidth - 344)),
-					top: 0,
-					bottom: Math.round(window.innerHeight - r.top + 4),
-				});
-			}
-		}
-		onCdOpenChangeAction(true);
-	}
-
-	function closeCdPop() {
-		onCdOpenChangeAction(false);
-		cdWrapRef.current?.querySelector<HTMLButtonElement>(".task-btn--cd")?.focus();
-	}
-
 	return (
 		<footer className="taskbar" role="contentinfo" aria-label="Taskbar">
 			<div className="taskbar__left">
 				{show("tb:start") && (
 					<StartButton onLaunchAction={onLaunchAction} onRestoreDecorationsAction={onRestoreDecorationsAction} canRestoreDecorations={canRestoreDecorations} />
 				)}
-				{show("tb:cd") && (
-					<div ref={cdWrapRef} className="cd-wrap"
-						onKeyDown={(event) => {
-							if (event.key !== "Escape") return;
-							event.stopPropagation();
-							closeCdPop();
-						}}>
-						<TaskButton icon="/icons/cd.png" className="task-btn task-btn--cd chrome-raised"
-							title={trackLabel} aria-label="Open CD Player"
-							aria-haspopup="dialog" aria-expanded={cdOpen} aria-controls="cd-player-pop" onClick={openCdPop}>
-							{trackLabel}{"  "}<span ref={bindElapsed}>0:00</span>
-						</TaskButton>
-						{cdOpen && (
-							<CdPlayerPop
-								track={track}
-								playing={playing}
-								left={cdPos.left}
-								top={cdPos.top}
-								bottom={cdPos.bottom}
-								docked={!cdDragged}
-								volume={volume}
-								onTogglePlayAction={togglePlay}
-								onPrevAction={playPrev}
-								onNextAction={playNext}
-								onVolumeAction={setVolume}
-								onStopAction={stop}
-								onMoveAction={(left, top) => {
-									setCdDragged(true);
-									setCdPos({ left, top, bottom: 0 });
-								}}
-								onCloseAction={closeCdPop}
-							/>
-						)}
-					</div>
-				)}
-				<WindowTasks tasks={tasks} activeId={activeId} onActivateAction={onActivateAction} />
+				<WindowTasks tasks={tasks} activeId={activeId} onActivateAction={onActivateAction} trackLabel={trackLabel} bindElapsed={bindElapsed} />
 			</div>
 			<div className="taskbar__right">
 				{show("tb:views") && views != null && (
@@ -219,7 +154,7 @@ export function Taskbar({
 					<div className="taskbar__tray" role="group" aria-label="System tray">
 						{show("tb:speaker") && (
 							<button type="button" className="taskbar__speaker" title={muted ? "Unmute" : "Mute"}
-								aria-label={muted ? "Unmute" : "Mute"} aria-pressed={!muted} onClick={toggleMute}>
+								aria-label={muted ? "Unmute" : "Mute"} aria-pressed={!muted} onClick={onToggleMuteAction}>
 								<svg viewBox="0 0 16 16" width={16} height={16} shapeRendering="crispEdges" aria-hidden="true">
 									<path fill="#b0b0b0" stroke="#000" d="M1 6h3l4-4v12l-4-4H1z" />
 									<path fill="#fff" d="M1 6h3v1H1zM7 3h1v9H7z" />

@@ -5,6 +5,8 @@ import { flushSync } from "react-dom";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
+import { CdPlayer } from "./CdPlayer";
+import { useCdPlayerAudio } from "./useCdPlayerAudio";
 import { DesktopSparks } from "./DesktopSparks";
 import { FractureBackground } from "./FractureBackground";
 import { Explorer } from "./explorer/Explorer";
@@ -36,7 +38,7 @@ type DeskIcon = {
 	label: string;
 	src: string;
 	href?: string;
-	open?: "explorer";
+	open?: AppId;
 };
 
 function game(
@@ -59,6 +61,7 @@ const DESK_ICONS: DeskIcon[] = [
 	{ id: "social-github", label: "GitHub", src: "/icons/social/github.svg", href: GITHUB_URL },
 	{ id: "social-linkedin", label: "LinkedIn", src: "/icons/social/linkedin.svg", href: "https://www.linkedin.com/in/adam-torres-encarnacion/" },
 	{ id: "social-twitter", label: "Twitter", src: "/icons/social/twitter.svg", href: "https://x.com/0xABANN" },
+	{ id: "cd-player-icon", label: "CD Player", src: "/icons/cd.png", open: "cd-player" },
 	{ id: "secrets", label: "secrets", src: "/icons/folder.png", open: "explorer" },
 ];
 
@@ -146,7 +149,6 @@ export function Desktop() {
 	);
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
-	const [cdOpen, setCdOpen] = useState(false);
 	const [trashed, setTrashed] = useState<ReadonlySet<string>>(() => new Set());
 	const [binFull, setBinFull] = useState(false);
 	const [binHot, setBinHot] = useState(false);
@@ -154,7 +156,9 @@ export function Desktop() {
 	const [attention, setAttention] = useState(false);
 	const [secretsOpened, setSecretsOpened] = useState(false);
 	const skipClick = useRef(false);
+	const cdDragged = useRef(false);
 	const revealed = useBootReveal();
+	const audio = useCdPlayerAudio(revealed.has("fracture"), windows.some((w) => w.id === "cd-player"));
 
 	useEffect(() => {
 		const resize = () => {
@@ -201,7 +205,6 @@ export function Desktop() {
 			// Restore visibility before the browser inserts this first character.
 			// Native insertion preserves selection, editing and React's onChange.
 			flushSync(() => {
-				setCdOpen(false);
 				setWindows((current) => activateWindow(current, "terminal"));
 			});
 			if (!input.readOnly) input.focus({ preventScroll: true });
@@ -223,10 +226,19 @@ export function Desktop() {
 		setTrashed((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
 	}
 
+	function closeWindow(id: string) {
+		if (id === "cd-player") {
+			audio.quit();
+			cdDragged.current = false;
+			requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-app-id="cd-player"]')?.focus());
+		}
+		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
+	}
+
 	function trashWindow(id: string) {
 		setBinFull(true);
 		setBinHot(false);
-		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
+		closeWindow(id);
 	}
 
 	function openDeskIcon(icon: DeskIcon) {
@@ -236,6 +248,7 @@ export function Desktop() {
 		}
 		if (icon.id === "secrets") setSecretsOpened(true);
 		if (icon.open === "explorer") openExplorer();
+		else if (icon.open) launchApp(icon.open);
 		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
 	}
 
@@ -247,17 +260,39 @@ export function Desktop() {
 		setWindows((prev) => minimizeWindowTree(prev, id));
 	}
 
+	/** Measure after the task exists, including launches after a full quit. */
+	function focusWindow(id: string) {
+		requestAnimationFrame(() => {
+			if (id === "cd-player" && !cdDragged.current) {
+				const task = document.querySelector(`[data-task-id="${id}"]`);
+				const layer = document.querySelector(".desktop__windows");
+				if (task && layer) {
+					task.scrollIntoView({ block: "nearest", inline: "nearest" });
+					const anchor = task.getBoundingClientRect();
+					const origin = layer.getBoundingClientRect();
+					// Account for incidental desktop scrolling while keeping the app above its task.
+					flushSync(() => setWindows((current) => current.map((w) => w.id === id ? {
+						...w,
+						x: Math.max(4, Math.min(anchor.left, window.innerWidth - w.w - 4)) - origin.left,
+						y: Math.max(0, anchor.top - w.h - 4) - origin.top,
+					} : w)));
+				}
+			}
+			// Only explicit launches/restores may move keyboard focus.
+			document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true });
+		});
+	}
+
 	function restoreWindow(id: string) {
 		setWindows((prev) => activateWindow(prev, id));
-		// Explicit task activation may restore focus; asynchronous app updates must not.
-		requestAnimationFrame(() => document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true }));
+		focusWindow(id);
 	}
 
 	function launchApp(id: AppId) {
 		const { innerWidth, innerHeight } = window;
 		if (id === "explorer") setSecretsOpened(true);
 		setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
-		requestAnimationFrame(() => document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true }));
+		focusWindow(id);
 	}
 
 	function withBusy(run: () => void, delay = 1500) {
@@ -289,6 +324,7 @@ export function Desktop() {
 	}
 
 	function moveWindow(id: string, x: number, y: number) {
+		if (id === "cd-player" && windows.some((w) => w.id === id && (w.x !== x || w.y !== y))) cdDragged.current = true;
 		setWindows((prev) => {
 			const target = prev.find((w) => w.id === id);
 			if (!target) return prev;
@@ -349,6 +385,7 @@ export function Desktop() {
 									.join(" ")
 							}
 							title={icon.label}
+							data-app-id={icon.open}
 							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : undefined}
 							draggable
 							onDragStart={(e) => {
@@ -421,18 +458,21 @@ export function Desktop() {
 						)}
 						minimizable={w.id !== "alt"}
 						onMinimizeAction={() => minimizeWindow(w.id)}
+						onCloseAction={w.kind === "cd-player" ? () => closeWindow(w.id) : undefined}
 						onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
 						onTrashHoverAction={setBinHot}
 						onTrashAction={() => trashWindow(w.id)}
 					>
-						{windowBody(w, windows, minimizeWindow, openExplorerFile, w.id === activeId)}
+						{w.kind === "cd-player" ? <CdPlayer {...audio} /> : windowBody(w, windows, minimizeWindow, openExplorerFile, w.id === activeId)}
 					</Window>
 				))}
 			</div>
 			{revealed.has("fracture") ? <DesktopSparks /> : null}
 			<Taskbar
-				cdOpen={cdOpen}
-				onCdOpenChangeAction={setCdOpen}
+				muted={audio.muted}
+				onToggleMuteAction={audio.toggleMute}
+				trackLabel={audio.trackLabel}
+				bindElapsed={audio.bindElapsed}
 				tasks={taskWindows(visibleWindows)}
 				activeId={activeId}
 				onActivateAction={restoreWindow}
