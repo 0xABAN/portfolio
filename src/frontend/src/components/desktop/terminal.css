@@ -119,53 +119,49 @@
 	display: block;
 }
 
-.term__cursor {
-	display: inline-block;
-	width: 0.6em;
-	height: 1.05em;
-	margin-left: -2px;
-	vertical-align: text-bottom;
-	background: #c8c8c8;
-	animation: term-blink 1s step-end infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.term__cursor {
-		animation: none;
-	}
-}
-
-@keyframes term-blink {
-	50% {
-		opacity: 0;
-	}
-}
-
 .term__input-row {
-	position: relative;
-	display: inline-flex;
-	align-items: center;
-	max-width: 100%;
-	min-height: 1.2em;
+	display: flex;
+	align-items: baseline;
+	width: 100%;
+	min-height: 1em;
 }
 
-.term__prompt,
-.term__echo {
+.term__prompt {
 	flex-shrink: 0;
 	white-space: pre;
 }
 
-/* visible text is .term__echo; input is an invisible hit-target over the row */
+/* Native input scrolling/selection keeps long commands and the caret in sync. */
 .term__input {
-	position: absolute;
-	inset: 0;
-	width: 100%;
+	flex: 1;
+	min-width: 0;
+	width: 0;
+	height: 1em;
 	margin: 0;
 	padding: 0;
 	border: 0;
+	border-radius: 0;
 	outline: none;
 	background: transparent;
-	color: transparent;
-	caret-color: transparent;
+	color: inherit;
+	caret-color: currentColor;
+	/* Unsupported browsers retain a fully functional native bar caret. */
+	caret-shape: underscore;
 	font: inherit;
+}
+
+.term__input:read-only {
+	caret-color: transparent;
+}
+
+.term__input::selection,
+.term__line::selection {
+	background: #c0c0c0;
+	color: #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.term__input {
+		caret-animation: manual;
+	}
 }

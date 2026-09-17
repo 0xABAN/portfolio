@@ -134,10 +134,11 @@ export function Terminal() {
 	const [lines, setLines] = useState<Line[]>([]);
 	const [input, setInput] = useState("");
 	const [busy, setBusy] = useState(true);
+	const [booted, setBooted] = useState(false);
 	const [history, setHistory] = useState<ChatMessage[]>([]);
 	const [fontSize, setFontSize] = useState(16);
 	const [clipboardStatus, setClipboardStatus] = useState("");
-	const bodyRef = useRef<HTMLPreElement>(null);
+	const bodyRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const aliveRef = useRef(true);
 	const runGen = useRef(0);
@@ -174,6 +175,7 @@ export function Terminal() {
 		if (!alive()) return;
 
 		setBusy(true);
+		setBooted(false);
 		setHistory([]);
 		setInput("");
 		setLines([]);
@@ -233,7 +235,7 @@ export function Terminal() {
 		setHistory([{ role: "assistant", content: GREETING }]);
 		append("");
 		setBusy(false);
-		inputRef.current?.focus();
+		setBooted(true);
 	}, [append, setLineText]);
 
 	useEffect(() => {
@@ -294,11 +296,11 @@ export function Terminal() {
 			append("");
 		} finally {
 			setBusy(false);
-			inputRef.current?.focus();
 		}
 	};
 
 	const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+		if (e.nativeEvent.isComposing) return;
 		if (e.key === "Enter") {
 			e.preventDefault();
 			void submit();
@@ -314,7 +316,7 @@ export function Terminal() {
 		const transcript = [...lines.map((line) => line.text), busy ? "" : YOU + input].join("\n");
 
 		try {
-			await navigator.clipboard.writeText(selectedInput || selectedOutput || transcript);
+			await navigator.clipboard.writeText(selectedOutput || selectedInput || transcript);
 			setClipboardStatus("Copied.");
 		} catch {
 			setClipboardStatus("Clipboard unavailable. Select text and use your copy shortcut.");
@@ -328,7 +330,7 @@ export function Terminal() {
 		try {
 			const text = await navigator.clipboard.readText();
 			// A clipboard permission prompt can outlive this particular input row.
-			if (field !== inputRef.current) return;
+			if (field !== inputRef.current || field.readOnly) return;
 			field.setRangeText(text.replace(/[\r\n]+/g, " "), field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
 			setInput(field.value);
 			field.focus({ preventScroll: true });
@@ -366,7 +368,7 @@ export function Terminal() {
 					aria-label="DOS font credits" title="DOS font credits">?</a>
 			</div>
 			<div className="term__status" role="status">{clipboardStatus}</div>
-			<pre
+			<div
 				className="term__body"
 				ref={bodyRef}
 				onClick={() => {
@@ -381,25 +383,25 @@ export function Terminal() {
 						{line.text || "\u00a0"}
 					</span>
 				))}
-				{/* only one live prompt — hide while boot/program output runs */}
-				{!busy && (
-					<form className="term__input-row" onSubmit={submit}>
-						<span className="term__prompt">{YOU}</span>
-						<span className="term__echo">{input}</span>
-						<span className="term__cursor" aria-hidden />
+				{/* Keep the field mounted during replies: native focus and selection survive. */}
+				{booted && (
+					<form className="term__input-row" onSubmit={submit} aria-busy={busy}>
+						<span className="term__prompt" aria-hidden="true">{YOU}</span>
 						<input
 							ref={inputRef}
 							className="term__input"
+							readOnly={busy}
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
 							onKeyDown={onKeyDown}
 							spellCheck={false}
 							autoComplete="off"
+							autoCapitalize="off"
 							aria-label="Terminal input"
 						/>
 					</form>
 				)}
-			</pre>
+			</div>
 		</div>
 	);
 }

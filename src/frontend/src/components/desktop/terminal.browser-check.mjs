@@ -1,6 +1,6 @@
 /** Focused browser check; start the dev server, then run from src/frontend:
  * node src/components/desktop/terminal.browser-check.mjs
- * Uses the existing playwright-cli tool. Clipboard access is mocked.
+ * Uses the existing playwright-cli tool. Clipboard and chat are mocked.
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -38,6 +38,20 @@ async function checkTerminal(page) {
 	await page.evaluate(() => {
 		window.testClipboard = "";
 		window.clipboardDenied = false;
+		window.testChatRequests = [];
+		const nativeFetch = window.fetch.bind(window);
+		window.fetch = (resource, init) => {
+			if (new URL(String(resource), location.href).pathname !== "/chat") return nativeFetch(resource, init);
+			window.testChatRequests.push(JSON.parse(init.body));
+			return new Promise((resolve) => {
+				window.finishChat = () => {
+					delete window.finishChat;
+					resolve(new Response('event: token\ndata: {"content":"hello"}\n\nevent: token\ndata: {"content":" there"}\n\n', {
+						headers: { "Content-Type": "text/event-stream" },
+					}));
+				};
+			});
+		};
 		Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
 			writeText: async (text) => {
 				if (window.clipboardDenied) throw new Error("Denied");
@@ -67,7 +81,33 @@ async function checkTerminal(page) {
 	await page.evaluate(() => { window.clipboardDenied = true; });
 	await page.getByRole("button", { name: "Paste", exact: true }).click();
 	check((await page.locator(".term__status").innerText()).includes("Clipboard unavailable"), "Clipboard denial was not explained");
-	return "PASS: Windows 95 opening, DOS chrome, font, copy/paste, sizing, and clipboard denial";
+
+	await input.fill("abcd");
+	await input.press("ArrowLeft");
+	await input.press("ArrowLeft");
+	await input.pressSequentially("X");
+	check(await input.inputValue() === "abXcd", "Mid-line editing failed");
+	check(await input.evaluate((el) => el.selectionStart) === 3, "Caret lost the insertion point");
+	check(await input.evaluate((el) => getComputedStyle(el).color) === "rgb(192, 192, 192)", "Native input text is invisible");
+	await input.fill("long command ".repeat(100));
+	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Long input overflowed the terminal");
+	const fontSize = page.getByRole("combobox", { name: "Terminal font size" });
+	await fontSize.focus();
+	await page.keyboard.press("Tab");
+	check(await page.getByRole("button", { name: "Copy", exact: true }).evaluate((el) => el === document.activeElement), "Toolbar keyboard focus was stolen");
+	await input.fill("composition");
+	await input.dispatchEvent("keydown", { key: "Enter", isComposing: true });
+	check(await page.evaluate(() => window.testChatRequests.length) === 0, "IME confirmation submitted a message");
+	await input.fill("hello");
+	await input.press("Enter");
+	await page.waitForFunction(() => typeof window.finishChat === "function");
+	check(await input.evaluate((el) => el.readOnly && el === document.activeElement), "Reply lost the input or its focus");
+	await fontSize.focus();
+	await page.evaluate(() => window.finishChat());
+	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+	check(await fontSize.evaluate((el) => el === document.activeElement), "Reply completion stole focus from the toolbar");
+	check((await page.locator(".term__line").allTextContents()).includes("ADAM> hello there"), "Streamed tokens were not assembled");
+	return "PASS: DOS chrome, font, clipboard, native editing, long input, IME, focus, and streamed reply";
 }
 
 try {
