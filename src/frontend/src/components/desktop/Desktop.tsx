@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
@@ -93,18 +93,24 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 	);
 }
 
-function windowBody(
-	w: DesktopWindow,
-	all: DesktopWindow[],
-	onMinimize: (id: string) => void,
-	onOpenExplorerFile: (file: ExplorerFile) => void,
-	active: boolean,
-) {
-	switch (w.kind) {
+/** Content does not depend on window position, except for the magnifier crop. */
+const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onOpenExplorerFile }: {
+	id: string;
+	kind: DesktopWindow["kind"];
+	src?: string;
+	active: boolean;
+	cropStyle?: CSSProperties;
+	audio?: ReturnType<typeof useCdPlayerAudio>;
+	onMinimize: (id: string) => void;
+	onOpenExplorerFile: (file: ExplorerFile) => void;
+}) {
+	switch (kind) {
+		case "cd-player":
+			return audio ? <CdPlayer {...audio} /> : null;
 		case "error":
-			return <SystemMessage onOkAction={() => onMinimize(w.id)} />;
+			return <SystemMessage onOkAction={() => onMinimize(id)} />;
 		case "paint":
-			return w.src ? <Paint src={w.src} active={active} /> : null;
+			return src ? <Paint src={src} active={active} /> : null;
 		case "github":
 			return <GitHubGraph />;
 		case "experience":
@@ -117,16 +123,14 @@ function windowBody(
 			return <Explorer onOpenFileAction={onOpenExplorerFile} />;
 	}
 
-	if (w.src) {
+	if (src) {
 		return (
 			// eslint-disable-next-line @next/next/no-img-element
-			<img className="win-fill" src={w.src} alt="" draggable={false} />
+			<img className="win-fill" src={src} alt="" draggable={false} />
 		);
 	}
 
-	if (w.id === "alt") {
-		const parent = all.find((p) => p.id === w.parentId);
-		if (!parent) return null;
+	if (cropStyle) {
 		return (
 			// eslint-disable-next-line @next/next/no-img-element
 			<img
@@ -134,13 +138,13 @@ function windowBody(
 				src="/photos/overlay.png"
 				alt=""
 				draggable={false}
-				style={altCropStyle(w, parent)}
+				style={cropStyle}
 			/>
 		);
 	}
 
 	return null;
-}
+});
 
 export function Desktop() {
 	// Boot mounts this client-only, so window is available on first paint
@@ -158,7 +162,8 @@ export function Desktop() {
 	const skipClick = useRef(false);
 	const cdDragged = useRef(false);
 	const revealed = useBootReveal();
-	const audio = useCdPlayerAudio(revealed.has("fracture"), windows.some((w) => w.id === "cd-player"));
+	const cdWindow = windows.find((w) => w.id === "cd-player");
+	const audio = useCdPlayerAudio(revealed.has("fracture"), Boolean(cdWindow));
 
 	useEffect(() => {
 		const resize = () => {
@@ -226,42 +231,35 @@ export function Desktop() {
 		setTrashed((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
 	}
 
-	function closeWindow(id: string) {
+	const closeWindow = useCallback((id: string) => {
 		if (id === "cd-player") {
 			audio.quit();
 			cdDragged.current = false;
 			requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-app-id="cd-player"]')?.focus());
 		}
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
-	}
+	}, [audio]);
 
-	function trashWindow(id: string) {
+	const trashWindow = useCallback((id: string) => {
 		setBinFull(true);
 		setBinHot(false);
 		closeWindow(id);
-	}
-
-	function openDeskIcon(icon: DeskIcon) {
-		if (skipClick.current) {
-			skipClick.current = false;
-			return;
-		}
-		if (icon.id === "secrets") setSecretsOpened(true);
-		if (icon.open === "explorer") openExplorer();
-		else if (icon.open) launchApp(icon.open);
-		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
-	}
+	}, [closeWindow]);
 
 	function isBootVisible(w: DesktopWindow) {
 		return w.launched || !BOOT_WINDOWS.has(w.id) || revealed.has(w.id);
 	}
 
-	function minimizeWindow(id: string) {
+	const activate = useCallback((id: string) => {
+		setWindows((prev) => activateWindow(prev, id));
+	}, []);
+
+	const minimizeWindow = useCallback((id: string) => {
 		setWindows((prev) => minimizeWindowTree(prev, id));
-	}
+	}, []);
 
 	/** Measure after the task exists, including launches after a full quit. */
-	function focusWindow(id: string) {
+	const focusWindow = useCallback((id: string) => {
 		requestAnimationFrame(() => {
 			if (id === "cd-player" && !cdDragged.current) {
 				const task = document.querySelector(`[data-task-id="${id}"]`);
@@ -281,50 +279,41 @@ export function Desktop() {
 			// Only explicit launches/restores may move keyboard focus.
 			document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true });
 		});
-	}
+	}, []);
 
-	function restoreWindow(id: string) {
+	const restoreWindow = useCallback((id: string) => {
 		setWindows((prev) => activateWindow(prev, id));
 		focusWindow(id);
-	}
+	}, [focusWindow]);
 
-	function launchApp(id: AppId) {
+	const launchApp = useCallback((id: AppId) => {
 		const { innerWidth, innerHeight } = window;
 		if (id === "explorer") setSecretsOpened(true);
 		setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
 		focusWindow(id);
-	}
+	}, [focusWindow]);
 
-	function withBusy(run: () => void, delay = 1500) {
+	const withBusy = useCallback((app: AppId, delay = 1500) => {
 		if (busy) return;
 		setBusy(true);
 		// ponytail: fixed fake load delay — tune if it feels too snappy/slow
 		window.setTimeout(() => {
-			run();
+			launchApp(app);
 			setBusy(false);
 		}, delay);
-	}
-
-	function openBio() {
-		withBusy(() => launchApp("bio"));
-	}
+	}, [busy, launchApp]);
 
 	function openExplorer() {
-		withBusy(() => launchApp("explorer"), 500);
+		withBusy("explorer", 500);
 	}
 
-	function openExperience() {
-		withBusy(() => launchApp("experience"));
-	}
-
-	function openExplorerFile(file: ExplorerFile) {
-		if (file.action === "bio") openBio();
-		else if (file.action === "experience") openExperience();
+	const openExplorerFile = useCallback((file: ExplorerFile) => {
+		if (file.action === "bio" || file.action === "experience") withBusy(file.action);
 		else window.open(file.href, "_blank", "noopener,noreferrer");
-	}
+	}, [withBusy]);
 
-	function moveWindow(id: string, x: number, y: number) {
-		if (id === "cd-player" && windows.some((w) => w.id === id && (w.x !== x || w.y !== y))) cdDragged.current = true;
+	const moveWindow = useCallback((id: string, x: number, y: number) => {
+		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
 		setWindows((prev) => {
 			const target = prev.find((w) => w.id === id);
 			if (!target) return prev;
@@ -359,6 +348,17 @@ export function Desktop() {
 				return w;
 			});
 		});
+	}, [cdWindow]);
+
+	function openDeskIcon(icon: DeskIcon) {
+		if (skipClick.current) {
+			skipClick.current = false;
+			return;
+		}
+		if (icon.id === "secrets") setSecretsOpened(true);
+		if (icon.open === "explorer") openExplorer();
+		else if (icon.open) launchApp(icon.open);
+		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
 	}
 
 	const visibleWindows = windows.filter(isBootVisible);
@@ -437,13 +437,14 @@ export function Desktop() {
 				) : null}
 			</ul>
 			<div className="desktop__windows">
-				{visibleWindows.map((w) => (
-					<Window
+				{visibleWindows.map((w) => {
+					const parent = windows.find((p) => p.id === w.parentId);
+					return <Window
 						key={w.id}
 						id={w.id}
 						active={(w.parentId ?? w.id) === activeId}
 						minimized={Boolean(w.minimized)}
-						onActivateAction={() => setWindows((prev) => activateWindow(prev, w.id))}
+						onActivateAction={activate}
 						title={w.title}
 						icon={w.icon}
 						x={w.x}
@@ -457,15 +458,18 @@ export function Desktop() {
 							w.parentId || windows.some((c) => c.parentId === w.id),
 						)}
 						minimizable={w.id !== "alt"}
-						onMinimizeAction={() => minimizeWindow(w.id)}
-						onCloseAction={w.kind === "cd-player" ? () => closeWindow(w.id) : undefined}
-						onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
+						onMinimizeAction={minimizeWindow}
+						onCloseAction={w.kind === "cd-player" ? closeWindow : undefined}
+						onMoveAction={moveWindow}
 						onTrashHoverAction={setBinHot}
-						onTrashAction={() => trashWindow(w.id)}
+						onTrashAction={trashWindow}
 					>
-						{w.kind === "cd-player" ? <CdPlayer {...audio} /> : windowBody(w, windows, minimizeWindow, openExplorerFile, w.id === activeId)}
-					</Window>
-				))}
+						<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
+							audio={w.kind === "cd-player" ? audio : undefined}
+							cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
+							onMinimize={minimizeWindow} onOpenExplorerFile={openExplorerFile} />
+					</Window>;
+				})}
 			</div>
 			{revealed.has("fracture") ? <DesktopSparks /> : null}
 			<Taskbar

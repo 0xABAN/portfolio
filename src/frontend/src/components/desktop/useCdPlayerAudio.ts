@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatElapsed, PLAYLIST, randomTrackIndex, trackAt } from "./playlist";
 
 /**
@@ -164,73 +164,76 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 		};
 	}, [bootComplete, running]);
 
-	const tryPlay = () => {
-		void startPlayback(getSharedAudio());
-	};
+	// Geometry updates must not recreate the transport or its event callbacks.
+	return useMemo(() => {
+		const tryPlay = () => {
+			void startPlayback(getSharedAudio());
+		};
 
-	const toggleMute = () => {
-		const el = getSharedAudio();
-		const next = !el.muted;
-		el.muted = next;
-		setMuted(next);
-		// This click can also unlock playback if autoplay was blocked.
-		if (!next && el.paused && mediaStarted) tryPlay();
-	};
+		const toggleMute = () => {
+			const el = getSharedAudio();
+			const next = !el.muted;
+			el.muted = next;
+			setMuted(next);
+			// This click can also unlock playback if autoplay was blocked.
+			if (!next && el.paused && mediaStarted) tryPlay();
+		};
 
-	const togglePlay = () => {
-		const el = getSharedAudio();
-		if (mediaStarted && !el.paused) {
+		const togglePlay = () => {
+			const el = getSharedAudio();
+			if (mediaStarted && !el.paused) {
+				el.pause();
+				return;
+			}
+			el.muted = false;
+			setMuted(false);
+			tryPlay();
+		};
+
+		const stop = () => {
+			const el = getSharedAudio();
+			++loadGen; // Invalidate pending canplay callbacks as well as play promises.
+			autoplayBlocked = false;
 			el.pause();
-			return;
-		}
-		el.muted = false;
-		setMuted(false);
-		tryPlay();
-	};
+			setPlaying(false);
+			el.currentTime = 0;
+			lastElapsedSec = -1;
+			writeElapsed(0);
+		};
 
-	const stop = () => {
-		const el = getSharedAudio();
-		++loadGen; // Invalidate pending canplay callbacks as well as play promises.
-		autoplayBlocked = false;
-		el.pause();
-		setPlaying(false);
-		el.currentTime = 0;
-		lastElapsedSec = -1;
-		writeElapsed(0);
-	};
+		const quit = () => {
+			stop();
+			mediaStarted = false;
+			fadeProgress = 0;
+			const el = getSharedAudio();
+			el.volume = 0;
+			el.removeAttribute("src");
+			el.load();
+		};
 
-	const quit = () => {
-		stop();
-		mediaStarted = false;
-		fadeProgress = 0;
-		const el = getSharedAudio();
-		el.volume = 0;
-		el.removeAttribute("src");
-		el.load();
-	};
+		const setVolume = (v: number) => {
+			const next = Math.min(1, Math.max(0, v));
+			sharedVolume = next;
+			getSharedAudio().volume = next * fadeProgress ** 2;
+			setVolumeState(next);
+		};
 
-	const setVolume = (v: number) => {
-		const next = Math.min(1, Math.max(0, v));
-		sharedVolume = next;
-		getSharedAudio().volume = next * fadeProgress ** 2;
-		setVolumeState(next);
-	};
+		const track = trackAt(trackIdx);
 
-	const track = trackAt(trackIdx);
-
-	return {
-		muted,
-		playing,
-		track,
-		trackLabel: `${track.artist} - ${track.title}`,
-		volume,
-		bindElapsed,
-		toggleMute,
-		togglePlay,
-		playPrev: () => loadTrack(trackIdx - 1, true),
-		playNext: () => loadTrack(trackIdx + 1, true),
-		stop,
-		quit,
-		setVolume,
-	};
+		return {
+			muted,
+			playing,
+			track,
+			trackLabel: `${track.artist} - ${track.title}`,
+			volume,
+			bindElapsed,
+			toggleMute,
+			togglePlay,
+			playPrev: () => loadTrack(trackIdx - 1, true),
+			playNext: () => loadTrack(trackIdx + 1, true),
+			stop,
+			quit,
+			setVolume,
+		};
+	}, [muted, playing, trackIdx, volume]);
 }

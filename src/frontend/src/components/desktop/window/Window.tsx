@@ -13,7 +13,7 @@ type Props = {
 	id: string;
 	active: boolean;
 	minimized: boolean;
-	onActivateAction: () => void;
+	onActivateAction: (id: string) => void;
 	title: string;
 	icon?: string;
 	x: number;
@@ -25,10 +25,10 @@ type Props = {
 	/** Report moves every frame (nested crop / child follow). Default: commit on pointerup. */
 	liveMove?: boolean;
 	minimizable?: boolean;
-	onMinimizeAction: () => void;
-	onCloseAction?: () => void;
-	onMoveAction: (x: number, y: number) => void;
-	onTrashAction?: () => void;
+	onMinimizeAction: (id: string) => void;
+	onCloseAction?: (id: string) => void;
+	onMoveAction: (id: string, x: number, y: number) => void;
+	onTrashAction?: (id: string) => void;
 	onTrashHoverAction?: (hot: boolean) => void;
 	children?: ReactNode;
 };
@@ -163,7 +163,7 @@ function WindowInner({
 			const cur = drag.current;
 			if (!cur) return;
 			cur.raf = 0;
-			moveRef.current(cur.pendingX, cur.pendingY);
+			moveRef.current(id, cur.pendingX, cur.pendingY);
 		});
 	}
 
@@ -180,12 +180,13 @@ function WindowInner({
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
 		if (hitTrash(e.clientX, e.clientY) && trashRef.current) {
-			trashRef.current();
+			trashRef.current(id);
 			return;
 		}
 		const el = rootRef.current;
 		const fallback = dragDelta(d, e.clientX, e.clientY);
 		moveRef.current(
+			id,
 			d.live ? d.pendingX : (el?.offsetLeft ?? fallback.x),
 			d.live ? d.pendingY : (el?.offsetTop ?? fallback.y),
 		);
@@ -203,9 +204,9 @@ function WindowInner({
 			tabIndex={-1}
 			className={variant ? `win win--${variant}` : "win"}
 			aria-label={title || id}
-			onPointerDownCapture={onActivateAction}
+			onPointerDownCapture={() => onActivateAction(id)}
 			onFocusCapture={(event) => {
-				onActivateAction();
+				onActivateAction(id);
 				if (event.target === event.currentTarget) {
 					if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
 				} else if (!(event.target as HTMLElement).closest(".win-titlebar")) {
@@ -235,7 +236,7 @@ function WindowInner({
 						type="button"
 						className="win-min chrome-raised"
 						aria-label="Minimize"
-						onClick={onMinimizeAction}
+						onClick={() => onMinimizeAction(id)}
 						onPointerDown={(ev) => ev.stopPropagation()}
 					/>
 				) : null}
@@ -244,7 +245,7 @@ function WindowInner({
 						type="button"
 						className="win-min win-close chrome-raised"
 						aria-label={`Close ${title}`}
-						onClick={onCloseAction}
+						onClick={() => onCloseAction(id)}
 						onPointerDown={(ev) => ev.stopPropagation()}
 					>
 						×

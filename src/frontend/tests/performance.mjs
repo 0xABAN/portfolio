@@ -48,7 +48,9 @@ try {
             const type = fiber.type;
             const name = type?.displayName ?? type?.name;
             if (name && (fiber.flags & 1)) window.renderCounts[name] = (window.renderCounts[name] ?? 0) + 1;
-            visit(fiber.child);
+            // A memo bailout reuses its child fibers, including their old flags.
+            // Those descendants did not render in this commit.
+            if (!fiber.alternate || fiber.child !== fiber.alternate.child) visit(fiber.child);
             visit(fiber.sibling);
           }
           visit(root.current);
@@ -127,6 +129,7 @@ try {
       const bar = await win('me').locator('.win-titlebar').boundingBox();
       await page.mouse.move(bar.x + 45, bar.y + 10);
       await page.mouse.down();
+      await page.evaluate(() => new Promise(requestAnimationFrame));
       await page.evaluate(() => { window.renderCounts = {}; });
       await measure('paint-drag', async () => {
         for (let i = 1; i <= 90; i++) {
@@ -136,6 +139,11 @@ try {
       });
       const renders = await page.evaluate(() => window.renderCounts);
       console.log('drag renders:', JSON.stringify(renders));
+      if (mode === 'compare') {
+        for (const name of ['ActivityCalendar', 'GitHubGraph', 'Terminal', 'Paint', 'CdPlayer', 'Sprite']) {
+          assert.equal(renders[name] ?? 0, 0, `${name} rerendered during geometry-only dragging`);
+        }
+      }
       await page.mouse.up();
       const after = await geometry();
       for (const id of ['me', 'alt']) {

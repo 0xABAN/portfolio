@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { runNeko } from "./nekoLogic";
 import "./neko.css";
 
 const SHEET = "/neko.png";
 
-export function Neko() {
+export const Neko = memo(function Neko() {
 	const elRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -20,4 +20,4 @@ export function Neko() {
 	}, []);
 
 	return <div ref={elRef} className="neko" aria-hidden />;
-}
+});

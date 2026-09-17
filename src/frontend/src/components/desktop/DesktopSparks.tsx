@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import "./desktop-sparks.css";
 
 const SHAPES = [
@@ -32,10 +32,10 @@ const SPARKS = Array.from({ length: 24 }, (_, index) => {
 });
 
 /** Decorative, click-through sparks; CSS owns motion and reduced-motion handling. */
-export function DesktopSparks() {
+export const DesktopSparks = memo(function DesktopSparks() {
 	return (
 		<div className="desktop-sparks" aria-hidden="true">
 			{SPARKS.map((style, index) => <span key={index} className="desktop-sparks__spark" style={style} />)}
 		</div>
 	);
-}
+});

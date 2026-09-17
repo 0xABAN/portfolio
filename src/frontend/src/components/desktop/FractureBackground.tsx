@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { memo, Fragment, useEffect, useRef, useState } from "react";
 import { FRACTURE_DETAILS, FRACTURE_PIECES, type FractureSprite } from "./fractureAssets";
 import { spriteFalloff } from "./fractureInteraction";
 import { installFractureRenderer } from "./fractureRenderer";
@@ -26,7 +26,7 @@ function Sprite({ sprite, piece, growth = false, edge = false }: { sprite: Fract
 	);
 }
 
-export function FractureBackground({ active }: { active: boolean }) {
+export const FractureBackground = memo(function FractureBackground({ active }: { active: boolean }) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const layerRef = useRef<HTMLDivElement>(null);
 	const controllerRef = useRef<ReturnType<typeof installFractureRenderer> | null>(null);
@@ -79,4 +79,4 @@ export function FractureBackground({ active }: { active: boolean }) {
 			</div>
 		</div>
 	);
-}
+});
