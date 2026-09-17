@@ -23,12 +23,7 @@ type Props = {
 	coordsEl: RefObject<HTMLElement | null>;
 };
 
-type StrokeCfg = {
-	tool: ToolId;
-	fg: string;
-	bg: string;
-	sizeIndex: SizeIndex;
-};
+type StrokeCfg = Pick<Props, "tool" | "fg" | "bg" | "sizeIndex">;
 
 type Stroke = {
 	lastX: number;
@@ -72,7 +67,6 @@ export function usePaintCanvas({
 	const rectRef = useRef<DOMRect | null>(null);
 	const coordsElRef = useRef(coordsEl);
 	const imgRef = useRef<HTMLImageElement | null>(null);
-	const sizeRef = useRef({ w: 0, h: 0 });
 
 	useEffect(() => {
 		cfg.current = { tool, fg, bg, sizeIndex };
@@ -127,11 +121,10 @@ export function usePaintCanvas({
 			const w = Math.max(1, Math.round(wrap.clientWidth));
 			const h = Math.max(1, Math.round(wrap.clientHeight));
 			// ponytail: keep initial resolution; use a document-sized bitmap if zoom quality matters.
-			if (readyRef.current && sizeRef.current.w > 1 && sizeRef.current.h > 1) {
+			if (readyRef.current && canvas.width > 1 && canvas.height > 1) {
 				return;
 			}
 
-			sizeRef.current = { w, h };
 			canvas.width = w;
 			canvas.height = h;
 			const ctx = canvas.getContext("2d");
@@ -151,40 +144,33 @@ export function usePaintCanvas({
 			}
 		}
 
+		function finishLoad(minWidth = 0) {
+			syncSize();
+			const ctx = ctxRef.current;
+			if (ctx && canvas.width > minWidth) {
+				paintBase(ctx, canvas.width, canvas.height);
+				readyRef.current = true;
+			}
+		}
+
 		readyRef.current = false;
-		sizeRef.current = { w: 0, h: 0 };
 
 		const img = new Image();
 		imgRef.current = img;
 		img.decoding = "async";
 		img.onload = () => {
 			if (imgRef.current !== img) return;
-			syncSize();
 			// image may finish after first 0× layout — force paint once sized
-			const ctx = ctxRef.current;
-			if (ctx && sizeRef.current.w > 1) {
-				paintBase(ctx, sizeRef.current.w, sizeRef.current.h);
-				readyRef.current = true;
-			}
+			finishLoad(1);
 		};
 		img.onerror = () => {
 			if (imgRef.current !== img) return;
 			imgRef.current = null;
-			syncSize();
-			const ctx = ctxRef.current;
-			if (ctx) {
-				paintBase(ctx, sizeRef.current.w, sizeRef.current.h);
-				readyRef.current = true;
-			}
+			finishLoad();
 		};
 		img.src = src;
 		if (img.complete && img.naturalWidth > 0) {
-			syncSize();
-			const ctx = ctxRef.current;
-			if (ctx) {
-				paintBase(ctx, sizeRef.current.w, sizeRef.current.h);
-				readyRef.current = true;
-			}
+			finishLoad();
 		} else {
 			syncSize();
 		}

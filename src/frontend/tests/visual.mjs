@@ -181,6 +181,30 @@ try {
     await portrait.waitFor({ state: 'hidden' });
     await page.locator('.task-btn[title="adam"]').dispatchEvent('click');
     await portrait.waitFor({ state: 'visible' });
+    if (width === 1440) {
+      // The terminal intentionally takes keyboard focus after every pointer-up.
+      await page.locator('.win[aria-label="Command Prompt"]').getByRole('button', { name: 'Minimize', exact: true }).dispatchEvent('click');
+      const canvas = page.locator('.paint__canvas');
+      await page.waitForFunction(() => {
+        const canvas = document.querySelector('.paint__canvas');
+        return canvas.getContext('2d').getImageData(0, 0, 1, 1).data[3] === 255;
+      });
+      const original = await canvas.evaluate(el => el.toDataURL());
+      const box = await canvas.boundingBox();
+      await page.mouse.move(box.x + 20, box.y + 20);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 50, box.y + 40, { steps: 5 });
+      await page.mouse.up();
+      const painted = await canvas.evaluate(el => el.toDataURL());
+      assert.notEqual(painted, original, 'Pencil changes the bitmap');
+      await page.setViewportSize({ width: width - 200, height });
+      await page.waitForTimeout(100);
+      assert.equal(await canvas.evaluate(el => el.toDataURL()), painted, 'Resize preserves drawing');
+      await page.keyboard.press('Control+z');
+      const undone = await canvas.evaluate(el => el.toDataURL());
+      assert.ok(undone === original, 'Resize preserves undo');
+      await page.setViewportSize({ width, height });
+    }
     const githubWindow = page.locator('.win').filter({ has: page.locator('.gh-app') });
     async function remountCalendar() {
       await githubWindow.getByRole('button', { name: 'Minimize', exact: true }).dispatchEvent('click');
@@ -191,10 +215,18 @@ try {
     assert.equal(contributionsRequests, 1, 'Successful requests stay cached after restore');
     if (width === 1440) {
       failContributions = true;
+      await page.route('**/photos/street.png', route => route.abort());
       await page.reload();
       await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
       await page.locator('.rsod').click();
       await page.locator('.gh-app__err').waitFor();
+      await page.waitForFunction(() => {
+        const canvas = document.querySelector('.paint__canvas');
+        return canvas?.getContext('2d').getImageData(0, 0, 1, 1).data.every(value => value === 255);
+      });
+      assert.ok(await page.locator('.paint__canvas').evaluate(canvas =>
+        canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.every(value => value === 255),
+      ), 'Failed Paint image initializes an opaque white bitmap');
       assert.equal(contributionsRequests, 2);
       failContributions = false;
       await remountCalendar();
