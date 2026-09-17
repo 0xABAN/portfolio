@@ -25,6 +25,8 @@ async function checkTaskbar(page) {
 	});
 	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
+	const icons = await page.locator(".desktop__icons .desk-icon__label").allTextContents();
+	check(JSON.stringify(icons.slice(-2)) === JSON.stringify(["secrets", "Recycle Bin"]), "App shortcuts must precede Secrets and Recycle Bin");
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
 		window.taskbarAudio.volume = 0; // Exercise playback/mute without making sound.
