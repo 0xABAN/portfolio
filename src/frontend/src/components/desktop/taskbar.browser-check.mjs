@@ -14,10 +14,20 @@ async function checkTaskbar(page) {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
+	await page.evaluate(() => {
+		// Observe the real page-lifetime transport without adding production test hooks.
+		window.Audio = class extends window.Audio {
+			constructor(...args) {
+				super(...args);
+				window.taskbarAudio = this;
+			}
+		};
+	});
 	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
+		window.taskbarAudio.volume = 0; // Exercise playback/mute without making sound.
 		window.openedLinks = [];
 		window.open = (...args) => { window.openedLinks.push(args); return null; };
 	});
@@ -95,6 +105,11 @@ async function checkTaskbar(page) {
 	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
 	check(await page.locator(".start-menu__submenu button").evaluateAll((items) => items.every((el) => el.getBoundingClientRect().height === 26)), "Start flyout rows lost their compact height");
 	check(await page.evaluate(() => getComputedStyle(document.activeElement).backgroundColor) === "rgb(175, 0, 0)", "Keyboard menu selection has no highlight");
+	const programs = menu.getByRole("menuitem", { name: "Programs", exact: true });
+	check(await programs.evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(175, 0, 0)", "Expanded menu parent lost its selection highlight");
+	const parentBounds = await programs.boundingBox();
+	const flyoutBounds = await page.getByRole("menu", { name: "Programs", exact: true }).boundingBox();
+	check(Math.abs(flyoutBounds.y - parentBounds.y) <= 4, "Desktop Start flyout is not aligned with its parent row");
 	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	check(!(await menu.isVisible()), "Launch did not dismiss Start");
@@ -160,6 +175,45 @@ async function checkTaskbar(page) {
 	await speaker.click();
 	check(await speaker.getAttribute("aria-pressed") !== muted, "Mute toggle stopped working");
 	check(await task("terminal").getAttribute("aria-pressed") === "true", "Music controls changed the active app");
+	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2);
+	if (await page.evaluate(() => window.taskbarAudio.paused)) await music.click();
+	await page.waitForFunction(() => !window.taskbarAudio.paused);
+	await music.click();
+	await page.locator('.task-btn--cd[aria-pressed="false"]').waitFor();
+	check(await page.evaluate(() => window.taskbarAudio.paused), "CD click did not pause playback");
+	await music.click();
+	await page.locator('.task-btn--cd[aria-pressed="true"]').waitFor();
+	check(await page.evaluate(() => !window.taskbarAudio.paused), "CD click did not resume playback");
+	await music.press("Escape");
+	check(!(await player.isVisible()) && await page.evaluate(() => !window.taskbarAudio.paused), "Closing the CD popup stopped its transport");
+
+	// Complete a paused chat stream while Terminal is hidden, then recall the request.
+	await page.evaluate(() => {
+		const nativeFetch = window.fetch.bind(window);
+		window.fetch = (resource, init) => {
+			if (new URL(String(resource), location.href).pathname !== "/chat") return nativeFetch(resource, init);
+			return Promise.resolve(new Response(new ReadableStream({ start(controller) {
+				window.finishHiddenChat = () => {
+					controller.enqueue(new TextEncoder().encode('event: token\ndata: {"content":"Still here."}\n\nevent: done\ndata: {"remaining":10}\n\n'));
+					controller.close();
+				};
+			} }), { headers: { "Content-Type": "text/event-stream" } }));
+		};
+	});
+	await task("terminal").click();
+	await input.fill("reply while minimized");
+	await input.press("Enter");
+	await page.waitForFunction(() => Boolean(window.finishHiddenChat));
+	await win("terminal").getByRole("button", { name: "Minimize", exact: true }).click();
+	await start.focus();
+	await page.evaluate(() => window.finishHiddenChat());
+	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+	check(await start.evaluate((el) => el === document.activeElement), "A hidden reply stole focus");
+	await task("terminal").click();
+	check((await page.locator(".term__line").allTextContents()).includes("ADAM> Still here."), "Minimization lost the streamed reply");
+	check(await input.evaluate((el) => el === window.savedTerminalInput), "Streaming restoration replaced the terminal session");
+	await input.press("ArrowUp");
+	check(await input.inputValue() === "reply while minimized", "Minimization lost terminal recall");
 
 	for (const width of [390, 320]) {
 		await page.setViewportSize({ width, height: 844 });
@@ -180,7 +234,7 @@ async function checkTaskbar(page) {
 		await page.keyboard.press("Escape");
 		await page.keyboard.press("Escape");
 	}
-	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD keyboard access and narrow overflow";
+	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, hidden streaming and narrow overflow";
 }
 
 try {
