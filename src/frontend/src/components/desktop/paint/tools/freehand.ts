@@ -10,7 +10,7 @@ import {
 	type SizeIndex,
 	type ToolId,
 } from "../paintModel";
-import { bresenhamDenseLine, bresenhamLine } from "./bresenham";
+import { bresenhamLine } from "./bresenham";
 
 export type Rgb = readonly [number, number, number];
 
@@ -179,9 +179,5 @@ export function paintSegment(
 		return;
 	}
 	const stamp = (x: number, y: number) => stampAt(ctx, x, y, style);
-	if (style.kind === "brush" && style.size > 1) {
-		bresenhamDenseLine(x0, y0, x1, y1, stamp);
-	} else {
-		bresenhamLine(x0, y0, x1, y1, stamp);
-	}
+	bresenhamLine(x0, y0, x1, y1, stamp, style.kind === "brush" && style.size > 1);
 }
