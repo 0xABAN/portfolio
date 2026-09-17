@@ -40,6 +40,28 @@ async function checkTaskbar(page) {
 		window.openedLinks = [];
 		window.open = (...args) => { window.openedLinks.push(args); return null; };
 	});
+	check(await page.evaluate(async () => {
+		const cursor = new Image();
+		cursor.src = "/cursors/hand.svg";
+		await cursor.decode();
+		return cursor.naturalWidth === 32 && cursor.naturalHeight === 32;
+	}), "Retro hand cursor failed to load");
+	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"])';
+	check(await page.locator(clickable).evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) =>
+		[el, ...el.querySelectorAll("span, img, svg")].every((part) => getComputedStyle(part).cursor.includes('/cursors/hand.svg") 10 1, pointer')))), "Clickable controls or their artwork lost the hand cursor");
+	check(await page.locator('.desktop :is(button:disabled, [aria-disabled="true"])').evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) => !getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "Disabled controls advertise clickability");
+	check(await page.locator(".win-titlebar, .paint__canvas, .paint__menu-item, .term__font-size").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/arrow.cur"))), "Hand cursor replaced dragging, painting or decorative cursors");
+	check(await page.locator(".term__input").evaluate((el) => getComputedStyle(el).cursor) === "text", "Terminal lost its text cursor");
+	check(await page.locator(".desktop").evaluate((el) => {
+		el.classList.add("desktop--busy");
+		try {
+			return [...el.querySelectorAll("button, a[href], .paint__canvas, .term__input")]
+				.every((control) => getComputedStyle(control).cursor.includes("/cursors/wait.cur"));
+		} finally {
+			el.classList.remove("desktop--busy");
+		}
+	}), "Hand cursor overrides the busy hourglass");
+
 	const sparks = page.locator(".desktop-sparks");
 	check(!(await sparks.isVisible()), "Sparks ignore reduced motion");
 	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Hidden sparks still animate");
@@ -154,6 +176,7 @@ async function checkTaskbar(page) {
 	await start.press("ArrowDown");
 	await menu.getByRole("menuitem", { name: "Programs", exact: true }).press("ArrowRight");
 	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
+	check(await menu.locator('button:not(:disabled), a[href]').evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "Start popup lost the hand cursor");
 	check(await menu.getByRole("menuitem", { name: "Activity", exact: true }).locator("img").getAttribute("src") === "/icons/code.svg", "Start did not use the Activity name and code icon");
 	check(await page.locator(".start-menu__submenu button").evaluateAll((items) => items.every((el) => el.getBoundingClientRect().height === 26)), "Start flyout rows lost their compact height");
 	check(await page.evaluate(() => getComputedStyle(document.activeElement).backgroundColor) === "rgb(175, 0, 0)", "Keyboard menu selection has no highlight");
@@ -227,6 +250,7 @@ async function checkTaskbar(page) {
 	const beforeOpen = await audioState();
 	await music.click();
 	await player.waitFor();
+	check(await player.locator("button:not(:disabled)").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "CD controls lost the hand cursor");
 	check(await audioState() === beforeOpen, "Opening CD Player changed existing music");
 	await music.click();
 	check(await player.isVisible() && await audioState() === beforeOpen, "Repeated CD clicks closed the player or changed music");

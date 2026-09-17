@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <!-- Original pixel-art hand; the fingertip hotspot is (10, 1). -->
+  <path fill="#000" d="M9 1h3v1h1v8h3v1h3v1h3v2h2v11h-1v3h-2v3H9v-3H7v-3H5v-3H3v-3H2v-3h1v-1h3v1h1v2h2V2H9Z"/>
+  <path fill="#fff" d="M10 2h2v15h1v-6h2v7h1v-6h2v7h1v-6h2v2h2v10h-1v3h-2v2H10v-2H8v-3H6v-3H4v-3H3v-3h3v2h1v2h3Z"/>
+</svg>

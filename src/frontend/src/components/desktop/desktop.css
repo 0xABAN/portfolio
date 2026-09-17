@@ -7,6 +7,7 @@
 	--chrome-text: #f0f0f0;
 	/* classic Win9x arrow — hotspot 0,0 */
 	--cursor-arrow: url("/cursors/arrow.cur") 0 0, default;
+	--cursor-hand: url("/cursors/hand.svg") 10 1, pointer;
 	/* hourglass while “loading” an app */
 	--cursor-wait: url("/cursors/wait.cur") 15 15, wait;
 
@@ -17,6 +18,11 @@
 	overflow: hidden;
 	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
 	cursor: var(--cursor-arrow);
+}
+
+/* Only actionable controls get the hand; keep disabled and drawing cursors intact. */
+.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"]) {
+	cursor: var(--cursor-hand);
 }
 
 /* Window z-order is local: repeated activation must never cover the taskbar. */
