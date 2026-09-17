@@ -40,6 +40,30 @@ async function checkTaskbar(page) {
 	const cdIconBounds = await cdIcon.boundingBox();
 	const secretsBounds = await page.locator('[data-app-id="explorer"]').boundingBox();
 	check(cdIconBounds.x === secretsBounds.x && cdIconBounds.y < secretsBounds.y, "CD Player icon is not above Secrets");
+	const secrets = page.locator('[data-app-id="explorer"]');
+	const bubble = secrets.locator(".desk-icon__bubble");
+	check(await bubble.innerText() === "don't click me!", "Secrets speech bubble has the wrong text");
+	check(await bubble.evaluate(async (el) => {
+		const style = getComputedStyle(el);
+		const art = new Image();
+		art.src = "/icons/secrets-bubble.svg";
+		await art.decode();
+		return art.naturalWidth === 120 && art.naturalHeight === 58
+			&& style.width === "120px" && style.height === "58px"
+			&& style.backgroundImage.includes("/icons/secrets-bubble.svg")
+			&& style.imageRendering === "pixelated"
+			&& style.backgroundColor === "rgba(0, 0, 0, 0)"
+			&& style.pointerEvents === "none";
+	}), "Secrets speech bubble lost its angular, pixelated, noninteractive artwork");
+	check(await bubble.evaluate((el) => getComputedStyle(el).animationName === "none"), "Secrets bubble moves when reduced motion is requested");
+	for (const width of [1440, 390, 320]) {
+		await page.setViewportSize({ width, height: 900 });
+		const art = await secrets.locator(".desk-icon__art").boundingBox();
+		const bounds = await bubble.boundingBox();
+		check(bounds.width <= 126 && bounds.height <= 63, "Secrets bubble is too large");
+		check(bounds.x >= art.x + art.width && bounds.x + bounds.width <= width, "Secrets bubble is not beside the folder or clips off-screen");
+	}
+	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
 		window.openedLinks = [];
@@ -73,6 +97,7 @@ async function checkTaskbar(page) {
 	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await sparks.waitFor({ state: "visible" });
+	check(await bubble.evaluate((el) => getComputedStyle(el).animationName === "secrets-bubble-cartoon" && el.getAnimations().length > 0), "Secrets bubble is not animated");
 	await page.locator(".fracture-background--ready").waitFor();
 	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
@@ -138,6 +163,12 @@ async function checkTaskbar(page) {
 	await task("me").click();
 	check(await win("alt").isVisible(), "Nested window did not restore");
 	check(JSON.stringify(await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId))) === JSON.stringify(order), "Switching reordered tasks");
+
+	await secrets.click();
+	await win("explorer").waitFor();
+	await page.waitForFunction(() => document.getElementById("desktop-window-explorer").contains(document.activeElement));
+	check(await bubble.count() === 0 && await secrets.locator(".desk-icon__badge").count() === 0, "Secrets bubble or badge survived the first opening");
+	await win("explorer").getByRole("button", { name: "Minimize", exact: true }).click();
 
 	await task("terminal").click();
 	const input = page.getByRole("textbox", { name: "Terminal input" });

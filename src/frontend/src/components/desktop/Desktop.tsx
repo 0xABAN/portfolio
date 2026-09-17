@@ -87,6 +87,9 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 					draggable={false}
 				/>
 				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
+				{notification && (
+					<span className="desk-icon__bubble" aria-hidden="true">don&apos;t click me!</span>
+				)}
 			</span>
 			<span className="desk-icon__label">{label}</span>
 		</>
