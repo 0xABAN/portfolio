@@ -48,6 +48,19 @@
 					<feMerge result="material"><feMergeNode in="edge" /><feMergeNode in="core-paint" /></feMerge>
 					<feDisplacementMap in="material" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" />
 				</filter>
+				<!-- Selected branches catch light on the upper-left edge and cast a short shadow.
+				     These filters are baked into the sprites, never run on animated layers. -->
+				<filter id="raised" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+					<feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="shadow-blur" />
+					<feOffset in="shadow-blur" dx="3" dy="5" result="shadow-offset" />
+					<feFlood flood-color="#080000" flood-opacity=".32" result="shadow-color" />
+					<feComposite in="shadow-color" in2="shadow-offset" operator="in" result="shadow" />
+					<feOffset in="SourceAlpha" dx="1" dy="1.5" result="inset" />
+					<feComposite in="SourceAlpha" in2="inset" operator="out" result="rim" />
+					<feFlood flood-color="#ff6040" flood-opacity=".38" result="light" />
+					<feComposite in="light" in2="rim" operator="in" result="highlight" />
+					<feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /><feMergeNode in="highlight" /></feMerge>
+				</filter>
 				<filter id="signal" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
 					<feTurbulence type="fractalNoise" baseFrequency=".012 .26" numOctaves="2" seed="8" />
 					<feColorMatrix type="matrix" values="0 0 0 0 .7  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 -.16" />
@@ -121,12 +134,12 @@
 			</g>
 			
 			<g mask="url(#screen)">
-				<g data-piece="northwest" data-edge="true"><g filter="url(#rough)"><use href="#fracture-northwest" fill="url(#tear-density)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M607 438 552 446 504 471 432 463 369 481 312 473 236 496" /><path d="M455 107 477 63 469 0" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M247 229 295 270 348 292" /><path d="M477 267l25 23 38 14" /></g></g>
+				<g data-piece="northwest" data-edge="true" filter="url(#raised)"><g filter="url(#rough)"><use href="#fracture-northwest" fill="url(#tear-density)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M607 438 552 446 504 471 432 463 369 481 312 473 236 496" /><path d="M455 107 477 63 469 0" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M247 229 295 270 348 292" /><path d="M477 267l25 23 38 14" /></g></g>
 <g data-piece="north"><g filter="url(#rough)"><use href="#fracture-north" fill="#120000" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M769 286 743 233 752 184 721 133 710 71 679 0" /></g></g></g>
 <g data-piece="northeast"><g filter="url(#rough)"><use href="#fracture-northeast" fill="#120000" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1000 252 1031 214 1041 178 1087 139 1121 66 1175 0" /></g></g></g>
-<g data-piece="upper-right"><g filter="url(#rough)"><use href="#fracture-upper-right" fill="url(#tear-density-outward)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1344 262 1330 218 1359 185 1364 129 1401 91" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M1025 374l38 8 14-12" /><path d="M1253 288l52-8 39-18" /></g></g>
+<g data-piece="upper-right" filter="url(#raised)"><g filter="url(#rough)"><use href="#fracture-upper-right" fill="url(#tear-density-outward)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1344 262 1330 218 1359 185 1364 129 1401 91" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M1025 374l38 8 14-12" /><path d="M1253 288l52-8 39-18" /></g></g>
 <g data-piece="right"><g filter="url(#rough)"><use href="#fracture-right" fill="#120000" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1302 462 1337 445 1378 467" /></g></g></g>
-<g data-piece="southeast"><g filter="url(#rough)"><use href="#fracture-southeast" fill="url(#tear-density-outward)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1145 716 1208 687 1255 694 1293 672 1362 677 1418 651 1498 664 1555 642" /><path d="M1247 834 1227 878 1239 912 1231 956 1254 1000" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M1034 645l46 6 28 26" /><path d="M1172 796l29 25 46 13" /></g></g>
+<g data-piece="southeast" filter="url(#raised)"><g filter="url(#rough)"><use href="#fracture-southeast" fill="url(#tear-density-outward)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M1145 716 1208 687 1255 694 1293 672 1362 677 1418 651 1498 664 1555 642" /><path d="M1247 834 1227 878 1239 912 1231 956 1254 1000" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M1034 645l46 6 28 26" /><path d="M1172 796l29 25 46 13" /></g></g>
 <g data-piece="south"><g filter="url(#rough)"><use href="#fracture-south" fill="#120000" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M840 748 881 770 909 811 953 823 984 872" /></g></g></g>
 <g data-piece="southwest"><g filter="url(#rough)"><use href="#fracture-southwest" fill="url(#tear-density)" mask="url(#tear-fissures)" /><g stroke="#210000" stroke-width="1.5" data-offshoot="" fill="none"><path d="M417 774 367 771 313 799 257 794 205 823 148 831 100 867" /><path d="M520 824 494 874 503 908 470 955 474 1000" /></g></g><g stroke="#dc0000" stroke-opacity=".25" data-highlight="" fill="none"><path d="M637 636l-34 17-16 28" /><path d="M471 741l-33 7-21 26" /></g></g>
 <g data-piece="north-northwest"><g filter="url(#rough)"><use href="#fracture-north-northwest" fill="url(#tear-density)" opacity=".85" /><g data-offshoot="" fill="none" stroke="#210000" stroke-width="1.2"><path d="M687 283 711 249 714 213 735 178 723 143 728 108" /></g></g></g>
