@@ -37,6 +37,26 @@ async function checkTaskbar(page) {
 		window.openedLinks = [];
 		window.open = (...args) => { window.openedLinks.push(args); return null; };
 	});
+	const sparks = page.locator(".desktop-sparks");
+	check(!(await sparks.isVisible()), "Sparks ignore reduced motion");
+	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Hidden sparks still animate");
+	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
+	await page.emulateMedia({ reducedMotion: "no-preference" });
+	await sparks.waitFor({ state: "visible" });
+	check(await sparks.evaluate((el) => {
+		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);
+		return z(".desktop__windows") < z(".neko") && z(".neko") < z(".desktop-sparks")
+			&& z(".desktop-sparks") < z(".taskbar")
+			&& el.getBoundingClientRect().bottom === document.querySelector(".taskbar").getBoundingClientRect().top;
+	}), "Sparks are not above desktop content and below the taskbar");
+	check(await sparks.locator("span").evaluateAll((nodes) => nodes.length > 0 && nodes.length <= 48 && nodes.every((el) => {
+		const style = getComputedStyle(el);
+		return style.backgroundColor === "rgb(0, 0, 0)" && style.opacity === "1" && style.filter === "none"
+			&& style.boxShadow === "none" && style.pointerEvents === "none" && el.tabIndex === -1;
+	})), "Sparks lost their bounded, solid-black, noninteractive appearance");
+	const firstTransform = await sparks.locator("span").first().evaluate((el) => getComputedStyle(el).transform);
+	await page.waitForFunction((previous) => getComputedStyle(document.querySelector(".desktop-sparks__spark")).transform !== previous, firstTransform);
+	// Keep sparks running for the interaction checks below: they must not intercept input.
 	for (const [label, url] of [
 		["GitHub", "https://github.com/0xABAN"],
 		["LinkedIn", "https://www.linkedin.com/in/adam-torres-encarnacion/"],
@@ -328,6 +348,8 @@ async function checkTaskbar(page) {
 
 	for (const width of [390, 320]) {
 		await page.setViewportSize({ width, height: 844 });
+		check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 24, "Narrow screens did not reduce spark density");
+		check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), "Sparks added horizontal overflow");
 		for (const control of [start, music, page.locator(".taskbar__tray")]) {
 			const r = await control.boundingBox();
 			check(r.x >= 0 && r.x + r.width <= width, "Fixed taskbar controls clipped on narrow screens");
@@ -345,7 +367,9 @@ async function checkTaskbar(page) {
 		await page.keyboard.press("Escape");
 		await page.keyboard.press("Escape");
 	}
-	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, desktop typing, hidden streaming and narrow overflow";
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	check(!(await sparks.isVisible()) && await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Sparks did not stop after a reduced-motion change");
+	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, desktop typing, hidden streaming, sparks and narrow overflow";
 }
 
 try {

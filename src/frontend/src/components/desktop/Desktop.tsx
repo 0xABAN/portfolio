@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
+import { DesktopSparks } from "./DesktopSparks";
 import { FractureBackground } from "./FractureBackground";
 import { Explorer } from "./explorer/Explorer";
 import type { ExplorerFile } from "./explorer/explorerData";
@@ -428,6 +429,7 @@ export function Desktop() {
 					</Window>
 				))}
 			</div>
+			{revealed.has("fracture") ? <DesktopSparks /> : null}
 			<Taskbar
 				cdOpen={cdOpen}
 				onCdOpenChangeAction={setCdOpen}
