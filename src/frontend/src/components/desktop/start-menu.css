@@ -113,7 +113,7 @@
 	overflow-y: auto;
 }
 
-.start-menu__submenu button {
+.start-menu .start-menu__submenu button {
 	min-height: 26px;
 }
 

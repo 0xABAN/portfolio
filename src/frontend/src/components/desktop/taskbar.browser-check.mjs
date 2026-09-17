@@ -77,6 +77,7 @@ async function checkTaskbar(page) {
 	await page.keyboard.press("Control+z");
 	check(await canvas.evaluate((el) => el.toDataURL()) === painted, "Hidden Paint processed undo or lost its drawing");
 	await task("me").click();
+	await page.waitForFunction(() => document.getElementById("desktop-window-me").contains(document.activeElement));
 	await page.keyboard.press("Control+z");
 	check(await canvas.evaluate((el) => el.toDataURL()) === original, "Paint lost undo history");
 
@@ -92,6 +93,8 @@ async function checkTaskbar(page) {
 	await start.press("ArrowDown");
 	await menu.getByRole("menuitem", { name: "Programs", exact: true }).press("ArrowRight");
 	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
+	check(await page.locator(".start-menu__submenu button").evaluateAll((items) => items.every((el) => el.getBoundingClientRect().height === 26)), "Start flyout rows lost their compact height");
+	check(await page.evaluate(() => getComputedStyle(document.activeElement).backgroundColor) === "rgb(175, 0, 0)", "Keyboard menu selection has no highlight");
 	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	check(!(await menu.isVisible()), "Launch did not dismiss Start");
@@ -141,6 +144,7 @@ async function checkTaskbar(page) {
 	check(await page.locator(".taskbar__tray .taskbar__speaker").count() === 1, "Speaker is not inside the recessed tray");
 	check(await page.locator(".taskbar__views").innerText() === "2,717 views", "View counter was lost");
 	await task("terminal").click();
+	await page.waitForFunction(() => document.getElementById("desktop-window-terminal").contains(document.activeElement));
 	const music = page.locator(".task-btn--cd");
 	await music.focus();
 	const player = page.getByRole("dialog", { name: "CD Player" });
