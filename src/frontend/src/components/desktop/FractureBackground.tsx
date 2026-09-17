@@ -29,7 +29,6 @@ function Sprite({ sprite, piece, growth = false, edge = false }: { sprite: Fract
 export function FractureBackground({ active }: { active: boolean }) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const layerRef = useRef<HTMLDivElement>(null);
-	const overlayRef = useRef<SVGSVGElement>(null);
 	const controllerRef = useRef<ReturnType<typeof installFractureRenderer> | null>(null);
 	const activeRef = useRef(active);
 	const [ready, setReady] = useState(false);
@@ -42,14 +41,13 @@ export function FractureBackground({ active }: { active: boolean }) {
 	useEffect(() => {
 		const root = rootRef.current;
 		const layer = layerRef.current;
-		const overlay = overlayRef.current;
-		if (!root || !layer || !overlay) return;
+		if (!root || !layer) return;
 		let disposed = false;
 		// Decode during boot. Keep the original detailed SVG if any asset cannot load.
 		const images = [...root.querySelectorAll<HTMLImageElement>(".fracture-sprite img, .fracture-texture")];
 		Promise.all(images.map((image) => image.decode())).then(() => {
 			if (disposed) return;
-			const controller = installFractureRenderer(root, layer, overlay);
+			const controller = installFractureRenderer(root, layer);
 			controllerRef.current = controller;
 			controller.setActive(activeRef.current);
 			setReady(true);
@@ -78,20 +76,6 @@ export function FractureBackground({ active }: { active: boolean }) {
 					<Sprite sprite={FRACTURE_DETAILS}/>
 				</div>
 				{/* eslint-enable @next/next/no-img-element */}
-				<svg ref={overlayRef} className="fracture-overlay" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" focusable="false">
-					<defs>
-						<radialGradient id="falloff">
-							<stop offset="0" stopColor="white"/>
-							<stop offset=".08" stopColor="white"/>
-							<stop offset=".48" stopColor="white" stopOpacity=".9"/>
-							<stop offset=".82" stopColor="white" stopOpacity=".5"/>
-							<stop offset="1" stopColor="white" stopOpacity="0"/>
-						</radialGradient>
-						<mask id="screen" maskUnits="userSpaceOnUse" x="0" y="0" width="1600" height="1000">
-							<ellipse cx="800" cy="500" rx="950" ry="660" fill="url(#falloff)"/>
-						</mask>
-					</defs>
-				</svg>
 			</div>
 		</div>
 	);

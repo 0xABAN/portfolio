@@ -2,8 +2,8 @@
 	display: none;
 	position: fixed;
 	inset: 0 0 var(--taskbar-height);
-	/* Above windows and Neko, below the taskbar's stacking context (100). */
-	z-index: 99;
+	/* Above the wallpaper (0), below desktop icons (2) and windows (3). */
+	z-index: 1;
 	overflow: hidden;
 	contain: strict;
 	pointer-events: none;

@@ -63,8 +63,7 @@
 
 .fracture-fallback,
 .fracture-texture,
-.fracture-layer,
-.fracture-overlay {
+.fracture-layer {
 	position: absolute;
 	inset: 0;
 	width: 100%;
@@ -77,15 +76,13 @@
 }
 
 .fracture-texture,
-.fracture-layer,
-.fracture-overlay {
+.fracture-layer {
 	visibility: hidden;
 }
 
 .fracture-background--ready .fracture-fallback { visibility: hidden; }
 .fracture-background--ready .fracture-texture,
-.fracture-background--ready .fracture-layer,
-.fracture-background--ready .fracture-overlay { visibility: visible; }
+.fracture-background--ready .fracture-layer { visibility: visible; }
 
 .fracture-layer {
 	/* White is neutral when this finished coverage layer multiplies over red. */

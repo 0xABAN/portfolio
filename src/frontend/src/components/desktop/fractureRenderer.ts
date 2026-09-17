@@ -4,14 +4,9 @@ import {
 	fractureDriftAt, fractureGrowthAt, fractureRotationAt, fractureTwitchAt, type FractureBranchClock,
 } from "./fractureDrift";
 import { branchMatrix, composeMatrix, easeOffset, edgeReachScale, hoverOffset, spriteFalloff, viewportMatrix, type Affine, type Point } from "./fractureInteraction";
-import { installFractureParticles } from "./fractureParticles";
 
 const REST = { rotation: 0, scale: 1, thickness: 1 };
 const ZERO = { x: 0, y: 0 };
-
-function domMatrix(matrix: Affine) {
-	return new DOMMatrix([matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]);
-}
 
 function placeSprite(element: HTMLElement, sprite: FractureSprite, matrix: Affine) {
 	const x = matrix.a * sprite.x + matrix.c * sprite.y + matrix.e;
@@ -21,14 +16,13 @@ function placeSprite(element: HTMLElement, sprite: FractureSprite, matrix: Affin
 }
 
 /** Cached sprites and reveal masks: no live SVG filters, path mutations, or frame-time layout reads. */
-export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, overlay: SVGSVGElement) {
+export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 	const desktop = root.closest<HTMLElement>(".desktop")!;
 	const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
 	const hover = window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
 	let viewport = viewportMatrix(1600, 1000);
 	let size = { width: 1600, height: 1000 };
 	let origin = ZERO;
-	let screenViewport = viewport;
 	let pointer: Point | null = null;
 	let active = false;
 	let frame = 0;
@@ -44,7 +38,6 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		growthImage: layer.querySelector<HTMLImageElement>(`[data-growth="${asset.id}"] img`)!,
 		growthRadius: Math.max(...asset.outline.map((point) => Math.hypot(point.x - 800, point.y - 500))),
 		offset: ZERO,
-		screenMatrix: viewport,
 		elapsed: 0,
 		cycle: null as FractureBranchClock["cycle"],
 		pose: REST,
@@ -55,9 +48,6 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 	}));
 	const angularPieces = [...pieces].sort((a, b) => a.asset.angle - b.asset.angle);
 	const details = layer.querySelector<HTMLElement>(".fracture-details")!;
-	const removeParticles = installFractureParticles(overlay, desktop, hover,
-		pieces.map((piece) => ({ outline: piece.asset.outline, getScreenMatrix: () => active ? domMatrix(piece.screenMatrix) : null })),
-		() => domMatrix(screenViewport));
 
 	function render(delta: number) {
 		for (const piece of pieces) {
@@ -73,7 +63,6 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 			const target = pointer ? hoverOffset(pointer, piece.asset.outline, screen) : ZERO;
 			piece.offset = easeOffset(piece.offset, target, delta);
 			if (!pointer && Math.hypot(piece.offset.x, piece.offset.y) < 0.01) piece.offset = ZERO;
-			piece.screenMatrix = { ...screen, e: screen.e + piece.offset.x, f: screen.f + piece.offset.y };
 			placeSprite(piece.element, piece.asset, { ...ambient, e: ambient.e + piece.offset.x, f: ambient.f + piece.offset.y });
 
 			const growth = piece.cycle ? fractureGrowthAt(piece.cycle, piece.elapsed) : 0;
@@ -95,7 +84,6 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		size = { width: bounds.width, height: bounds.height };
 		viewport = viewportMatrix(bounds.width, bounds.height);
 		origin = { x: bounds.left, y: bounds.top };
-		screenViewport = { ...viewport, e: viewport.e + origin.x, f: viewport.f + origin.y };
 		render(0);
 	}
 
@@ -157,7 +145,6 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement, o
 		destroy() {
 			cancelAnimationFrame(frame);
 			observer.disconnect();
-			removeParticles();
 			desktop.removeEventListener("pointermove", move);
 			desktop.removeEventListener("pointerleave", resetPointer);
 			window.removeEventListener("blur", resetPointer);

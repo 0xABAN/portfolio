@@ -5,7 +5,6 @@ import {
 	transformPoint, viewportMatrix,
 } from "./fractureInteraction";
 import { FRACTURE_PIECES } from "./fractureAssets";
-import { findEdgeHit } from "./fractureParticles";
 
 const close = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} ≠ ${expected}`);
 
@@ -62,8 +61,6 @@ test("hover follows transformed edges with consistent visible pull across viewpo
 		close(offset.y, 0);
 		assert.deepEqual(hoverOffset({ x: edge.x + 201, y: edge.y }, outline, matrix), { x: 0, y: 0 });
 		assert.deepEqual(hoverOffset(edge, outline, matrix), { x: 0, y: 0 });
-		const renderedEdge = { x: edge.x + offset.x, y: edge.y + offset.y };
-		assert.deepEqual(findEdgeHit({ x: renderedEdge.x - 30, y: renderedEdge.y }, { x: renderedEdge.x + 30, y: renderedEdge.y }, [renderedEdge], 18), renderedEdge);
 	}
 });
 

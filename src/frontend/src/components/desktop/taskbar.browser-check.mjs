@@ -46,12 +46,14 @@ async function checkTaskbar(page) {
 	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await sparks.waitFor({ state: "visible" });
+	await page.locator(".fracture-background--ready").waitFor();
+	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
 		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);
-		return z(".desktop__windows") < z(".neko") && z(".neko") < z(".desktop-sparks")
-			&& z(".desktop-sparks") < z(".taskbar")
+		return z(".fracture-background") < z(".desktop-sparks") && z(".desktop-sparks") < z(".desktop__windows")
+			&& z(".desktop__windows") < z(".neko") && z(".neko") < z(".taskbar")
 			&& el.getBoundingClientRect().bottom === document.querySelector(".taskbar").getBoundingClientRect().top;
-	}), "Sparks are not above desktop content and below the taskbar");
+	}), "Sparks are not between the wallpaper and desktop windows");
 	check(await sparks.locator("span").evaluateAll((nodes) => nodes.length === 24 && nodes.every((el) => {
 		const style = getComputedStyle(el);
 		return style.backgroundColor === "rgb(0, 0, 0)" && style.opacity === "1" && style.filter === "none"
