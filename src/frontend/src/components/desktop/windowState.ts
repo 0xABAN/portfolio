@@ -1,4 +1,29 @@
-import type { DesktopWindow } from "./windows";
+import { layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, type DesktopWindow } from "./windows";
+
+export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience";
+
+export function isDecoration(w: DesktopWindow) {
+	return w.kind === "error" || w.id === "new";
+}
+
+/** Start and desktop launchers share one create-or-activate path. */
+export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: number): DesktopWindow[] {
+	let next = windows;
+	if (!windows.some((w) => w.id === id)) {
+		const z = Math.max(0, ...windows.map((w) => w.z)) + 1;
+		const created = id === "bio" ? [makeBioWindow(z, vw, vh)]
+			: id === "experience" ? [makeExperienceWindow(z, vw, vh)]
+			: id === "explorer" ? [makeExplorerWindow(z, windows.find((w) => w.id === "me"), vw, vh)]
+			: layoutDesktop(vw, vh).filter((w) => w.id === id || w.parentId === id);
+		next = [...windows, ...created];
+	}
+	return activateWindow(next, id).map((w) => w.id === id || w.parentId === id ? { ...w, launched: true } : w);
+}
+
+export function restoreDecorations(windows: DesktopWindow[]): DesktopWindow[] {
+	let z = Math.max(0, ...windows.map((w) => w.z)) + 1;
+	return windows.map((w) => isDecoration(w) && w.minimized ? { ...w, minimized: false, launched: true, z: z++ } : w);
+}
 
 /** Array order is launch order, independent of activation and minimization. */
 export function taskWindows(windows: DesktopWindow[]) {

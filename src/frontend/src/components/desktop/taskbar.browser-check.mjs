@@ -69,7 +69,51 @@ async function checkTaskbar(page) {
 		}
 	});
 	check(await win("terminal").evaluate((el) => el.parentElement.classList.contains("desktop__windows") && +getComputedStyle(el.parentElement).zIndex < +getComputedStyle(document.querySelector(".taskbar")).zIndex), "Windows escaped the taskbar stacking boundary");
-	return "PASS: activation, family stacking, stable task order and taskbar layering";
+	const start = page.getByRole("button", { name: "Start", exact: true });
+	const menu = page.getByRole("menu", { name: "Start menu", exact: true });
+	await start.focus();
+	await start.press("ArrowDown");
+	await menu.getByRole("menuitem", { name: "Programs", exact: true }).press("ArrowRight");
+	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
+	await page.keyboard.press("ArrowDown");
+	await page.keyboard.press("Enter");
+	check(!(await menu.isVisible()), "Launch did not dismiss Start");
+	check(await input.inputValue() === "keep my draft", "Start relaunched an existing terminal");
+
+	await start.click();
+	await menu.getByRole("menuitem", { name: "Documents", exact: true }).hover();
+	await menu.getByRole("menuitem", { name: "bio.txt", exact: true }).click();
+	check(await win("bio").isVisible(), "Documents did not open bio.txt");
+	await win("bio").evaluate((el) => { window.savedBio = el; });
+	await win("bio").getByRole("button", { name: "Minimize", exact: true }).click();
+	await start.click();
+	await menu.getByRole("menuitem", { name: "Documents", exact: true }).click();
+	await page.waitForFunction(() => document.activeElement?.textContent === "secrets");
+	await page.keyboard.press("End");
+	await page.keyboard.press("Enter");
+	check(await win("bio").evaluate((el) => el === window.savedBio && !el.inert), "Start replaced rather than restored bio.txt");
+	await page.waitForFunction(() => document.getElementById("desktop-window-bio").contains(document.activeElement));
+
+	await start.focus();
+	await start.press("ArrowDown");
+	await page.keyboard.press("ArrowRight");
+	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
+	await page.keyboard.press("Escape");
+	check(await menu.isVisible(), "Submenu Escape closed all menus");
+	await page.keyboard.press("Escape");
+	check(!(await menu.isVisible()), "Escape did not close Start");
+	check(await start.evaluate((el) => el === document.activeElement), "Escape lost the Start trigger focus");
+	await start.click();
+	await page.mouse.click(300, 40);
+	check(!(await menu.isVisible()), "Outside click did not dismiss Start");
+
+	await win("sysmsg-4").dispatchEvent("pointerdown", { button: 0 });
+	await win("sysmsg-4").getByRole("button", { name: "Minimize", exact: true }).click();
+	await start.click();
+	await menu.getByRole("menuitem", { name: "Restore desktop decorations" }).click();
+	check(await win("sysmsg-4").isVisible(), "Start did not restore decorations");
+	check(await input.inputValue() === "keep my draft", "Decoration restore reset an app");
+	return "PASS: activation, stacking, stable tasks, preserved sessions, Paint undo and Start menu";
 }
 
 try {

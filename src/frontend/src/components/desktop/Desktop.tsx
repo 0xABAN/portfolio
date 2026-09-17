@@ -15,7 +15,7 @@ import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
 import { Terminal } from "./Terminal";
 import { Window } from "./window/Window";
-import { activateWindow, activeWindowId, minimizeWindowTree, taskWindows } from "./windowState";
+import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./windowState";
 import {
 	altCropStyle,
 	clampToParent,
@@ -23,10 +23,6 @@ import {
 	clampWindowPos,
 	layoutDesktop,
 	reflowDesktop,
-	makeBioWindow,
-	makeExplorerWindow,
-	makeExperienceWindow,
-	EXPERIENCE_WINDOW_ID,
 	type DesktopWindow,
 } from "./windows";
 import "./desktop.css";
@@ -198,12 +194,8 @@ export function Desktop() {
 		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
 	}
 
-	function isBootVisible(id: string) {
-		return !BOOT_WINDOWS.has(id) || revealed.has(id);
-	}
-
-	function nextZ(prev: DesktopWindow[]) {
-		return prev.reduce((z, w) => Math.max(z, w.z), 0) + 1;
+	function isBootVisible(w: DesktopWindow) {
+		return w.launched || !BOOT_WINDOWS.has(w.id) || revealed.has(w.id);
 	}
 
 	function minimizeWindow(id: string) {
@@ -216,12 +208,11 @@ export function Desktop() {
 		requestAnimationFrame(() => document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true }));
 	}
 
-	function openOrRaise(id: string, make: (z: number, current: DesktopWindow[]) => DesktopWindow) {
-		setWindows((prev) => {
-			const existing = prev.find((w) => w.id === id);
-			if (!existing) return [...prev, make(nextZ(prev), prev)];
-			return activateWindow(prev, id);
-		});
+	function launchApp(id: AppId) {
+		const { innerWidth, innerHeight } = window;
+		if (id === "explorer") setSecretsOpened(true);
+		setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
+		requestAnimationFrame(() => document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true }));
 	}
 
 	function withBusy(run: () => void, delay = 1500) {
@@ -235,22 +226,15 @@ export function Desktop() {
 	}
 
 	function openBio() {
-		withBusy(() => openOrRaise("bio", makeBioWindow));
+		withBusy(() => launchApp("bio"));
 	}
 
 	function openExplorer() {
-		withBusy(() => {
-			openOrRaise("explorer", (z, current) => makeExplorerWindow(z, current.find((w) => w.id === "me")));
-		}, 500);
+		withBusy(() => launchApp("explorer"), 500);
 	}
 
 	function openExperience() {
-		withBusy(() => {
-			setWindows((prev) => {
-				const rest = prev.filter((w) => w.id !== EXPERIENCE_WINDOW_ID);
-				return [...rest, makeExperienceWindow(nextZ(rest))];
-			});
-		});
+		withBusy(() => launchApp("experience"));
 	}
 
 	function openExplorerFile(file: ExplorerFile) {
@@ -296,7 +280,7 @@ export function Desktop() {
 		});
 	}
 
-	const visibleWindows = windows.filter((w) => isBootVisible(w.id));
+	const visibleWindows = windows.filter(isBootVisible);
 	const activeId = activeWindowId(visibleWindows);
 
 	return (
@@ -404,6 +388,9 @@ export function Desktop() {
 				tasks={taskWindows(visibleWindows)}
 				activeId={activeId}
 				onActivateAction={restoreWindow}
+				onLaunchAction={launchApp}
+				onRestoreDecorationsAction={() => setWindows(restoreDecorations)}
+				canRestoreDecorations={windows.some((w) => isDecoration(w) && w.minimized)}
 				revealed={revealed}
 			/>
 			{revealed.has("neko") ? <Neko /> : null}

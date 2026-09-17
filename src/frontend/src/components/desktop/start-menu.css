@@ -1,0 +1,125 @@
+/* Win95 menus open instantly; only the palette differs from the original shell. */
+.start-menu,
+.start-menu__submenu {
+	padding: 3px;
+	border: 1px solid;
+	border-color: #929292 #000 #000 #929292;
+	box-shadow: inset 1px 1px #d0d0d0, inset -1px -1px #424242;
+	background: var(--chrome-face);
+	color: var(--chrome-text);
+	font: 11px / 1 "Win95 UI", Tahoma, sans-serif;
+}
+
+.start-menu {
+	position: fixed;
+	inset: auto auto var(--taskbar-height, 36px) 4px;
+	margin: 0;
+	width: min(238px, calc(100vw - 8px));
+	overflow: visible;
+}
+
+.start-menu:popover-open {
+	display: flex;
+}
+
+.start-menu__brand {
+	flex: none;
+	padding: 5px 3px;
+	background: #454545;
+	color: #b0b0b0;
+	font: 700 20px / 1 Arial, sans-serif;
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+}
+
+.start-menu__brand strong {
+	color: #f0f0f0;
+}
+
+.start-menu__items {
+	flex: 1;
+	min-width: 0;
+}
+
+.start-menu__group {
+	position: relative;
+}
+
+.start-menu button {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 40px;
+	padding: 4px 6px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	white-space: nowrap;
+	cursor: var(--cursor-arrow);
+}
+
+.start-menu button > span:not(.start-menu__arrow) {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.start-menu button:not(:disabled):is(:hover, :focus) {
+	background: var(--desktop-bg);
+	color: #fff;
+	outline: none;
+}
+
+.start-menu button:focus-visible {
+	outline: 1px dotted #fff;
+	outline-offset: -3px;
+}
+
+.start-menu button:disabled {
+	color: #858585;
+	text-shadow: 1px 1px #000;
+}
+
+.start-menu img {
+	flex: none;
+	image-rendering: pixelated;
+	object-fit: contain;
+}
+
+.start-menu hr {
+	margin: 3px 2px;
+	border: 0;
+	border-top: 1px solid #000;
+	border-bottom: 1px solid #696969;
+}
+
+.start-menu__arrow {
+	margin-left: auto;
+	border-block: 4px solid transparent;
+	border-left: 4px solid currentColor;
+}
+
+.start-menu__submenu {
+	position: absolute;
+	left: calc(100% - 2px);
+	bottom: -3px;
+	z-index: 1;
+	width: 188px;
+	max-height: calc(100dvh - var(--taskbar-height, 36px) - 12px);
+	overflow-y: auto;
+}
+
+.start-menu__submenu button {
+	min-height: 26px;
+}
+
+@media (max-width: 520px) {
+	.start-menu__submenu {
+		left: 12px;
+		bottom: 100%;
+		max-width: calc(100vw - 56px);
+	}
+}

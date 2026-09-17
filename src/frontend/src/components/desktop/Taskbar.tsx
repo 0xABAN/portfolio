@@ -3,6 +3,7 @@
 import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { CdPlayerPop } from "./CdPlayerPop";
 import { StartButton } from "./StartButton";
+import type { AppId } from "./windowState";
 import { useTaskbarAudio } from "./useTaskbarAudio";
 import { useViewCount } from "./useViewCount";
 import { GITHUB_URL, type DesktopWindow } from "./windows";
@@ -56,11 +57,14 @@ type Props = {
 	tasks: DesktopWindow[];
 	activeId?: string;
 	onActivateAction: (id: string) => void;
+	onLaunchAction: (id: AppId) => void;
+	onRestoreDecorationsAction: () => void;
+	canRestoreDecorations: boolean;
 	/** Boot trickle — when set, chrome pieces appear only if id is in the set. */
 	revealed?: ReadonlySet<string>;
 };
 
-export function Taskbar({ tasks, activeId, onActivateAction, revealed }: Props) {
+export function Taskbar({ tasks, activeId, onActivateAction, onLaunchAction, onRestoreDecorationsAction, canRestoreDecorations, revealed }: Props) {
 	const show = (id: string) => !revealed || revealed.has(id);
 	const [clock, setClock] = useState(() => formatClock(new Date()));
 	const [cdOpen, setCdOpen] = useState(false);
@@ -133,7 +137,7 @@ export function Taskbar({ tasks, activeId, onActivateAction, revealed }: Props) 
 	return (
 		<footer className="taskbar" role="contentinfo" aria-label="Taskbar">
 			<div className="taskbar__left">
-				{show("tb:start") ? <StartButton /> : null}
+				{show("tb:start") ? <StartButton onLaunchAction={onLaunchAction} onRestoreDecorationsAction={onRestoreDecorationsAction} canRestoreDecorations={canRestoreDecorations} /> : null}
 				<div className="taskbar__tasks">
 					{LINKS.filter((link) => show(`tb:${link.id}`)).map((link) => (
 						<TaskButton

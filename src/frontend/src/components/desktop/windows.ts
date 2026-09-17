@@ -21,8 +21,10 @@ export type DesktopWindow = {
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
-	/** Hidden from desktop; shown as a taskbar tab until restored */
+	/** Hidden without unmounting. Decorations are restored through Start. */
 	minimized?: boolean;
+	/** An explicit launch bypasses the initial boot reveal schedule. */
+	launched?: boolean;
 };
 
 const TASKBAR_H = 36;
@@ -323,14 +325,14 @@ const BIO_W = 572;
 const BIO_H = 420;
 
 /** Centered bio.txt window (opened from desk icon, not on load). */
-export function makeBioWindow(z: number): DesktopWindow {
+export function makeBioWindow(z: number, vw?: number, vh?: number): DesktopWindow {
 	return {
 		id: "bio",
 		title: "bio.txt",
 		kind: "bio",
 		icon: "/icons/notepad.svg",
 		z,
-		...layoutCentered(BIO_W, BIO_H),
+		...layoutCentered(BIO_W, BIO_H, vw, vh),
 	};
 }
 
