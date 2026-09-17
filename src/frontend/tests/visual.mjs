@@ -29,11 +29,16 @@ try {
   for (const [width, height] of [[1440, 900], [960, 600], [390, 844]]) {
     const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', locale: 'en-US', timezoneId: 'UTC' });
     await context.route('**/api/views', route => route.fulfill({ json: { views: 1234 } }));
-    await context.route('https://github-contributions-api.jogruber.de/**', route => route.fulfill({ json: {
-      contributions: Array.from({ length: 365 }, (_, i) => ({
-        date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
-      })),
-    } }));
+    let contributionsRequests = 0;
+    let failContributions = false;
+    await context.route('https://github-contributions-api.jogruber.de/**', route => {
+      contributionsRequests++;
+      return route.fulfill(failContributions ? { status: 503, json: { error: 'Unavailable' } } : { json: {
+        contributions: Array.from({ length: 365 }, (_, i) => ({
+          date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
+        })),
+      } });
+    });
     await context.route('**/photos/beep-boop.gif', route => route.fulfill({ contentType: 'image/png', body: gif }));
     await context.addInitScript(() => {
       let seed = 42;
@@ -126,6 +131,14 @@ try {
     await page.mouse.move(0, 0);
     await page.locator('.cd-pop').waitFor({ state: 'hidden' });
     await capture('desktop');
+    async function checkCalendar() {
+      await page.locator('.gh-app rect[data-date="2025-12-31"]').waitFor();
+      assert.ok(await page.locator('.react-activity-calendar__scroll-container').evaluate(
+        el => Math.abs(el.scrollLeft + el.clientWidth - el.scrollWidth) <= 1,
+      ), 'Calendar starts scrolled to the latest date');
+    }
+    await checkCalendar();
+    assert.equal(contributionsRequests, 1, 'One request across Strict Mode remount');
 
     // Mobile windows overlap this icon; exercise its handler independently of stacking.
     await page.locator('.desk-icon[title="secrets"]').dispatchEvent('click');
@@ -168,6 +181,25 @@ try {
     await portrait.waitFor({ state: 'hidden' });
     await page.locator('.task-btn[title="adam"]').dispatchEvent('click');
     await portrait.waitFor({ state: 'visible' });
+    const githubWindow = page.locator('.win').filter({ has: page.locator('.gh-app') });
+    async function remountCalendar() {
+      await githubWindow.getByRole('button', { name: 'Minimize', exact: true }).dispatchEvent('click');
+      await page.locator('.task-btn[title="github"]').dispatchEvent('click');
+      await checkCalendar();
+    }
+    await remountCalendar();
+    assert.equal(contributionsRequests, 1, 'Successful requests stay cached after restore');
+    if (width === 1440) {
+      failContributions = true;
+      await page.reload();
+      await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
+      await page.locator('.rsod').click();
+      await page.locator('.gh-app__err').waitFor();
+      assert.equal(contributionsRequests, 2);
+      failContributions = false;
+      await remountCalendar();
+      assert.equal(contributionsRequests, 3, 'Failed requests retry on remount');
+    }
     assert.deepEqual(errors, [], 'Browser errors');
     await context.close();
   }
