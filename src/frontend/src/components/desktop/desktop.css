@@ -337,13 +337,13 @@
 		rotate: 0deg;
 	}
 	30% {
-		rotate: 0.2deg;
+		rotate: 0.5deg;
 	}
 	58% {
-		rotate: -0.3deg;
+		rotate: -0.6deg;
 	}
 	80% {
-		rotate: 0.15deg;
+		rotate: 0.35deg;
 	}
 }
 
