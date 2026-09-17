@@ -15,6 +15,7 @@ import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
 import { Terminal } from "./Terminal";
 import { Window } from "./window/Window";
+import { activateWindow, activeWindowId, minimizeWindowTree, taskWindows } from "./windowState";
 import {
 	altCropStyle,
 	clampToParent,
@@ -134,18 +135,6 @@ function windowBody(
 	return null;
 }
 
-function restoreTree(
-	prev: DesktopWindow[],
-	id: string,
-	z: number,
-): DesktopWindow[] {
-	return prev.map((w) => {
-		if (w.id === id) return { ...w, minimized: false, z };
-		if (w.parentId === id) return { ...w, minimized: false };
-		return w;
-	});
-}
-
 export function Desktop() {
 	// Boot mounts this client-only, so window is available on first paint
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
@@ -153,8 +142,6 @@ export function Desktop() {
 	);
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
-	/** Taskbar tab order — first minimized is leftmost (after CD Player). */
-	const [minOrder, setMinOrder] = useState<string[]>([]);
 	const [trashed, setTrashed] = useState<ReadonlySet<string>>(() => new Set());
 	const [binFull, setBinFull] = useState(false);
 	const [binHot, setBinHot] = useState(false);
@@ -197,7 +184,6 @@ export function Desktop() {
 	function trashWindow(id: string) {
 		setBinFull(true);
 		setBinHot(false);
-		clearMinOrder(id);
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
 	}
 
@@ -219,35 +205,21 @@ export function Desktop() {
 		return prev.reduce((z, w) => Math.max(z, w.z), 0) + 1;
 	}
 
-	function clearMinOrder(id: string) {
-		setMinOrder((prev) =>
-			prev.includes(id) ? prev.filter((x) => x !== id) : prev,
-		);
-	}
-
 	function minimizeWindow(id: string) {
-		setWindows((prev) =>
-			prev.map((w) =>
-				w.id === id || w.parentId === id ? { ...w, minimized: true } : w,
-			),
-		);
-		setMinOrder((prev) => (prev.includes(id) ? prev : [...prev, id]));
+		setWindows((prev) => minimizeWindowTree(prev, id));
 	}
 
 	function restoreWindow(id: string) {
-		setWindows((prev) => restoreTree(prev, id, nextZ(prev)));
-		clearMinOrder(id);
+		setWindows((prev) => activateWindow(prev, id));
+		// Explicit task activation may restore focus; asynchronous app updates must not.
+		requestAnimationFrame(() => document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true }));
 	}
 
 	function openOrRaise(id: string, make: (z: number, current: DesktopWindow[]) => DesktopWindow) {
 		setWindows((prev) => {
 			const existing = prev.find((w) => w.id === id);
 			if (!existing) return [...prev, make(nextZ(prev), prev)];
-			if (existing.minimized) {
-				clearMinOrder(id);
-				return restoreTree(prev, id, nextZ(prev));
-			}
-			return prev.map((w) => (w.id === id ? { ...w, z: nextZ(prev) } : w));
+			return activateWindow(prev, id);
 		});
 	}
 
@@ -323,6 +295,9 @@ export function Desktop() {
 		});
 	}
 
+	const visibleWindows = windows.filter((w) => isBootVisible(w.id));
+	const activeId = activeWindowId(visibleWindows);
+
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"}>
 			<FractureBackground active={revealed.has("fracture")} />
@@ -394,40 +369,41 @@ export function Desktop() {
 					</li>
 				) : null}
 			</ul>
-			{windows
-				.filter((w) => !w.minimized && isBootVisible(w.id))
-				.map((w) => (
-					<Window
-						key={w.id}
-						title={w.title}
-						icon={w.icon}
-						x={w.x}
-						y={w.y}
-						w={w.w}
-						h={w.h}
-						z={w.z}
-						variant={w.kind === "github" ? "genesis" : w.kind === "terminal" ? "dos" : undefined}
-						// Nested crop + parent-of-nested need live React geometry while dragging
-						liveMove={Boolean(
-							w.parentId || windows.some((c) => c.parentId === w.id),
-						)}
-						minimizable={w.id !== "alt"}
-						onMinimizeAction={() => minimizeWindow(w.id)}
-						onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
-						onTrashHoverAction={setBinHot}
-						onTrashAction={() => trashWindow(w.id)}
-					>
-						{windowBody(w, windows, minimizeWindow, openExplorerFile)}
-					</Window>
-				))}
+			<div className="desktop__windows">
+				{visibleWindows
+					.filter((w) => !w.minimized)
+					.map((w) => (
+						<Window
+							key={w.id}
+							id={w.id}
+							active={(w.parentId ?? w.id) === activeId}
+							onActivateAction={() => setWindows((prev) => activateWindow(prev, w.id))}
+							title={w.title}
+							icon={w.icon}
+							x={w.x}
+							y={w.y}
+							w={w.w}
+							h={w.h}
+							z={w.z}
+							variant={w.kind === "github" ? "genesis" : w.kind === "terminal" ? "dos" : undefined}
+							// Nested crop + parent-of-nested need live React geometry while dragging
+							liveMove={Boolean(
+								w.parentId || windows.some((c) => c.parentId === w.id),
+							)}
+							minimizable={w.id !== "alt"}
+							onMinimizeAction={() => minimizeWindow(w.id)}
+							onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
+							onTrashHoverAction={setBinHot}
+							onTrashAction={() => trashWindow(w.id)}
+						>
+							{windowBody(w, windows, minimizeWindow, openExplorerFile)}
+						</Window>
+					))}
+			</div>
 			<Taskbar
-				minimized={minOrder.flatMap((id) => {
-					const w = windows.find((x) => x.id === id);
-					return w && w.minimized && !w.parentId && isBootVisible(w.id)
-						? [w]
-						: [];
-				})}
-				onRestoreAction={restoreWindow}
+				tasks={taskWindows(visibleWindows)}
+				activeId={activeId}
+				onActivateAction={restoreWindow}
 				revealed={revealed}
 			/>
 			{revealed.has("neko") ? <Neko /> : null}

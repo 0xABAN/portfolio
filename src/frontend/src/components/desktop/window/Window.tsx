@@ -10,6 +10,9 @@ import {
 import "./window.css";
 
 type Props = {
+	id: string;
+	active: boolean;
+	onActivateAction: () => void;
 	title: string;
 	icon?: string;
 	x: number;
@@ -70,6 +73,9 @@ function hitTrash(clientX: number, clientY: number) {
 }
 
 function WindowInner({
+	id,
+	active,
+	onActivateAction,
 	title,
 	icon,
 	x,
@@ -87,6 +93,7 @@ function WindowInner({
 	children,
 }: Props) {
 	const rootRef = useRef<HTMLElement>(null);
+	const lastFocus = useRef<HTMLElement | null>(null);
 	const drag = useRef<DragOrigin | null>(null);
 	const moveRef = useRef(onMoveAction);
 	const trashRef = useRef(onTrashAction);
@@ -106,9 +113,11 @@ function WindowInner({
 	}
 
 	useLayoutEffect(() => {
-		if (drag.current && !drag.current.live) return;
 		const el = rootRef.current;
 		if (!el) return;
+		// Activation still raises a window during its imperative drag.
+		el.style.zIndex = String(z);
+		if (drag.current && !drag.current.live) return;
 		applyGeometry(el, { x, y, w, h, z });
 	}, [x, y, w, h, z]);
 
@@ -181,8 +190,21 @@ function WindowInner({
 	return (
 		<section
 			ref={rootRef}
+			id={`desktop-window-${id}`}
+			data-window-id={id}
+			data-active={active}
+			tabIndex={-1}
 			className={variant ? `win win--${variant}` : "win"}
-			aria-label={title || "window"}
+			aria-label={title || "GitHub Activity"}
+			onPointerDownCapture={onActivateAction}
+			onFocusCapture={(event) => {
+				onActivateAction();
+				if (event.target === event.currentTarget) {
+					if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
+				} else {
+					lastFocus.current = event.target as HTMLElement;
+				}
+			}}
 		>
 			<header
 				className="win-titlebar"

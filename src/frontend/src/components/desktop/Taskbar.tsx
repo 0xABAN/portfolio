@@ -53,13 +53,14 @@ function TaskButton({ icon, children, ...props }: ComponentProps<"button"> & { i
 }
 
 type Props = {
-	minimized?: DesktopWindow[];
-	onRestoreAction?: (id: string) => void;
+	tasks: DesktopWindow[];
+	activeId?: string;
+	onActivateAction: (id: string) => void;
 	/** Boot trickle — when set, chrome pieces appear only if id is in the set. */
 	revealed?: ReadonlySet<string>;
 };
 
-export function Taskbar({ minimized = [], onRestoreAction, revealed }: Props) {
+export function Taskbar({ tasks, activeId, onActivateAction, revealed }: Props) {
 	const show = (id: string) => !revealed || revealed.has(id);
 	const [clock, setClock] = useState(() => formatClock(new Date()));
 	const [cdOpen, setCdOpen] = useState(false);
@@ -189,17 +190,20 @@ export function Taskbar({ minimized = [], onRestoreAction, revealed }: Props) {
 							</TaskButton>
 						</div>
 					) : null}
-					{minimized.map((w) => {
+					{tasks.map((w) => {
 						// genesis github keeps an empty titlebar but needs a task tab name
 						const label =
-							w.title || (w.kind === "github" ? "github" : w.id);
+							w.title || (w.kind === "github" ? "GitHub Activity" : w.id);
 						return (
 							<TaskButton
 								key={w.id}
 								icon={w.icon}
-								className="task-btn task-btn--active chrome-raised"
+								className={`task-btn chrome-raised${w.id === activeId ? " task-btn--active" : ""}`}
 								title={label}
-								onClick={() => onRestoreAction?.(w.id)}
+								data-task-id={w.id}
+								aria-controls={`desktop-window-${w.id}`}
+								aria-pressed={w.id === activeId}
+								onClick={() => onActivateAction(w.id)}
 							>
 								{label}
 							</TaskButton>

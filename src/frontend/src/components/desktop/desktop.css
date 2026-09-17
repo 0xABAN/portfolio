@@ -19,6 +19,19 @@
 	cursor: var(--cursor-arrow);
 }
 
+/* Window z-order is local: repeated activation must never cover the taskbar. */
+.desktop__windows {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	pointer-events: none;
+}
+
+.desktop__windows > .win {
+	pointer-events: auto;
+	outline: none;
+}
+
 /* fake app-launch wait — force hourglass over everything */
 .desktop--busy,
 .desktop--busy * {
