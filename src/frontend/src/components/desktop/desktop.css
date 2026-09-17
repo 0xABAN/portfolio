@@ -241,7 +241,7 @@
 .desk-icon__bubble {
 	position: absolute;
 	left: calc(100% + 4px);
-	top: calc(50% - 44px);
+	top: calc(50% - 64px);
 	width: 144px;
 	height: 70px;
 	pointer-events: none;

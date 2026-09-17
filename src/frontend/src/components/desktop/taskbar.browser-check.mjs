@@ -51,6 +51,7 @@ async function checkTaskbar(page) {
 		art.src = "/icons/secrets-bubble.svg";
 		await art.decode();
 		return art.naturalWidth === 120 && art.naturalHeight === 58
+			&& style.top === "-32px"
 			&& style.width === "144px" && style.height === "70px"
 			&& body.paddingLeft === "24px" && body.paddingRight === "20px"
 			&& body.backgroundImage.includes("/icons/secrets-bubble.svg")
