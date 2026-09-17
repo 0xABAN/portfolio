@@ -39,9 +39,7 @@ async function checkTerminal(page) {
 	const greeting = opening.indexOf("ADAM> how u doing :)");
 	check(help > 1 && explanation > help && launch > explanation && greeting > launch, "Expected HELP, command list, ADAM.EXE, then Adam's greeting");
 	// Test controls unobstructed by the deliberately overlapping desktop windows.
-	await page.locator(".win--dos").evaluate((el) => {
-		el.style.cssText += ";left:20px;top:20px;width:640px;height:480px;z-index:100";
-	});
+	await page.addStyleTag({ content: ".win--dos { left:20px !important; top:20px !important; width:640px !important; height:480px !important; z-index:100 !important; }" });
 	await page.evaluate(() => {
 		window.testClipboard = "";
 		window.clipboardDenied = false;

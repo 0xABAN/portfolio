@@ -33,6 +33,36 @@ async function checkTaskbar(page) {
 	check(await win("alt").isVisible(), "Nested window did not restore");
 	check(JSON.stringify(await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId))) === JSON.stringify(order), "Switching reordered tasks");
 
+	await task("terminal").click();
+	const input = page.getByRole("textbox", { name: "Terminal input" });
+	await input.fill("keep my draft");
+	await input.evaluate((el) => { window.savedTerminalInput = el; });
+	await win("terminal").getByRole("button", { name: "Minimize", exact: true }).click();
+	check(await win("terminal").count() === 1, "Minimization unmounted Terminal");
+	check(await win("terminal").evaluate((el) => el.inert), "Minimized window is still interactive");
+	await task("terminal").click();
+	check(await input.inputValue() === "keep my draft", "Minimization erased the draft");
+	await page.waitForFunction(() => document.activeElement === window.savedTerminalInput);
+	check(await input.evaluate((el) => el === window.savedTerminalInput && el === document.activeElement), "Restoration replaced the field or lost its focus");
+
+	await task("me").click();
+	const canvas = win("me").locator("canvas");
+	await page.waitForFunction(() => document.querySelector(".paint__canvas").getContext("2d").getImageData(10, 10, 1, 1).data[3] > 0);
+	const original = await canvas.evaluate((el) => el.toDataURL());
+	const rect = await canvas.boundingBox();
+	await page.mouse.move(rect.x + 15, rect.y + rect.height * 0.7);
+	await page.mouse.down();
+	await page.mouse.move(rect.x + 55, rect.y + rect.height * 0.7 + 15, { steps: 4 });
+	await page.mouse.up();
+	const painted = await canvas.evaluate((el) => el.toDataURL());
+	check(painted !== original, "Paint stroke did not draw");
+	await win("me").getByRole("button", { name: "Minimize", exact: true }).click();
+	await page.keyboard.press("Control+z");
+	check(await canvas.evaluate((el) => el.toDataURL()) === painted, "Hidden Paint processed undo or lost its drawing");
+	await task("me").click();
+	await page.keyboard.press("Control+z");
+	check(await canvas.evaluate((el) => el.toDataURL()) === original, "Paint lost undo history");
+
 	await page.evaluate(() => {
 		for (let i = 0; i < 120; i++) {
 			for (const id of ["me", "terminal"]) document.getElementById(`desktop-window-${id}`).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));

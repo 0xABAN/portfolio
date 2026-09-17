@@ -32,6 +32,12 @@
 	outline: none;
 }
 
+/* Retain layout, scroll positions and canvas resolution while excluding interaction. */
+.desktop__windows > .win[data-minimized="true"] {
+	visibility: hidden;
+	pointer-events: none;
+}
+
 /* fake app-launch wait — force hourglass over everything */
 .desktop--busy,
 .desktop--busy * {

@@ -12,6 +12,7 @@ import "./window.css";
 type Props = {
 	id: string;
 	active: boolean;
+	minimized: boolean;
 	onActivateAction: () => void;
 	title: string;
 	icon?: string;
@@ -75,6 +76,7 @@ function hitTrash(clientX: number, clientY: number) {
 function WindowInner({
 	id,
 	active,
+	minimized,
 	onActivateAction,
 	title,
 	icon,
@@ -193,6 +195,9 @@ function WindowInner({
 			id={`desktop-window-${id}`}
 			data-window-id={id}
 			data-active={active}
+			data-minimized={minimized}
+			inert={minimized}
+			aria-hidden={minimized || undefined}
 			tabIndex={-1}
 			className={variant ? `win win--${variant}` : "win"}
 			aria-label={title || "GitHub Activity"}
@@ -201,7 +206,7 @@ function WindowInner({
 				onActivateAction();
 				if (event.target === event.currentTarget) {
 					if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
-				} else {
+				} else if (!(event.target as HTMLElement).closest(".win-titlebar")) {
 					lastFocus.current = event.target as HTMLElement;
 				}
 			}}

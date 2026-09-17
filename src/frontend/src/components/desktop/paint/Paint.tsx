@@ -16,9 +16,10 @@ import "./paint.css";
 
 type Props = {
 	src: string;
+	active: boolean;
 };
 
-export function Paint({ src }: Props) {
+export function Paint({ src, active }: Props) {
 	const [tool, setTool] = useState<ToolId>("pencil");
 	const [fg, setFg] = useState<string>(PALETTE[0]);
 	const [bg, setBg] = useState<string>(PALETTE[14]);
@@ -27,6 +28,7 @@ export function Paint({ src }: Props) {
 
 	const { canvasRef, wrapRef } = usePaintCanvas({
 		src,
+		active,
 		tool,
 		fg,
 		bg,
@@ -87,7 +89,7 @@ export function Paint({ src }: Props) {
 				</div>
 
 				<div ref={wrapRef} className="paint__canvas-wrap paint__sunken">
-					<canvas ref={canvasRef} className="paint__canvas" />
+					<canvas ref={canvasRef} className="paint__canvas" tabIndex={0} aria-label="Paint canvas" />
 				</div>
 			</div>
 

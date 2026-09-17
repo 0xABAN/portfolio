@@ -92,12 +92,13 @@ function windowBody(
 	all: DesktopWindow[],
 	onMinimize: (id: string) => void,
 	onOpenExplorerFile: (file: ExplorerFile) => void,
+	active: boolean,
 ) {
 	switch (w.kind) {
 		case "error":
 			return <SystemMessage onOkAction={() => onMinimize(w.id)} />;
 		case "paint":
-			return w.src ? <Paint src={w.src} /> : null;
+			return w.src ? <Paint src={w.src} active={active} /> : null;
 		case "github":
 			return <GitHubGraph />;
 		case "experience":
@@ -370,35 +371,34 @@ export function Desktop() {
 				) : null}
 			</ul>
 			<div className="desktop__windows">
-				{visibleWindows
-					.filter((w) => !w.minimized)
-					.map((w) => (
-						<Window
-							key={w.id}
-							id={w.id}
-							active={(w.parentId ?? w.id) === activeId}
-							onActivateAction={() => setWindows((prev) => activateWindow(prev, w.id))}
-							title={w.title}
-							icon={w.icon}
-							x={w.x}
-							y={w.y}
-							w={w.w}
-							h={w.h}
-							z={w.z}
-							variant={w.kind === "github" ? "genesis" : w.kind === "terminal" ? "dos" : undefined}
-							// Nested crop + parent-of-nested need live React geometry while dragging
-							liveMove={Boolean(
-								w.parentId || windows.some((c) => c.parentId === w.id),
-							)}
-							minimizable={w.id !== "alt"}
-							onMinimizeAction={() => minimizeWindow(w.id)}
-							onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
-							onTrashHoverAction={setBinHot}
-							onTrashAction={() => trashWindow(w.id)}
-						>
-							{windowBody(w, windows, minimizeWindow, openExplorerFile)}
-						</Window>
-					))}
+				{visibleWindows.map((w) => (
+					<Window
+						key={w.id}
+						id={w.id}
+						active={(w.parentId ?? w.id) === activeId}
+						minimized={Boolean(w.minimized)}
+						onActivateAction={() => setWindows((prev) => activateWindow(prev, w.id))}
+						title={w.title}
+						icon={w.icon}
+						x={w.x}
+						y={w.y}
+						w={w.w}
+						h={w.h}
+						z={w.z}
+						variant={w.kind === "github" ? "genesis" : w.kind === "terminal" ? "dos" : undefined}
+						// Nested crop + parent-of-nested need live React geometry while dragging
+						liveMove={Boolean(
+							w.parentId || windows.some((c) => c.parentId === w.id),
+						)}
+						minimizable={w.id !== "alt"}
+						onMinimizeAction={() => minimizeWindow(w.id)}
+						onMoveAction={(nx, ny) => moveWindow(w.id, nx, ny)}
+						onTrashHoverAction={setBinHot}
+						onTrashAction={() => trashWindow(w.id)}
+					>
+						{windowBody(w, windows, minimizeWindow, openExplorerFile, w.id === activeId)}
+					</Window>
+				))}
 			</div>
 			<Taskbar
 				tasks={taskWindows(visibleWindows)}

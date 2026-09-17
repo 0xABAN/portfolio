@@ -15,6 +15,7 @@ import {
 
 type Props = {
 	src: string;
+	active: boolean;
 	tool: ToolId;
 	fg: string;
 	bg: string;
@@ -23,7 +24,7 @@ type Props = {
 	coordsEl: RefObject<HTMLElement | null>;
 };
 
-type StrokeCfg = Pick<Props, "tool" | "fg" | "bg" | "sizeIndex">;
+type StrokeCfg = Pick<Props, "tool" | "fg" | "bg" | "sizeIndex" | "active">;
 
 type Stroke = {
 	lastX: number;
@@ -47,6 +48,7 @@ function canvasPoint(
 
 export function usePaintCanvas({
 	src,
+	active,
 	tool,
 	fg,
 	bg,
@@ -59,7 +61,7 @@ export function usePaintCanvas({
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-	const cfg = useRef<StrokeCfg>({ tool, fg, bg, sizeIndex });
+	const cfg = useRef<StrokeCfg>({ tool, fg, bg, sizeIndex, active });
 	const strokeRef = useRef<Stroke | null>(null);
 	const undoStack = useRef<ImageData[]>([]);
 	const readyRef = useRef(false);
@@ -69,9 +71,9 @@ export function usePaintCanvas({
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
 	useEffect(() => {
-		cfg.current = { tool, fg, bg, sizeIndex };
+		cfg.current = { tool, fg, bg, sizeIndex, active };
 		coordsElRef.current = coordsEl;
-	}, [tool, fg, bg, sizeIndex, coordsEl]);
+	}, [tool, fg, bg, sizeIndex, coordsEl, active]);
 
 	function emitCoords(c: Coords | null) {
 		const prev = lastCoords.current;
@@ -213,6 +215,7 @@ export function usePaintCanvas({
 			if (!ctx) return;
 
 			e.preventDefault();
+			canvas.focus({ preventScroll: true });
 			refreshRect();
 			canvas.setPointerCapture(e.pointerId);
 			pushUndo(ctx);
@@ -253,6 +256,7 @@ export function usePaintCanvas({
 		}
 
 		function onKey(e: KeyboardEvent) {
+			if (!cfg.current.active) return;
 			if (
 				!(e.metaKey || e.ctrlKey) ||
 				e.key.toLowerCase() !== "z" ||
