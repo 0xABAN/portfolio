@@ -138,7 +138,7 @@ export function Taskbar({
 		playNext,
 		stop,
 		setVolume,
-	} = useTaskbarAudio();
+	} = useTaskbarAudio(show("fracture")); // Fracture is the final boot reveal.
 
 	useEffect(() => {
 		const tick = () => setClock(formatClock(new Date()));

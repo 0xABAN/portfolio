@@ -5,11 +5,15 @@ import { formatElapsed, PLAYLIST, randomTrackIndex, trackAt } from "./playlist";
 
 /**
  * Page-lifetime audio. Not torn down on Strict Mode remount.
- * Transport starts muted on Desktop mount (post-intro); unmute only reveals sound.
+ * Transport starts silently on Desktop mount; the fade waits for boot to finish.
  */
 let sharedAudio: HTMLAudioElement | null = null;
 let sharedTrackIdx = randomTrackIndex();
+let sharedVolume = 1;
+let fadeProgress = 0;
+const FADE_MS = 10_000;
 let mediaStarted = false;
+let autoplayBlocked = false;
 let loadGen = 0;
 const elapsedNodes = new Set<HTMLElement>();
 let lastElapsedSec = -1;
@@ -22,8 +26,8 @@ function getSharedAudio(): HTMLAudioElement {
 	if (sharedAudio) return sharedAudio;
 	const el = new Audio();
 	el.preload = "none";
-	el.muted = true;
-	el.volume = 1;
+	el.muted = false;
+	el.volume = 0;
 	sharedAudio = el;
 	return el;
 }
@@ -31,10 +35,12 @@ function getSharedAudio(): HTMLAudioElement {
 async function startPlayback(el: HTMLAudioElement): Promise<boolean> {
 	if (!el.src) el.src = trackAt(sharedTrackIdx).src;
 	mediaStarted = true;
+	autoplayBlocked = false;
 	try {
 		await el.play();
 		return true;
-	} catch {
+	} catch (error) {
+		autoplayBlocked = error instanceof DOMException && error.name === "NotAllowedError";
 		return false;
 	}
 }
@@ -73,8 +79,8 @@ function loadTrack(idx: number, play: boolean) {
 	mediaStarted = true;
 	const go = () => {
 		if (gen !== loadGen) return;
-		void el.play().catch(() => {
-			if (gen === loadGen) setPlayingBridge?.(false);
+		void startPlayback(el).then((ok) => {
+			if (!ok && gen === loadGen) setPlayingBridge?.(false);
 		});
 	};
 	// play() right after src change often rejects until the element can start
@@ -83,14 +89,15 @@ function loadTrack(idx: number, play: boolean) {
 }
 
 /** Playlist + mute/play for the CD Player tab and speaker. */
-export function useTaskbarAudio() {
+export function useTaskbarAudio(bootComplete: boolean) {
 	const [muted, setMuted] = useState(() => getSharedAudio().muted);
 	const [playing, setPlaying] = useState(() => {
 		const el = getSharedAudio();
 		return !el.paused && mediaStarted;
 	});
 	const [trackIdx, setTrackIdx] = useState(() => sharedTrackIdx);
-	const [volume, setVolumeState] = useState(() => getSharedAudio().volume);
+	// The slider selects the final volume, independently of the startup fade.
+	const [volume, setVolumeState] = useState(() => sharedVolume);
 
 	useEffect(() => {
 		setTrackIdxBridge = setTrackIdx;
@@ -107,8 +114,13 @@ export function useTaskbarAudio() {
 		for (const [event, listener] of listeners) el.addEventListener(event, listener);
 		if (mediaStarted) writeElapsed(Math.floor(el.currentTime || 0));
 
-		// Muted autoplay is allowed without a gesture — start once Desktop mounts.
-		if (!mediaStarted || el.paused) {
+		// Some browsers still require a gesture, even when starting at zero volume.
+		const retryPlayback = () => {
+			if (autoplayBlocked && !el.muted) void startPlayback(el);
+		};
+		window.addEventListener("click", retryPlayback);
+		window.addEventListener("keydown", retryPlayback);
+		if (!mediaStarted) {
 			void startPlayback(el).then((ok) => {
 				if (!ok) setPlaying(false);
 			});
@@ -118,8 +130,36 @@ export function useTaskbarAudio() {
 			if (setTrackIdxBridge === setTrackIdx) setTrackIdxBridge = null;
 			if (setPlayingBridge === setPlaying) setPlayingBridge = null;
 			for (const [event, listener] of listeners) el.removeEventListener(event, listener);
+			window.removeEventListener("click", retryPlayback);
+			window.removeEventListener("keydown", retryPlayback);
 		};
 	}, []);
+
+	useEffect(() => {
+		if (!bootComplete || fadeProgress === 1) return;
+		const el = getSharedAudio();
+		let frame = 0;
+
+		const beginFade = () => {
+			if (frame || fadeProgress === 1) return;
+			const startedAt = performance.now() - fadeProgress * FADE_MS;
+			const fade = (now: number) => {
+				fadeProgress = Math.min(1, (now - startedAt) / FADE_MS);
+				// Quadratic easing leaves extra time near silence to reach Mute.
+				el.volume = sharedVolume * fadeProgress ** 2;
+				if (fadeProgress < 1) frame = requestAnimationFrame(fade);
+			};
+			frame = requestAnimationFrame(fade);
+		};
+
+		// Blocked or buffering playback gets the full fade when it actually starts.
+		el.addEventListener("playing", beginFade);
+		if (!el.paused && el.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) beginFade();
+		return () => {
+			cancelAnimationFrame(frame);
+			el.removeEventListener("playing", beginFade);
+		};
+	}, [bootComplete]);
 
 	const tryPlay = () => {
 		void startPlayback(getSharedAudio()).then((ok) => {
@@ -132,7 +172,7 @@ export function useTaskbarAudio() {
 		const next = !el.muted;
 		el.muted = next;
 		setMuted(next);
-		// If muted autoplay was blocked, this click is the gesture that unlocks it.
+		// This click can also unlock playback if autoplay was blocked.
 		if (!next && el.paused) tryPlay();
 	};
 
@@ -149,6 +189,7 @@ export function useTaskbarAudio() {
 
 	const stop = () => {
 		const el = getSharedAudio();
+		autoplayBlocked = false;
 		el.pause();
 		el.currentTime = 0;
 		lastElapsedSec = -1;
@@ -157,7 +198,8 @@ export function useTaskbarAudio() {
 
 	const setVolume = (v: number) => {
 		const next = Math.min(1, Math.max(0, v));
-		getSharedAudio().volume = next;
+		sharedVolume = next;
+		getSharedAudio().volume = next * fadeProgress ** 2;
 		setVolumeState(next);
 	};
 

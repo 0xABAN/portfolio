@@ -18,10 +18,14 @@ async function checkTaskbar(page) {
 		// Observe the real page-lifetime transport without adding production test hooks.
 		window.audioActions = [];
 		window.Audio = class extends window.Audio {
+			requestedVolume = 1;
 			constructor(...args) {
 				super(...args);
+				super.volume = 0; // Silence physical output without interfering with the fade.
 				window.taskbarAudio = this;
 			}
+			get volume() { return this.requestedVolume; }
+			set volume(value) { this.requestedVolume = value; }
 			play() { window.audioActions.push("play"); return super.play(); }
 			pause() { window.audioActions.push("pause"); return super.pause(); }
 			load() { window.audioActions.push("load"); return super.load(); }
@@ -33,7 +37,6 @@ async function checkTaskbar(page) {
 	check(JSON.stringify(icons.slice(-2)) === JSON.stringify(["secrets", "Recycle Bin"]), "App shortcuts must precede Secrets and Recycle Bin");
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
-		window.taskbarAudio.volume = 0; // Exercise playback/mute without making sound.
 		window.openedLinks = [];
 		window.open = (...args) => { window.openedLinks.push(args); return null; };
 	});
@@ -213,7 +216,8 @@ async function checkTaskbar(page) {
 		const { paused, muted, volume, src } = window.taskbarAudio;
 		return JSON.stringify({ paused, muted, volume, src, actions: window.audioActions.length });
 	});
-	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2);
+	// Compare CD launcher actions only after the independent startup fade settles.
+	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2 && window.taskbarAudio.volume === 1);
 	await music.hover();
 	await music.focus();
 	await page.evaluate(() => new Promise(requestAnimationFrame));
