@@ -56,7 +56,7 @@
 	padding: 2px;
 	border: 1px solid transparent;
 	background: transparent;
-	color: #000080;
+	color: var(--desktop-bg);
 	font: bold 14px Tahoma, sans-serif;
 	text-decoration: none;
 	cursor: var(--cursor-arrow);

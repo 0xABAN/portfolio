@@ -29,8 +29,11 @@ async function checkTerminal(page) {
 	const opening = await page.locator(".term__line").allTextContents();
 	check(opening[0] === "Microsoft(R) Windows 95", "Wrong DOS banner");
 	check(opening.includes("   (C)Copyright Microsoft Corp 1981-1995."), "Wrong copyright year");
-	check(opening.includes("C:\\PORTFOLIO>ADAM.EXE"), "Chat program did not launch");
-	check(opening.includes("ADAM> how u doing :)"), "ASCII greeting missing");
+	const help = opening.indexOf("C:\\PORTFOLIO>help");
+	const explanation = opening.indexOf("  ADAM.EXE  Chat with Adam about his work.");
+	const launch = opening.indexOf("C:\\PORTFOLIO>ADAM.EXE");
+	const greeting = opening.indexOf("ADAM> how u doing :)");
+	check(help > 1 && explanation > help && launch > explanation && greeting > launch, "Expected HELP, command list, ADAM.EXE, then Adam's greeting");
 	// Test controls unobstructed by the deliberately overlapping desktop windows.
 	await page.locator(".win--dos").evaluate((el) => {
 		el.style.cssText += ";left:20px;top:20px;width:640px;height:480px;z-index:100";
@@ -64,7 +67,7 @@ async function checkTerminal(page) {
 		} });
 	});
 
-	check(await page.locator(".win--dos .win-titlebar").evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(0, 0, 128)", "Navy title bar missing");
+	check(await page.locator(".win--dos .win-titlebar").evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(175, 0, 0)", "Portfolio-red title bar missing");
 	check(await page.locator(".win--dos .win-titlebar__text").innerText() === "MS-DOS Prompt", "Wrong window title");
 	await page.evaluate(() => document.fonts.load('16px "IBM VGA"'));
 	check(await page.evaluate(() => document.fonts.check('16px "IBM VGA"')), "DOS font did not load");
@@ -145,7 +148,36 @@ async function checkTerminal(page) {
 	await input.press("Enter");
 	check(await page.locator(".term__line").count() === 0, "CLEAR alias failed");
 	check(await page.evaluate(() => window.testChatRequests.length) === 2, "CLEAR sent a chat request");
-	return "PASS: DOS visuals, clipboard, editing, IME, focus, streaming, recall, local commands, and conversation-preserving clear";
+
+	// Check narrow text wrapping; preserve the desktop's existing off-screen placement.
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.reload();
+	await page.locator(".rsod").click();
+	await input.waitFor();
+	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Narrow terminal overflowed horizontally");
+	check(await input.evaluate((el) => el.getBoundingClientRect().width > 100), "Narrow prompt has no usable input space");
+	check(await input.evaluate((el) => getComputedStyle(el).getPropertyValue("caret-animation")) === "manual", "Reduced-motion caret still animates");
+
+	// Normal-motion startup must type both commands, not just show the final log.
+	await page.emulateMedia({ reducedMotion: "no-preference" });
+	await page.reload();
+	await page.evaluate(() => {
+		// Record mutations: polling can miss a short-lived typing frame.
+		window.startupCommands = new Set();
+		const observer = new MutationObserver(() => {
+			for (const line of document.querySelectorAll(".term__line")) {
+				if (line.textContent.startsWith("C:\\PORTFOLIO>")) window.startupCommands.add(line.textContent);
+			}
+			if (document.querySelector(".term__input")) observer.disconnect();
+		});
+		observer.observe(document, { subtree: true, childList: true, characterData: true });
+	});
+	await page.locator(".rsod").click();
+	await input.waitFor();
+	const frames = await page.evaluate(() => [...window.startupCommands]);
+	check(frames.includes("C:\\PORTFOLIO>hel") && frames.includes("C:\\PORTFOLIO>ADA"), "Startup did not animate both commands");
+	check((await page.locator(".term__line").allTextContents()).includes("ADAM> how u doing :)"), "Animated startup did not reach chat");
+	return "PASS: red DOS chrome, animated HELP/ADAM.EXE sequence, clipboard, editing, IME, focus, streaming, recall, local commands, preserved conversation, narrow text wrapping, and reduced motion";
 }
 
 try {

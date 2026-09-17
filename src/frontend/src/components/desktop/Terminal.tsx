@@ -196,26 +196,32 @@ export function Terminal() {
 			await pause(text ? 210 : 140);
 		}
 
-		// shell ready, cursor sits a beat before anyone types
-		const cmdId = nextId();
-		setLines((prev) => [...prev, { id: cmdId, text: SHELL }]);
-		await pause(450);
+		// The two shell commands are a demonstration, not messages sent to Adam.
+		async function typeCommand(command: string) {
+			if (!alive()) return;
+			const id = nextId();
+			setLines((prev) => [...prev, { id, text: SHELL }]);
+			await pause(450);
+			await typewrite(command, (full) => {
+				if (alive()) setLineText(id, SHELL + full);
+			}, alive, 80, 110);
+			await pause(220);
+		}
 
-		// human-speed command entry
-		await typewrite(
-			"ADAM.EXE",
-			(full) => {
-				if (!alive()) return;
-				setLineText(cmdId, SHELL + full);
-			},
-			alive,
-			80,
-			110,
-		);
+		await typeCommand("help");
 		if (!alive()) return;
+		for (const line of [
+			"Available commands:",
+			"  ADAM.EXE  Chat with Adam about his work.",
+			"  HELP      Show this list.",
+			"  CLS       Clear the screen.",
+			"  VER       Show the Windows version.",
+			"",
+		]) append(line);
+		await pause(500);
 
-		// Enter — disk spin / PE load
-		await pause(220);
+		await typeCommand("ADAM.EXE");
+		if (!alive()) return;
 		append("");
 		await pause(550);
 		// program init (no output yet)
@@ -390,7 +396,7 @@ export function Terminal() {
 					onPointerDown={(event) => event.preventDefault()} onClick={() => void copy()}>
 					<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
 						<path fill="#fff" stroke="#000" d="M1.5 1.5h8v10h-8zM5.5 4.5h8v10h-8z" />
-						<path stroke="#000080" d="M7 7.5h5M7 9.5h5M7 11.5h4" />
+						<path stroke="currentColor" d="M7 7.5h5M7 9.5h5M7 11.5h4" />
 					</svg>
 				</button>
 				<button type="button" className="term__tool" aria-label="Paste" title="Paste into the prompt" disabled={busy}
@@ -399,7 +405,7 @@ export function Terminal() {
 						<path fill="#808000" stroke="#000" d="M2.5 2.5h10v12h-10z" />
 						<path fill="#c0c0c0" stroke="#000" d="M5.5.5h4v3h-4z" />
 						<path fill="#fff" stroke="#000" d="M6.5 6.5h8v9h-8z" />
-						<path stroke="#000080" d="M8 9.5h5M8 11.5h5M8 13.5h3" />
+						<path stroke="currentColor" d="M8 9.5h5M8 11.5h5M8 13.5h3" />
 					</svg>
 				</button>
 				<a className="term__tool" href="/fonts/ibm-vga-LICENSE.txt" target="_blank" rel="noreferrer"
