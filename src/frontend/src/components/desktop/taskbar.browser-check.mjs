@@ -42,21 +42,23 @@ async function checkTaskbar(page) {
 	check(cdIconBounds.x === secretsBounds.x && cdIconBounds.y < secretsBounds.y, "CD Player icon is not above Secrets");
 	const secrets = page.locator('[data-app-id="explorer"]');
 	const bubble = secrets.locator(".desk-icon__bubble");
-	check(await bubble.innerText() === "don't click me!", "Secrets speech bubble has the wrong text");
+	const bubbleBody = bubble.locator(".desk-icon__bubble-body");
+	check(await bubbleBody.innerText() === "don't click me!", "Secrets speech bubble has the wrong text");
 	check(await bubble.evaluate(async (el) => {
 		const style = getComputedStyle(el);
+		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
 		const art = new Image();
 		art.src = "/icons/secrets-bubble.svg";
 		await art.decode();
 		return art.naturalWidth === 120 && art.naturalHeight === 58
 			&& style.width === "144px" && style.height === "70px"
-			&& style.paddingLeft === "24px" && style.paddingRight === "20px"
-			&& style.backgroundImage.includes("/icons/secrets-bubble.svg")
-			&& style.imageRendering === "pixelated"
-			&& style.backgroundColor === "rgba(0, 0, 0, 0)"
+			&& body.paddingLeft === "24px" && body.paddingRight === "20px"
+			&& body.backgroundImage.includes("/icons/secrets-bubble.svg")
+			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
 	}), "Secrets speech bubble lost its angular, pixelated, noninteractive artwork");
-	check(await bubble.evaluate((el) => getComputedStyle(el).animationName === "none"), "Secrets bubble moves when reduced motion is requested");
+	check(await bubble.evaluate((el) => [...el.querySelectorAll(".desk-icon__bubble-x, .desk-icon__bubble-y, .desk-icon__bubble-body")]
+		.every((part) => getComputedStyle(part).animationName === "none")), "Secrets bubble moves when reduced motion is requested");
 	for (const width of [1440, 390, 320]) {
 		await page.setViewportSize({ width, height: 900 });
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
@@ -99,9 +101,19 @@ async function checkTaskbar(page) {
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await sparks.waitFor({ state: "visible" });
 	check(await bubble.evaluate((el) => {
-		const style = getComputedStyle(el);
-		return style.animationName === "secrets-bubble-cartoon" && style.animationDuration === "10s" && el.getAnimations().length > 0;
-	}), "Secrets bubble is not animated slowly enough");
+		const x = getComputedStyle(el.querySelector(".desk-icon__bubble-x"));
+		const y = getComputedStyle(el.querySelector(".desk-icon__bubble-y"));
+		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
+		return x.animationName === "secrets-bubble-horizontal"
+			&& y.animationName === "secrets-bubble-vertical"
+			&& body.animationName.includes("secrets-bubble-resize")
+			&& body.animationName.includes("secrets-bubble-rotate")
+			&& x.animationDuration === "11s"
+			&& y.animationDuration === "8s"
+			&& body.animationDuration.includes("9s")
+			&& body.animationDuration.includes("13s")
+			&& el.getAnimations({ subtree: true }).length >= 4;
+	}), "Secrets bubble shifts, resizes or rotates are not independently animated");
 	check(await secrets.locator(".desk-icon__art").evaluate((el) => getComputedStyle(el).animationName === "none"), "Speech bubble shares the folder bounce");
 	await page.locator(".fracture-background--ready").waitFor();
 	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
