@@ -34,6 +34,8 @@ function TaskButton({ icon, children, ...props }: ComponentProps<"button"> & { i
 }
 
 type Props = {
+	cdOpen: boolean;
+	onCdOpenChangeAction: (open: boolean) => void;
 	tasks: DesktopWindow[];
 	activeId?: string;
 	onActivateAction: (id: string) => void;
@@ -107,6 +109,8 @@ function WindowTasks({ tasks, activeId, onActivateAction }: Pick<Props, "tasks" 
 }
 
 export function Taskbar({
+	cdOpen,
+	onCdOpenChangeAction,
 	tasks,
 	activeId,
 	onActivateAction,
@@ -117,7 +121,6 @@ export function Taskbar({
 }: Props) {
 	const show = (id: string) => !revealed || revealed.has(id);
 	const [clock, setClock] = useState(() => formatClock(new Date()));
-	const [cdOpen, setCdOpen] = useState(false);
 	const [cdPos, setCdPos] = useState({ left: 0, top: 0, bottom: TASKBAR_H + 4 });
 	const [cdDragged, setCdDragged] = useState(false);
 	const cdWrapRef = useRef<HTMLDivElement | null>(null);
@@ -155,11 +158,11 @@ export function Taskbar({
 				});
 			}
 		}
-		setCdOpen(true);
+		onCdOpenChangeAction(true);
 	}
 
 	function closeCdPop() {
-		setCdOpen(false);
+		onCdOpenChangeAction(false);
 		cdWrapRef.current?.querySelector<HTMLButtonElement>(".task-btn--cd")?.focus();
 	}
 

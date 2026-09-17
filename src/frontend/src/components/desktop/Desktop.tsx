@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
@@ -144,6 +145,7 @@ export function Desktop() {
 	);
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
+	const [cdOpen, setCdOpen] = useState(false);
 	const [trashed, setTrashed] = useState<ReadonlySet<string>>(() => new Set());
 	const [binFull, setBinFull] = useState(false);
 	const [binHot, setBinHot] = useState(false);
@@ -169,6 +171,43 @@ export function Desktop() {
 		const startAt = BOOT_MS + ATTENTION_DELAY_MS;
 		const start = window.setTimeout(() => setAttention(true), startAt);
 		return () => window.clearTimeout(start);
+	}, []);
+
+	useEffect(() => {
+		const desktop = document.querySelector(".desktop");
+
+		function onTyping(event: KeyboardEvent) {
+			if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+			if (event.key.length !== 1 && event.key !== "Dead") return;
+
+			const target = event.target;
+			if (!(target instanceof HTMLElement) || (!desktop?.contains(target) && target !== document.body)) return;
+			const input = desktop?.querySelector<HTMLInputElement>(".term__input");
+			// Keep startup and deliberately removed Terminal windows unchanged.
+			if (!input) return;
+			const ownsInput = target.isContentEditable || target.closest(
+				'input, textarea, select, [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]',
+			);
+			if (target !== input && ownsInput) return;
+			if (event.key === " " && target.closest('button, a[href], summary, [role="button"], [role="menuitem"]')) return;
+
+			if (target === input) {
+				setWindows((current) => activateWindow(current, "terminal"));
+				return;
+			}
+
+			target.closest<HTMLElement>("[popover]")?.hidePopover();
+			// Restore visibility before the browser inserts this first character.
+			// Native insertion preserves selection, editing and React's onChange.
+			flushSync(() => {
+				setCdOpen(false);
+				setWindows((current) => activateWindow(current, "terminal"));
+			});
+			if (!input.readOnly) input.focus({ preventScroll: true });
+		}
+
+		window.addEventListener("keydown", onTyping);
+		return () => window.removeEventListener("keydown", onTyping);
 	}, []);
 
 	function hasNotification(id: string) {
@@ -390,6 +429,8 @@ export function Desktop() {
 				))}
 			</div>
 			<Taskbar
+				cdOpen={cdOpen}
+				onCdOpenChangeAction={setCdOpen}
 				tasks={taskWindows(visibleWindows)}
 				activeId={activeId}
 				onActivateAction={restoreWindow}

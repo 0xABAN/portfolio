@@ -245,6 +245,55 @@ async function checkTaskbar(page) {
 	await player.getByRole("button", { name: "Close CD Player" }).click();
 	check(!(await player.isVisible()) && await audioState() === resumedState, "Closing CD Player stopped its transport");
 
+	// Ordinary desktop typing uses native input insertion, not a simulated keyboard.
+	await input.fill("");
+	await music.click();
+	await page.keyboard.type("Hello ");
+	check(await input.inputValue() === "Hello ", "Desktop typing lost or duplicated the first character");
+	check(await input.evaluate((el) => el === document.activeElement), "Desktop typing did not focus Terminal");
+	check(await task("terminal").getAttribute("aria-pressed") === "true", "Desktop typing did not raise Terminal");
+	check(!(await player.isVisible()) && await audioState() === resumedState, "Typing left CD Player in front or changed music");
+	await win("terminal").getByRole("button", { name: "Minimize", exact: true }).click();
+	await page.keyboard.type("there!");
+	check(await input.inputValue() === "Hello there!" && !(await win("terminal").evaluate((el) => el.inert)), "Typing did not restore Terminal and preserve its draft");
+	await input.fill("abcd");
+	await input.evaluate((el) => el.setSelectionRange(1, 3));
+	await task("me").click();
+	await page.waitForFunction(() => document.getElementById("desktop-window-me").contains(document.activeElement));
+	await page.keyboard.type("Z");
+	check(await input.inputValue() === "aZd", "Redirected typing lost the existing selection");
+
+	await task("me").click();
+	await page.waitForFunction(() => document.getElementById("desktop-window-me").contains(document.activeElement));
+	await page.keyboard.press("Control+z");
+	await win("me").dispatchEvent("keydown", { key: "q", isComposing: true, bubbles: true });
+	check(await task("me").getAttribute("aria-pressed") === "true" && await input.inputValue() === "aZd", "Typing redirect intercepted a shortcut or IME composition");
+	await music.click();
+	const volume = player.getByRole("slider", { name: "Volume" });
+	await volume.focus();
+	await volume.press("Home");
+	await volume.press("x");
+	check(await volume.evaluate((el) => el === document.activeElement) && await input.inputValue() === "aZd", "Typing redirect intercepted a slider");
+	await player.getByRole("button", { name: "Close CD Player" }).click();
+
+	for (const editable of ["textarea", "contenteditable"]) {
+		await page.evaluate((kind) => {
+			const field = document.createElement(kind === "textarea" ? "textarea" : "div");
+			field.id = "typing-fixture";
+			if (kind === "contenteditable") field.contentEditable = "true";
+			document.querySelector(".desktop").append(field);
+			field.focus();
+		}, editable);
+		await page.keyboard.type("keep here");
+		check(await page.locator("#typing-fixture").evaluate((el) => (el.value ?? el.textContent) === "keep here"), "Typing left another editable field");
+		check(await input.inputValue() === "aZd", "Typing in another field leaked into Terminal");
+		await page.locator("#typing-fixture").evaluate((el) => el.remove());
+	}
+	await start.click();
+	await menu.getByRole("menuitem", { name: "Programs", exact: true }).focus();
+	await page.keyboard.type("!");
+	check(!(await menu.isVisible()) && await input.inputValue() === "aZ!d", "Typing from Start did not dismiss the menu and reach Terminal");
+
 	// Complete a paused chat stream while Terminal is hidden, then recall the request.
 	await page.evaluate(() => {
 		const nativeFetch = window.fetch.bind(window);
@@ -262,6 +311,10 @@ async function checkTaskbar(page) {
 	await input.fill("reply while minimized");
 	await input.press("Enter");
 	await page.waitForFunction(() => Boolean(window.finishHiddenChat));
+	await task("me").click();
+	await page.waitForFunction(() => document.getElementById("desktop-window-me").contains(document.activeElement));
+	await page.keyboard.type("q");
+	check(await task("terminal").getAttribute("aria-pressed") === "true" && await input.inputValue() === "" && await input.evaluate((el) => el.readOnly), "Desktop typing bypassed the Terminal reply lock");
 	await win("terminal").getByRole("button", { name: "Minimize", exact: true }).click();
 	await start.focus();
 	await page.evaluate(() => window.finishHiddenChat());
@@ -292,7 +345,7 @@ async function checkTaskbar(page) {
 		await page.keyboard.press("Escape");
 		await page.keyboard.press("Escape");
 	}
-	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, hidden streaming and narrow overflow";
+	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, desktop typing, hidden streaming and narrow overflow";
 }
 
 try {
