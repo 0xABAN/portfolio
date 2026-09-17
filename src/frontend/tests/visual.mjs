@@ -141,7 +141,12 @@ try {
     assert.equal(contributionsRequests, 1, 'One request across Strict Mode remount');
 
     // Mobile windows overlap this icon; exercise its handler independently of stacking.
-    await page.locator('.desk-icon[title="secrets"]').dispatchEvent('click');
+    const secrets = page.locator('.desk-icon[title="secrets"]');
+    assert.equal(await secrets.getAttribute('aria-label'), 'secrets, unopened folder');
+    await secrets.locator('.desk-icon__badge').waitFor();
+    await secrets.dispatchEvent('click');
+    await secrets.locator('.desk-icon__badge').waitFor({ state: 'hidden' });
+    assert.equal(await secrets.getAttribute('aria-label'), null);
     await page.locator('.explorer').waitFor();
     await capture('explorer', page.locator('.explorer'));
     await page.locator('.explorer__row').first().focus();

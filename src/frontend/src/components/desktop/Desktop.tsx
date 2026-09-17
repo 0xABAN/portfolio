@@ -64,7 +64,6 @@ const RECYCLE_BIN = {
 } as const;
 
 /** Soft bounce after boot to pull the eye. */
-const ATTENTION_IDS = new Set(["secrets"]);
 const ATTENTION_DELAY_MS = 1000;
 
 function DeskIconGlyph({ src, label, notification = false }: { src: string; label: string; notification?: boolean }) {
@@ -161,9 +160,7 @@ export function Desktop() {
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
-	const [attentionDone, setAttentionDone] = useState<ReadonlySet<string>>(
-		() => new Set(),
-	);
+	const [secretsOpened, setSecretsOpened] = useState(false);
 	const skipClick = useRef(false);
 	const revealed = useBootReveal();
 
@@ -185,21 +182,11 @@ export function Desktop() {
 		return () => window.clearTimeout(start);
 	}, []);
 
-	function dismissAttention(id: string) {
-		if (!ATTENTION_IDS.has(id)) return;
-		setAttentionDone((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
-	}
-
 	function hasNotification(id: string) {
-		return ATTENTION_IDS.has(id) && !attentionDone.has(id);
+		return id === "secrets" && !secretsOpened;
 	}
 
-	function shouldBounce(id: string) {
-		if (!attention || !hasNotification(id)) return false;
-		// already open → no bounce
-		if (id === "secrets" && windows.some((w) => w.id === "explorer")) return false;
-		return true;
-	}
+	const bounceSecrets = attention && !secretsOpened && !windows.some((w) => w.id === "explorer");
 
 	function trashIcon(id: string) {
 		if (!id || id === RECYCLE_BIN.id) return;
@@ -219,7 +206,7 @@ export function Desktop() {
 			skipClick.current = false;
 			return;
 		}
-		dismissAttention(icon.id);
+		if (icon.id === "secrets") setSecretsOpened(true);
 		if (icon.open === "explorer") openExplorer();
 		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
 	}
@@ -350,7 +337,7 @@ export function Desktop() {
 								[
 									"desk-icon",
 									icon.href ? "desk-icon--app" : "",
-									shouldBounce(icon.id) ? "desk-icon--bounce" : "",
+									icon.id === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
 									draggingId === icon.id ? "desk-icon--dragging" : "",
 								]
 									.filter(Boolean)
