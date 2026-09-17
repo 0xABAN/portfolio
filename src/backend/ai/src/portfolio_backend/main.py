@@ -22,12 +22,12 @@ from portfolio_backend.chat import (
     BROKE_MSG,
     MAX_OUTPUT_TOKENS,
     XAI_API_KEY,
-    build_xai_messages,
     close_http,
     estimate_text_tokens,
     parse_messages,
     stream_grok,
 )
+from portfolio_backend.config import env_int
 from portfolio_backend.context_loader import load_system_prompt
 from portfolio_backend.limits import client_ip, remaining, try_consume
 
@@ -88,7 +88,7 @@ async def chat(request: Request, body: ChatRequest) -> Response:
         raise HTTPException(status_code=503, detail="XAI_API_KEY not configured")
 
     system = load_system_prompt()
-    xai_messages = build_xai_messages(system, parsed)
+    xai_messages = [{"role": "system", "content": system}, *parsed]
     # system once + already-validated turns (avoid double-walking full payload)
     est_tokens = (
         estimate_text_tokens(system)
@@ -127,10 +127,7 @@ def main() -> None:
     import uvicorn
 
     host = os.getenv("HOST", "127.0.0.1")
-    try:
-        port = int(os.getenv("PORT", "8000") or "8000")
-    except ValueError:
-        port = 8000
+    port = env_int("PORT", 8000)
     uvicorn.run("portfolio_backend.main:app", host=host, port=port, reload=True)
 
 

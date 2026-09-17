@@ -10,21 +10,13 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
-
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        return default
+from portfolio_backend.config import env_int
 
 
-MAX_MESSAGE_TOKENS = _env_int("MAX_MESSAGE_TOKENS", 4096)
-MAX_OUTPUT_TOKENS = _env_int("MAX_OUTPUT_TOKENS", 512)
+MAX_MESSAGE_TOKENS = env_int("MAX_MESSAGE_TOKENS", 4096)
+MAX_OUTPUT_TOKENS = env_int("MAX_OUTPUT_TOKENS", 512)
 # keep portfolio chats short — full history is forwarded to xAI each turn
-MAX_HISTORY_MESSAGES = _env_int("MAX_HISTORY_MESSAGES", 20)
+MAX_HISTORY_MESSAGES = env_int("MAX_HISTORY_MESSAGES", 20)
 XAI_API_KEY = os.getenv("XAI_API_KEY", "")
 XAI_BASE_URL = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
 XAI_MODEL = os.getenv("XAI_MODEL", "grok-4.5")
@@ -96,12 +88,6 @@ def parse_messages(data: object) -> list[dict[str, str]]:
         if out[0]["role"] == "assistant":
             out = out[1:]
     return out
-
-
-def build_xai_messages(
-    system: str, messages: list[dict[str, str]]
-) -> list[dict[str, Any]]:
-    return [{"role": "system", "content": system}, *messages]
 
 
 async def stream_grok(messages: list[dict[str, Any]]) -> AsyncIterator[str]:

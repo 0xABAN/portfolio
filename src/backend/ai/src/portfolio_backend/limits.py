@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-import os
 import time
 from collections import deque
 from datetime import date
 from threading import Lock
 
-
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        return default
+from portfolio_backend.config import env_int
 
 
 # per visitor
-DAILY_IP_LIMIT = _env_int("DAILY_IP_LIMIT", 10)
+DAILY_IP_LIMIT = env_int("DAILY_IP_LIMIT", 10)
 
 # global (whole process / whole key traffic through this app)
 # solid portfolio defaults — match xAI key qpm/tpm when you mint the key
-RPM_LIMIT = _env_int("RPM_LIMIT", 15)  # requests per minute
-TPM_LIMIT = _env_int("TPM_LIMIT", 40000)  # tokens per minute (est.)
+RPM_LIMIT = env_int("RPM_LIMIT", 15)  # requests per minute
+TPM_LIMIT = env_int("TPM_LIMIT", 40000)  # tokens per minute (est.)
 
 _lock = Lock()
 # ip -> (day_iso, count)
@@ -59,18 +50,6 @@ def remaining(ip: str) -> int:
     day = _today()
     with _lock:
         return remaining_unlocked(ip, day)
-
-
-def rpm_tpm_status() -> dict[str, int]:
-    now = time.monotonic()
-    with _lock:
-        _prune(now)
-        return {
-            "rpm_limit": RPM_LIMIT,
-            "rpm_used": len(_req_times),
-            "tpm_limit": TPM_LIMIT,
-            "tpm_used": _used_tpm,
-        }
 
 
 def try_consume(ip: str, est_tokens: int) -> tuple[bool, int, str | None]:
