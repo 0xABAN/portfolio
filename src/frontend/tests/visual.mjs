@@ -39,12 +39,15 @@ try {
       let seed = 42;
       Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
       const paused = new WeakMap();
+      const elapsed = new WeakMap();
       Object.defineProperties(HTMLMediaElement.prototype, {
         paused: { get() { return paused.get(this) ?? true; } },
         readyState: { get() { return 2; } },
-        currentTime: { get() { return 0; }, set() {} },
+        currentTime: { get() { return elapsed.get(this) ?? 0; }, set(value) { elapsed.set(this, value); } },
       });
       HTMLMediaElement.prototype.play = function () {
+        window.testAudio = this;
+        window.audioPlayCalls = (window.audioPlayCalls ?? 0) + 1;
         paused.set(this, false);
         this.dispatchEvent(new Event('play'));
         return Promise.resolve();
@@ -53,7 +56,7 @@ try {
         paused.set(this, true);
         this.dispatchEvent(new Event('pause'));
       };
-      HTMLMediaElement.prototype.load = function () {};
+      HTMLMediaElement.prototype.load = function () { elapsed.set(this, 0); };
     });
     const page = await context.newPage();
     const errors = [];
@@ -143,6 +146,23 @@ try {
     await capture('taskbar-paused', page.locator('.taskbar'));
     await page.getByRole('button', { name: 'Play music', exact: true }).click();
     await page.getByRole('button', { name: 'Pause music', exact: true }).waitFor();
+    await page.evaluate(() => {
+      window.testAudio.currentTime = 65;
+      window.testAudio.dispatchEvent(new Event('timeupdate'));
+    });
+    assert.match(await tab.textContent(), /1:05$/);
+    await page.evaluate(() => {
+      window.testAudio.currentTime = 66;
+      window.testAudio.dispatchEvent(new Event('durationchange'));
+    });
+    assert.match(await tab.textContent(), /1:06$/);
+    const beforeEnded = await page.evaluate(() => window.audioPlayCalls);
+    const previousTrack = await tab.getAttribute('title');
+    await page.evaluate(() => window.testAudio.dispatchEvent(new Event('ended')));
+    await page.waitForFunction(previous => document.querySelector('.task-btn--cd').title !== previous, previousTrack);
+    assert.equal(await page.evaluate(() => window.audioPlayCalls), beforeEnded + 1, 'One ended handler after Strict Mode remount');
+    assert.match(await tab.textContent(), /0:00$/);
+
     const portrait = page.locator('.win[aria-label="adam"]');
     await portrait.getByRole('button', { name: 'Minimize', exact: true }).dispatchEvent('click');
     await portrait.waitFor({ state: 'hidden' });
