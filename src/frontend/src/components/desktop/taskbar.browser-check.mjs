@@ -49,11 +49,21 @@ async function checkTaskbar(page) {
 			&& z(".desktop-sparks") < z(".taskbar")
 			&& el.getBoundingClientRect().bottom === document.querySelector(".taskbar").getBoundingClientRect().top;
 	}), "Sparks are not above desktop content and below the taskbar");
-	check(await sparks.locator("span").evaluateAll((nodes) => nodes.length > 0 && nodes.length <= 48 && nodes.every((el) => {
+	check(await sparks.locator("span").evaluateAll((nodes) => nodes.length === 24 && nodes.every((el) => {
 		const style = getComputedStyle(el);
 		return style.backgroundColor === "rgb(0, 0, 0)" && style.opacity === "1" && style.filter === "none"
-			&& style.boxShadow === "none" && style.pointerEvents === "none" && el.tabIndex === -1;
-	})), "Sparks lost their bounded, solid-black, noninteractive appearance");
+			&& style.boxShadow === "none" && style.pointerEvents === "none" && el.tabIndex === -1
+			&& parseFloat(style.width) >= 5 && parseFloat(style.height) >= 4;
+	})), "Sparks lost their bounded, chunky, solid-black, noninteractive appearance");
+	check(await sparks.locator("span").evaluateAll((nodes) => {
+		const styles = nodes.map((el) => getComputedStyle(el));
+		const x = styles.map((style) => parseFloat(style.getPropertyValue("--spark-x")));
+		const y = styles.map((style) => parseFloat(style.getPropertyValue("--spark-y")));
+		return new Set(styles.map((style) => style.clipPath)).size >= 5
+			&& new Set(styles.map((style) => style.getPropertyValue("--spark-angle"))).size >= 12
+			&& x.some((value) => value < 0) && x.some((value) => value > 0)
+			&& y.some((value) => value < 0) && y.some((value) => value > 0);
+	}), "Sparks need varied shapes, angles and travel directions");
 	const firstTransform = await sparks.locator("span").first().evaluate((el) => getComputedStyle(el).transform);
 	await page.waitForFunction((previous) => getComputedStyle(document.querySelector(".desktop-sparks__spark")).transform !== previous, firstTransform);
 	// Keep sparks running for the interaction checks below: they must not intercept input.
@@ -348,7 +358,7 @@ async function checkTaskbar(page) {
 
 	for (const width of [390, 320]) {
 		await page.setViewportSize({ width, height: 844 });
-		check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 24, "Narrow screens did not reduce spark density");
+		check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 12, "Narrow screens did not reduce spark density");
 		check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), "Sparks added horizontal overflow");
 		for (const control of [start, music, page.locator(".taskbar__tray")]) {
 			const r = await control.boundingBox();

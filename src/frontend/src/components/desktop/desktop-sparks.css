@@ -12,7 +12,6 @@
 .desktop-sparks__spark {
 	position: absolute;
 	background: #000;
-	clip-path: polygon(0 45%, 75% 0, 100% 45%, 25% 100%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -28,7 +27,7 @@
 }
 
 @media (max-width: 600px) {
-	.desktop-sparks__spark:nth-child(n + 25) {
+	.desktop-sparks__spark:nth-child(n + 13) {
 		display: none;
 	}
 }
@@ -36,18 +35,28 @@
 /* Shrink away rather than fading: the sparks stay solid black, without glow. */
 @keyframes desktop-spark-wind {
 	0% {
-		transform: translate3d(-20vmax, 12vmax, 0) rotate(-30deg) scale(0);
+		transform: translate3d(0, 0, 0) rotate(var(--spark-angle)) scale(0);
 	}
 	12% {
-		transform: translate3d(-12.8vmax, 7.68vmax, 0) rotate(-38deg) scale(1);
+		transform:
+			translate3d(calc(var(--spark-x) * 0.12), calc(var(--spark-y) * 0.12), 0)
+			rotate(calc(var(--spark-angle) + var(--spark-spin) * 0.12))
+			scale(1);
 	}
 	45% {
-		transform: translate3d(7vmax, -4.2vmax, 0) rotate(-23deg) scale(0.8);
+		transform:
+			translate3d(calc(var(--spark-x) * 0.45 + var(--spark-bend)), calc(var(--spark-y) * 0.45 - var(--spark-bend)), 0)
+			rotate(calc(var(--spark-angle) + var(--spark-spin) * 0.45))
+			scale(0.7, 1);
 	}
 	80% {
-		transform: translate3d(28vmax, -16.8vmax, 0) rotate(-42deg) scale(1);
+		transform:
+			translate3d(calc(var(--spark-x) * 0.8 - var(--spark-bend) * 0.4), calc(var(--spark-y) * 0.8 + var(--spark-bend) * 0.4), 0)
+			rotate(calc(var(--spark-angle) + var(--spark-spin) * 0.8))
+			scale(1, 0.7);
 	}
 	100% {
-		transform: translate3d(40vmax, -24vmax, 0) rotate(-30deg) scale(0);
+		transform: translate3d(var(--spark-x), var(--spark-y), 0)
+			rotate(calc(var(--spark-angle) + var(--spark-spin))) scale(0);
 	}
 }
