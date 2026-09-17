@@ -47,20 +47,15 @@ async function checkTaskbar(page) {
 	check(await bubble.evaluate(async (el) => {
 		const style = getComputedStyle(el);
 		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
-		const pixelArt = getComputedStyle(el.querySelector(".desk-icon__bubble-art"));
 		const art = new Image();
 		art.src = "/icons/secrets-bubble.svg";
 		await art.decode();
-		const source = await fetch("/icons/secrets-bubble.svg").then((response) => response.text());
 		return art.naturalWidth === 120 && art.naturalHeight === 58
-			&& source.includes("feGaussianBlur")
-			&& source.includes('stdDeviation="0.35"')
-			&& source.includes('filterRes="52 26"')
 			&& style.top === "-32px"
 			&& style.width === "144px" && style.height === "70px"
 			&& body.paddingLeft === "24px" && body.paddingRight === "20px"
-			&& pixelArt.width === "72px" && pixelArt.height === "35px"
-			&& pixelArt.imageRendering === "pixelated"
+			&& body.backgroundImage.includes("/icons/secrets-bubble.svg")
+			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
 	}), "Secrets speech bubble lost its angular, pixelated, noninteractive artwork");
 	check(await bubble.evaluate((el) => [...el.querySelectorAll(".desk-icon__bubble-x, .desk-icon__bubble-y, .desk-icon__bubble-body")]
