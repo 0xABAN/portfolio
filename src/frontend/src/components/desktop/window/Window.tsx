@@ -21,7 +21,7 @@ type Props = {
 	w: number;
 	h: number;
 	z: number;
-	variant?: "genesis" | "dos";
+	variant?: "dos";
 	/** Report moves every frame (nested crop / child follow). Default: commit on pointerup. */
 	liveMove?: boolean;
 	minimizable?: boolean;
@@ -200,7 +200,7 @@ function WindowInner({
 			aria-hidden={minimized || undefined}
 			tabIndex={-1}
 			className={variant ? `win win--${variant}` : "win"}
-			aria-label={title || "GitHub Activity"}
+			aria-label={title || id}
 			onPointerDownCapture={onActivateAction}
 			onFocusCapture={(event) => {
 				onActivateAction();

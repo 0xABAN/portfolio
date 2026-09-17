@@ -105,7 +105,7 @@ export function GitHubGraph() {
 	return (
 		<div className="gh-app" ref={rootRef}>
 			{failed ? (
-				<span className="gh-app__err">couldn&apos;t load github</span>
+				<span className="gh-app__err">couldn&apos;t load activity</span>
 			) : (
 				<ActivityCalendar
 					data={data ?? []}

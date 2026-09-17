@@ -234,7 +234,8 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		terminal,
 		{
 			id: "github",
-			title: "",
+			title: "Activity",
+			icon: "/icons/code.svg",
 			z: 13,
 			kind: "github" as const,
 			...layoutGitHubWindow(terminal),

@@ -56,19 +56,6 @@
 	font-display: swap;
 }
 
-.win--genesis .win-titlebar {
-	background: var(--chrome-face);
-	color: var(--chrome-text);
-}
-
-.win--genesis .win-titlebar__text {
-	font-family: "Archivo Black", "Arial Black", Helvetica, sans-serif;
-	font-weight: 400;
-	font-size: 13px;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-}
-
 .win--dos {
 	border-color: #dfdfdf #000 #000 #dfdfdf;
 	box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;

@@ -9,7 +9,7 @@ const GROUPS = [
 	{ label: "Programs", icon: "/icons/computer.png", items: [
 		{ id: "me", label: "Paint", icon: "/paint/icon-16.png" },
 		{ id: "terminal", label: "MS-DOS Prompt", icon: "/icons/terminal.svg" },
-		{ id: "github", label: "GitHub Activity", icon: "/icons/github.svg" },
+		{ id: "github", label: "Activity", icon: "/icons/code.svg" },
 		{ id: "experience", label: "Experience", icon: "/icons/exe.png" },
 	] },
 	{ label: "Documents", icon: "/icons/folder.png", items: [

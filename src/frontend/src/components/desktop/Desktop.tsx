@@ -374,7 +374,7 @@ export function Desktop() {
 						w={w.w}
 						h={w.h}
 						z={w.z}
-						variant={w.kind === "github" ? "genesis" : w.kind === "terminal" ? "dos" : undefined}
+						variant={w.kind === "terminal" ? "dos" : undefined}
 						// Nested crop + parent-of-nested need live React geometry while dragging
 						liveMove={Boolean(
 							w.parentId || windows.some((c) => c.parentId === w.id),

@@ -50,6 +50,16 @@ async function checkTaskbar(page) {
 	const order = await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId));
 	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github"]), "Decorations leaked into main-app tasks");
 
+	await task("github").click();
+	check(await task("github").innerText() === "Activity", "Activity task has the wrong name");
+	check(await win("github").getAttribute("aria-label") === "Activity", "Activity window has the wrong accessible name");
+	check(await win("github").locator(".win-titlebar__text").innerText() === "Activity", "Activity window title is missing");
+	check(await win("github").locator(".win-titlebar").evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(10, 10, 10)", "Activity did not use the standard black title bar");
+	for (const icon of [task("github").locator("img"), win("github").locator(".win-titlebar__icon")]) {
+		check(await icon.getAttribute("src") === "/icons/code.svg", "Activity still uses a GitHub icon");
+		check(await icon.evaluate((el) => el.complete && el.naturalWidth === 16), "Activity code icon failed to load");
+	}
+
 	await task("terminal").click();
 	check(await task("terminal").getAttribute("aria-pressed") === "true", "Task click did not activate Terminal");
 	await task("me").click();
@@ -105,6 +115,7 @@ async function checkTaskbar(page) {
 	await start.press("ArrowDown");
 	await menu.getByRole("menuitem", { name: "Programs", exact: true }).press("ArrowRight");
 	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
+	check(await menu.getByRole("menuitem", { name: "Activity", exact: true }).locator("img").getAttribute("src") === "/icons/code.svg", "Start did not use the Activity name and code icon");
 	check(await page.locator(".start-menu__submenu button").evaluateAll((items) => items.every((el) => el.getBoundingClientRect().height === 26)), "Start flyout rows lost their compact height");
 	check(await page.evaluate(() => getComputedStyle(document.activeElement).backgroundColor) === "rgb(175, 0, 0)", "Keyboard menu selection has no highlight");
 	const programs = menu.getByRole("menuitem", { name: "Programs", exact: true });

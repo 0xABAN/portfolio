@@ -76,11 +76,11 @@ function WindowTasks({ tasks, activeId, onActivateAction }: Pick<Props, "tasks" 
 			<div ref={strip} id="task-strip" className="taskbar__tasks" role="group" aria-label="Open applications"
 				onFocusCapture={(event) => (event.target as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" })}>
 				{tasks.map((w) => {
-					const label = w.title || (w.kind === "github" ? "GitHub Activity" : w.id);
+					const label = w.title || w.id;
 					return (
 						<TaskButton
 							key={w.id}
-							icon={w.icon || (w.kind === "github" ? "/icons/github.svg" : undefined)}
+							icon={w.icon}
 							title={label}
 							data-task-id={w.id}
 							aria-controls={`desktop-window-${w.id}`}
