@@ -197,12 +197,12 @@
 	}
 }
 
-.desk-icon--bounce .desk-icon__art {
+.desk-icon--bounce .desk-icon__img {
 	animation: desk-icon-bounce 1.8s infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.desk-icon--bounce .desk-icon__art {
+	.desk-icon--bounce .desk-icon__img {
 		animation: none;
 	}
 }
@@ -244,17 +244,17 @@
 	top: calc(50% - 44px);
 	display: grid;
 	place-items: center;
-	width: 120px;
-	height: 58px;
-	padding: 0 12px 11px 16px;
+	width: 144px;
+	height: 70px;
+	padding: 0 20px 15px 24px;
 	background: url("/icons/secrets-bubble.svg") no-repeat center / 100% 100%;
 	image-rendering: pixelated;
 	color: #fff;
-	font: 11px / 13px "Win95 UI", Tahoma, sans-serif;
+	font: 12px / 14px "Win95 UI", Tahoma, sans-serif;
 	white-space: nowrap;
 	pointer-events: none;
 	transform-origin: 35% 76%;
-	animation: secrets-bubble-cartoon 2.8s ease-in-out infinite;
+	animation: secrets-bubble-cartoon 10s ease-in-out infinite;
 	will-change: transform;
 }
 
@@ -264,28 +264,37 @@
 		transform: translate(0, 0) scale(1, 1);
 	}
 	12% {
-		transform: translate(2px, -2px) scale(1.06, 0.94);
+		transform: translate(2px, -3px) scale(1.16, 0.78);
 	}
 	25% {
-		transform: translate(4px, 1px) scale(0.94, 1.08);
+		transform: translate(5px, 2px) scale(0.82, 1.24);
 	}
 	40% {
-		transform: translate(-2px, 3px) scale(1.08, 0.96);
+		transform: translate(-3px, 4px) scale(1.18, 0.76);
 	}
 	57% {
-		transform: translate(-4px, -1px) scale(0.98, 1.04);
+		transform: translate(-5px, -2px) scale(0.88, 1.2);
 	}
 	73% {
-		transform: translate(1px, -3px) scale(1.04, 0.98);
+		transform: translate(2px, -4px) scale(1.14, 0.82);
 	}
 	88% {
-		transform: translate(3px, 1px) scale(0.97, 1.03);
+		transform: translate(4px, 2px) scale(0.86, 1.22);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.desk-icon__bubble {
 		animation: none;
+	}
+}
+
+@media (max-width: 520px) {
+	/* Keep the larger desktop balloon inside the narrow desktop canvas. */
+	.desk-icon__bubble {
+		width: 120px;
+		height: 58px;
+		padding: 0 12px 11px 16px;
 	}
 }
 

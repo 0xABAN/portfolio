@@ -49,7 +49,8 @@ async function checkTaskbar(page) {
 		art.src = "/icons/secrets-bubble.svg";
 		await art.decode();
 		return art.naturalWidth === 120 && art.naturalHeight === 58
-			&& style.width === "120px" && style.height === "58px"
+			&& style.width === "144px" && style.height === "70px"
+			&& style.paddingLeft === "24px" && style.paddingRight === "20px"
 			&& style.backgroundImage.includes("/icons/secrets-bubble.svg")
 			&& style.imageRendering === "pixelated"
 			&& style.backgroundColor === "rgba(0, 0, 0, 0)"
@@ -60,7 +61,7 @@ async function checkTaskbar(page) {
 		await page.setViewportSize({ width, height: 900 });
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
 		const bounds = await bubble.boundingBox();
-		check(bounds.width <= 126 && bounds.height <= 63, "Secrets bubble is too large");
+		check(bounds.width <= 150 && bounds.height <= 75, "Secrets bubble is too large");
 		check(bounds.x >= art.x + art.width && bounds.x + bounds.width <= width, "Secrets bubble is not beside the folder or clips off-screen");
 	}
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -97,7 +98,11 @@ async function checkTaskbar(page) {
 	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await sparks.waitFor({ state: "visible" });
-	check(await bubble.evaluate((el) => getComputedStyle(el).animationName === "secrets-bubble-cartoon" && el.getAnimations().length > 0), "Secrets bubble is not animated");
+	check(await bubble.evaluate((el) => {
+		const style = getComputedStyle(el);
+		return style.animationName === "secrets-bubble-cartoon" && style.animationDuration === "10s" && el.getAnimations().length > 0;
+	}), "Secrets bubble is not animated slowly enough");
+	check(await secrets.locator(".desk-icon__art").evaluate((el) => getComputedStyle(el).animationName === "none"), "Speech bubble shares the folder bounce");
 	await page.locator(".fracture-background--ready").waitFor();
 	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
