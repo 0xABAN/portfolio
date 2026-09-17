@@ -19,7 +19,7 @@ async function checkTaskbar(page) {
 	const task = (id) => page.locator(`[data-task-id="${id}"]`);
 	const win = (id) => page.locator(`#desktop-window-${id}`);
 	const order = await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId));
-	check(order.includes("me") && order.includes("terminal") && !order.includes("alt"), "Wrong task membership");
+	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github"]), "Decorations leaked into main-app tasks");
 
 	await task("terminal").click();
 	check(await task("terminal").getAttribute("aria-pressed") === "true", "Task click did not activate Terminal");
@@ -112,6 +112,7 @@ async function checkTaskbar(page) {
 	await start.click();
 	await menu.getByRole("menuitem", { name: "Restore desktop decorations" }).click();
 	check(await win("sysmsg-4").isVisible(), "Start did not restore decorations");
+	check(await page.locator('[data-task-id^="sysmsg"], [data-task-id="new"]').count() === 0, "Dismissal or restoration created decoration tasks");
 	check(await input.inputValue() === "keep my draft", "Decoration restore reset an app");
 	return "PASS: activation, stacking, stable tasks, preserved sessions, Paint undo and Start menu";
 }

@@ -27,13 +27,13 @@ export function restoreDecorations(windows: DesktopWindow[]): DesktopWindow[] {
 
 /** Array order is launch order, independent of activation and minimization. */
 export function taskWindows(windows: DesktopWindow[]) {
-	return windows.filter((w) => !w.parentId);
+	return windows.filter((w) => !w.parentId && !isDecoration(w));
 }
 
 export function activeWindowId(windows: DesktopWindow[]): string | undefined {
-	return taskWindows(windows)
-		.filter((w) => !w.minimized)
-		.reduce<DesktopWindow | undefined>((front, w) => !front || w.z > front.z ? w : front, undefined)?.id;
+	const front = windows.filter((w) => !w.minimized && !w.parentId)
+		.reduce<DesktopWindow | undefined>((front, w) => !front || w.z > front.z ? w : front, undefined);
+	return front && !isDecoration(front) ? front.id : undefined;
 }
 
 /** Raise an owned window family together without changing its task order. */
