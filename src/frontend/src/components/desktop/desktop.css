@@ -7,7 +7,7 @@
 	--chrome-text: #f0f0f0;
 	/* classic Win9x arrow — hotspot 0,0 */
 	--cursor-arrow: url("/cursors/arrow.cur") 0 0, default;
-	--cursor-hand: url("/cursors/hand.svg") 10 1, pointer;
+	--cursor-hand: url("/cursors/hand.svg") 7 1, pointer;
 	/* hourglass while “loading” an app */
 	--cursor-wait: url("/cursors/wait.cur") 15 15, wait;
 

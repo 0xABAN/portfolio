@@ -44,11 +44,11 @@ async function checkTaskbar(page) {
 		const cursor = new Image();
 		cursor.src = "/cursors/hand.svg";
 		await cursor.decode();
-		return cursor.naturalWidth === 32 && cursor.naturalHeight === 32;
+		return cursor.naturalWidth === 20 && cursor.naturalHeight === 20;
 	}), "Retro hand cursor failed to load");
 	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"])';
 	check(await page.locator(clickable).evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) =>
-		[el, ...el.querySelectorAll("span, img, svg")].every((part) => getComputedStyle(part).cursor.includes('/cursors/hand.svg") 10 1, pointer')))), "Clickable controls or their artwork lost the hand cursor");
+		[el, ...el.querySelectorAll("span, img, svg")].every((part) => getComputedStyle(part).cursor.includes('/cursors/hand.svg") 7 1, pointer')))), "Clickable controls or their artwork lost the hand cursor");
 	check(await page.locator('.desktop :is(button:disabled, [aria-disabled="true"])').evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) => !getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "Disabled controls advertise clickability");
 	check(await page.locator(".win-titlebar, .paint__canvas, .paint__menu-item, .term__font-size").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/arrow.cur"))), "Hand cursor replaced dragging, painting or decorative cursors");
 	check(await page.locator(".term__input").evaluate((el) => getComputedStyle(el).cursor) === "text", "Terminal lost its text cursor");
