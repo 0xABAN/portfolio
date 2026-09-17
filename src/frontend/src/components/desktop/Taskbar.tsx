@@ -6,7 +6,7 @@ import { StartButton } from "./StartButton";
 import type { AppId } from "./windowState";
 import { useTaskbarAudio } from "./useTaskbarAudio";
 import { useViewCount } from "./useViewCount";
-import { GITHUB_URL, type DesktopWindow } from "./windows";
+import type { DesktopWindow } from "./windows";
 
 function formatClock(d: Date) {
 	return d
@@ -17,27 +17,6 @@ function formatClock(d: Date) {
 		})
 		.replace(/\u202f/g, " ");
 }
-
-const LINKS = [
-	{
-		id: "github",
-		label: "GitHub",
-		href: GITHUB_URL,
-		icon: "/icons/github.svg",
-	},
-	{
-		id: "linkedin",
-		label: "LinkedIn",
-		href: "https://www.linkedin.com/in/adam-torres-encarnacion/",
-		icon: "/icons/linkedin.svg",
-	},
-	{
-		id: "twitter",
-		label: "Twitter",
-		href: "https://x.com/0xABANN",
-		icon: "/icons/x.svg",
-	},
-] as const;
 
 const viewFmt = new Intl.NumberFormat("en-US");
 
@@ -139,16 +118,6 @@ export function Taskbar({ tasks, activeId, onActivateAction, onLaunchAction, onR
 			<div className="taskbar__left">
 				{show("tb:start") ? <StartButton onLaunchAction={onLaunchAction} onRestoreDecorationsAction={onRestoreDecorationsAction} canRestoreDecorations={canRestoreDecorations} /> : null}
 				<div className="taskbar__tasks">
-					{LINKS.filter((link) => show(`tb:${link.id}`)).map((link) => (
-						<TaskButton
-							key={link.id}
-							icon={link.icon}
-							title={link.label}
-							onClick={() => window.open(link.href, "_blank", "noopener,noreferrer")}
-						>
-							{link.label}
-						</TaskButton>
-					))}
 					{show("tb:cd") ? (
 						<div
 							ref={cdWrapRef}

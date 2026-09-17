@@ -16,6 +16,22 @@ async function checkTaskbar(page) {
 	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
+	await page.evaluate(() => {
+		window.openedLinks = [];
+		window.open = (...args) => { window.openedLinks.push(args); return null; };
+	});
+	for (const [label, url] of [
+		["GitHub", "https://github.com/0xABAN"],
+		["LinkedIn", "https://www.linkedin.com/in/adam-torres-encarnacion/"],
+		["Twitter", "https://x.com/0xABANN"],
+	]) {
+		const shortcut = page.locator(".desktop__icons").getByRole("button", { name: label, exact: true });
+		await shortcut.click();
+		const opened = await page.evaluate(() => window.openedLinks.at(-1));
+		check(JSON.stringify(opened) === JSON.stringify([url, "_blank", "noopener,noreferrer"]), "Social destination or opener protection changed");
+		check(await shortcut.locator("img").evaluate((el) => el.complete && el.naturalWidth === 32), "Desktop shortcut artwork failed to load");
+		check(await page.locator(".taskbar").getByRole("button", { name: label, exact: true }).count() === 0, "Social shortcut still appears as a task");
+	}
 	const task = (id) => page.locator(`[data-task-id="${id}"]`);
 	const win = (id) => page.locator(`#desktop-window-${id}`);
 	const order = await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId));

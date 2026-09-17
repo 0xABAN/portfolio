@@ -17,6 +17,7 @@ import { Terminal } from "./Terminal";
 import { Window } from "./window/Window";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./windowState";
 import {
+	GITHUB_URL,
 	altCropStyle,
 	clampToParent,
 	nestBounds,
@@ -53,6 +54,9 @@ const DESK_ICONS: DeskIcon[] = [
 	game("persona-5-royal", "Persona 5 Royal", "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
 	game("undertale", "Undertale", "https://store.steampowered.com/app/391540/Undertale/"),
 	{ id: "secrets", label: "secrets", src: "/icons/folder.png", open: "explorer" },
+	{ id: "social-github", label: "GitHub", src: "/icons/social/github.svg", href: GITHUB_URL },
+	{ id: "social-linkedin", label: "LinkedIn", src: "/icons/social/linkedin.svg", href: "https://www.linkedin.com/in/adam-torres-encarnacion/" },
+	{ id: "social-twitter", label: "Twitter", src: "/icons/social/twitter.svg", href: "https://x.com/0xABANN" },
 ];
 
 const RECYCLE_BIN = {

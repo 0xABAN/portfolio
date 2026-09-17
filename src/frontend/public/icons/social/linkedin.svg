@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <!-- Desktop-sized monitor and shortcut badge; existing site brand artwork. -->
+  <path fill="#000" d="M1 1h30v24H20v3h5v4H7v-4h5v-3H1z"/>
+  <path fill="#c0c0c0" d="M2 2h28v22H2zM13 25h6v4h-6zM8 29h16v2H8z"/>
+  <path fill="#fff" d="M2 2h28v1H3v20H2zM8 29h16v1H8z"/>
+  <path fill="#808080" d="M29 3h1v21H3v-1h26zM13 26h6v1h-6z"/>
+  <path fill="#000" d="M4 4h24v18H4z"/>
+  <g transform="translate(8 5)" fill="#f0f0f0"><rect width="16" height="16" rx="2" fill="#0A66C2" />
+  <path fill="#f0f0f0" d="M4.7 13H2.85V6.2H4.7V13zM3.77 5.35c-.6 0-1.08-.5-1.08-1.1 0-.6.48-1.09 1.08-1.09s1.08.49 1.08 1.09c0 .6-.48 1.1-1.08 1.1zM13.15 13h-1.84V9.45c0-.85-.02-1.93-1.18-1.93-1.18 0-1.36.92-1.36 1.87V13H6.93V6.2h1.76v.93h.03c.24-.47.84-1.18 1.74-1.18 1.86 0 2.69 1.22 2.69 2.81V13z" />
+</g>
+  <path fill="#000" d="M0 22h10v10H0z"/>
+  <path fill="#fff" d="M1 23h8v8H1z"/>
+  <path fill="#000" d="M2 29v-3h3v-2h3v4H6v-1H4v2z"/>
+</svg>
