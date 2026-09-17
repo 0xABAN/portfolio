@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent,
 	useCallback,
@@ -134,6 +135,8 @@ export function Terminal() {
 	const [input, setInput] = useState("");
 	const [busy, setBusy] = useState(true);
 	const [history, setHistory] = useState<ChatMessage[]>([]);
+	const [fontSize, setFontSize] = useState(16);
+	const [clipboardStatus, setClipboardStatus] = useState("");
 	const bodyRef = useRef<HTMLPreElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const aliveRef = useRef(true);
@@ -150,66 +153,6 @@ export function Terminal() {
 		const el = bodyRef.current;
 		if (el) el.scrollTop = el.scrollHeight;
 	}, [lines, input, busy]);
-
-	// terminal is the only text field — keep it focused so typing never needs a click
-	useEffect(() => {
-		if (busy) return;
-
-		const focusInput = () => {
-			inputRef.current?.focus({ preventScroll: true });
-		};
-		focusInput();
-
-		const isOtherField = (t: EventTarget | null) => {
-			if (!(t instanceof HTMLElement) || t === inputRef.current) return false;
-			return (
-				t.tagName === "INPUT" ||
-				t.tagName === "TEXTAREA" ||
-				t.tagName === "SELECT" ||
-				t.isContentEditable
-			);
-		};
-
-		const onKeyDown = (e: globalThis.KeyboardEvent) => {
-			if (isOtherField(e.target)) return;
-			if (e.metaKey || e.ctrlKey || e.altKey) return;
-			const el = inputRef.current;
-			if (!el) return;
-			if (document.activeElement === el) return;
-
-			// first keystroke while unfocused would otherwise be lost
-			if (e.key.length === 1 && !e.isComposing) {
-				e.preventDefault();
-				setInput((v) => v + e.key);
-				focusInput();
-				return;
-			}
-			if (e.key === "Backspace") {
-				e.preventDefault();
-				setInput((v) => v.slice(0, -1));
-				focusInput();
-				return;
-			}
-			if (e.key === "Enter") {
-				e.preventDefault();
-				focusInput();
-				el.form?.requestSubmit();
-				return;
-			}
-			focusInput();
-		};
-
-		const onPointerUp = () => {
-			queueMicrotask(focusInput);
-		};
-
-		window.addEventListener("keydown", onKeyDown, true);
-		window.addEventListener("pointerup", onPointerUp, true);
-		return () => {
-			window.removeEventListener("keydown", onKeyDown, true);
-			window.removeEventListener("pointerup", onPointerUp, true);
-		};
-	}, [busy]);
 
 	const setLineText = useCallback((id: number, text: string) => {
 		setLines((prev) => prev.map((l) => (l.id === id ? { ...l, text } : l)));
@@ -362,19 +305,73 @@ export function Terminal() {
 		}
 	};
 
+	async function copy() {
+		const field = inputRef.current;
+		const selectedInput = field?.value.slice(field.selectionStart ?? 0, field.selectionEnd ?? 0);
+		const selection = window.getSelection();
+		const selectedOutput = selection && bodyRef.current?.contains(selection.anchorNode)
+			&& bodyRef.current.contains(selection.focusNode) ? selection.toString() : "";
+		const transcript = [...lines.map((line) => line.text), busy ? "" : YOU + input].join("\n");
+
+		try {
+			await navigator.clipboard.writeText(selectedInput || selectedOutput || transcript);
+			setClipboardStatus("Copied.");
+		} catch {
+			setClipboardStatus("Clipboard unavailable. Select text and use your copy shortcut.");
+		}
+	}
+
+	async function paste() {
+		const field = inputRef.current;
+		if (!field || busy) return;
+
+		try {
+			const text = await navigator.clipboard.readText();
+			// A clipboard permission prompt can outlive this particular input row.
+			if (field !== inputRef.current) return;
+			field.setRangeText(text.replace(/[\r\n]+/g, " "), field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
+			setInput(field.value);
+			field.focus({ preventScroll: true });
+			setClipboardStatus("");
+		} catch {
+			setClipboardStatus("Clipboard unavailable. Use your paste shortcut in the prompt.");
+		}
+	}
+
 	return (
-		<div className="term">
-			<div className="term__menu" aria-hidden>
-				<span>File</span>
-				<span>Edit</span>
-				<span>Search</span>
-				<span>Help</span>
+		<div className="term" style={{ "--term-font-size": `${fontSize}px` } as CSSProperties}>
+			<div className="term__toolbar" role="group" aria-label="MS-DOS controls">
+				<select aria-label="Terminal font size" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))}>
+					<option value={16}>8 x 16</option>
+					<option value={32}>16 x 32</option>
+				</select>
+				<span className="term__separator" aria-hidden="true" />
+				<button type="button" className="term__tool" aria-label="Copy" title="Copy selection or transcript"
+					onPointerDown={(event) => event.preventDefault()} onClick={() => void copy()}>
+					<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
+						<path fill="#fff" stroke="#000" d="M1.5 1.5h8v10h-8zM5.5 4.5h8v10h-8z" />
+						<path stroke="#000080" d="M7 7.5h5M7 9.5h5M7 11.5h4" />
+					</svg>
+				</button>
+				<button type="button" className="term__tool" aria-label="Paste" title="Paste into the prompt" disabled={busy}
+					onPointerDown={(event) => event.preventDefault()} onClick={() => void paste()}>
+					<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
+						<path fill="#808000" stroke="#000" d="M2.5 2.5h10v12h-10z" />
+						<path fill="#c0c0c0" stroke="#000" d="M5.5.5h4v3h-4z" />
+						<path fill="#fff" stroke="#000" d="M6.5 6.5h8v9h-8z" />
+						<path stroke="#000080" d="M8 9.5h5M8 11.5h5M8 13.5h3" />
+					</svg>
+				</button>
+				<a className="term__tool" href="/fonts/ibm-vga-LICENSE.txt" target="_blank" rel="noreferrer"
+					aria-label="DOS font credits" title="DOS font credits">?</a>
 			</div>
+			<div className="term__status" role="status">{clipboardStatus}</div>
 			<pre
 				className="term__body"
 				ref={bodyRef}
-				onClick={() => inputRef.current?.focus()}
-				onKeyDown={() => inputRef.current?.focus()}
+				onClick={() => {
+					if (window.getSelection()?.isCollapsed) inputRef.current?.focus();
+				}}
 			>
 				{lines.map((line) => (
 					<span
