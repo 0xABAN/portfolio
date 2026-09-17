@@ -1,95 +1,43 @@
 .exp {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	background: var(--chrome-face);
-	color: var(--chrome-text);
-	font:
-		11px / 1.2 Tahoma,
-		"MS Sans Serif",
-		sans-serif;
 	user-select: none;
 }
 
-.exp__menu,
-.exp__toolbar,
-.exp__address,
-.exp__search {
-	display: flex;
-	flex-shrink: 0;
-	border-bottom: 1px solid var(--chrome-lo);
-	background: var(--chrome-face);
-}
-
-.exp__menu {
-	gap: 2px;
-	padding: 1px 4px 2px;
-}
-
 .exp__menu-item {
-	padding: 2px 8px;
 	color: color-mix(in srgb, var(--chrome-text) 55%, transparent);
-	pointer-events: none;
 }
 
 .exp__menu-item::first-letter {
 	text-decoration: underline;
 }
 
-.exp__toolbar {
-	flex-wrap: wrap;
-	gap: 2px;
-	padding: 3px 4px;
-}
-
 .exp__tool {
 	min-width: 40px;
-	padding: 3px 6px;
-	color: color-mix(in srgb, var(--chrome-text) 40%, transparent);
-	pointer-events: none;
 }
 
-.exp__address,
+.exp__address-field {
+	background: #0a0a0a;
+	color: #c8c8c8;
+}
+
 .exp__search {
+	display: flex;
+	flex-shrink: 0;
 	align-items: center;
 	gap: 6px;
-}
-
-.exp__address {
-	padding: 3px 6px;
-}
-
-.exp__search {
 	padding: 4px 6px;
+	border-bottom: 1px solid var(--chrome-lo);
+	background: var(--chrome-face);
 }
 
-.exp__address-label {
-	color: color-mix(in srgb, var(--chrome-text) 55%, transparent);
-}
-
-.exp__address-field,
 .exp__search-field {
 	flex: 1;
 	min-width: 0;
+	padding: 3px 8px;
 	border-top: 1px solid var(--chrome-lo);
 	border-left: 1px solid var(--chrome-lo);
 	border-right: 1px solid var(--chrome-hi);
 	border-bottom: 1px solid var(--chrome-hi);
 	background: #0a0a0a;
-}
-
-.exp__address-field {
-	padding: 2px 6px;
-	color: #c8c8c8;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.exp__search-field {
-	padding: 3px 8px;
 	color: #666;
 }
 
@@ -291,9 +239,6 @@
 }
 
 .exp__status {
-	flex-shrink: 0;
 	padding: 2px 6px;
-	border-top: 1px solid var(--chrome-hi);
-	background: var(--chrome-face);
 	color: color-mix(in srgb, var(--chrome-text) 65%, transparent);
 }
