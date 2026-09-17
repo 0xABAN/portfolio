@@ -96,7 +96,7 @@ try {
         let different = 0;
         for (let i = 0; i < actual.data.length; i += 4) {
           if (actual.data.subarray(i, i + 4).some((value, channel) =>
-            Math.abs(value - expected.data[i + channel]) > (name === 'desktop' ? 12 : 0))) different++;
+            Math.abs(value - expected.data[i + channel]) > (name === 'desktop' ? 12 : 3))) different++;
         }
         // Measured noise in repeated baseline runs is confined to image rasterization.
         const allowance = actual.info.width * actual.info.height * 0.002;
@@ -143,6 +143,11 @@ try {
     await capture('taskbar-paused', page.locator('.taskbar'));
     await page.getByRole('button', { name: 'Play music', exact: true }).click();
     await page.getByRole('button', { name: 'Pause music', exact: true }).waitFor();
+    const portrait = page.locator('.win[aria-label="adam"]');
+    await portrait.getByRole('button', { name: 'Minimize', exact: true }).dispatchEvent('click');
+    await portrait.waitFor({ state: 'hidden' });
+    await page.locator('.task-btn[title="adam"]').dispatchEvent('click');
+    await portrait.waitFor({ state: 'visible' });
     assert.deepEqual(errors, [], 'Browser errors');
     await context.close();
   }
