@@ -167,6 +167,43 @@ try {
       assert.equal(await page.locator('.term__input').inputValue(), 'preserve this draft');
       await page.locator('.term__input').fill('');
 
+      // A dragged window must not hide a non-window overlay from bin hit testing.
+      await page.evaluate(() => {
+        window.hitTestMutations = [];
+        window.hitTestObserver = new MutationObserver(records => {
+          window.hitTestMutations.push(...records.filter(record => /pointer-events/.test(record.oldValue ?? '')));
+        });
+        for (const el of document.querySelectorAll('.win')) {
+          window.hitTestObserver.observe(el, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
+        }
+      });
+      const bin = await page.locator('[data-recycle-bin]').boundingBox();
+      const point = { x: bin.x + bin.width / 2, y: bin.y + bin.height / 2 };
+      await page.evaluate(({ x, y }) => {
+        const overlay = document.createElement('div');
+        overlay.id = 'hit-test-overlay';
+        overlay.style.cssText = `position:fixed;left:${x - 10}px;top:${y - 10}px;width:20px;height:20px;z-index:9999`;
+        document.body.append(overlay);
+      }, point);
+      async function dropError() {
+        await win('sysmsg-4').dispatchEvent('pointerdown');
+        const header = await win('sysmsg-4').locator('.win-titlebar').boundingBox();
+        await page.mouse.move(header.x + 45, header.y + 10);
+        await page.mouse.down();
+        await page.mouse.move(point.x, point.y, { steps: 3 });
+        await page.mouse.up();
+      }
+      await dropError();
+      assert.equal(await win('sysmsg-4').count(), 1, 'Overlay must block recycling');
+      await page.locator('#hit-test-overlay').evaluate(el => el.remove());
+      await dropError();
+      assert.equal(await win('sysmsg-4').count(), 0, 'Drop through the dragged window must recycle it');
+      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
+      assert.equal(await page.evaluate(() => {
+        window.hitTestObserver.disconnect();
+        return window.hitTestMutations.length;
+      }), 0, 'Hit testing must not toggle window pointer-events');
+
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await page.waitForTimeout(3000);
       await measure('fracture-idle', () => page.waitForTimeout(5000));

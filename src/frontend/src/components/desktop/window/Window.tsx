@@ -62,15 +62,10 @@ function dragDelta(d: DragOrigin, clientX: number, clientY: number) {
 	};
 }
 
-/** Windows stack above the bin — disable their hit-testing for elementFromPoint. */
+/** Ignore windows without changing styles; other overlays must still block the bin. */
 function hitTrash(clientX: number, clientY: number) {
-	const wins = document.querySelectorAll<HTMLElement>(".win");
-	const prev = Array.from(wins, (n) => n.style.pointerEvents);
-	for (const n of wins) n.style.pointerEvents = "none";
-	const under = document.elementFromPoint(clientX, clientY);
-	wins.forEach((n, i) => {
-		n.style.pointerEvents = prev[i] ?? "";
-	});
+	const under = document.elementsFromPoint(clientX, clientY)
+		.find((element) => !element.closest(".win"));
 	return Boolean(under?.closest("[data-recycle-bin]"));
 }
 
