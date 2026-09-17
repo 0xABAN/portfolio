@@ -26,6 +26,11 @@ async function checkTerminal(page) {
 	await page.locator(".rsod").click();
 	const input = page.getByRole("textbox", { name: "Terminal input" });
 	await input.waitFor();
+	const opening = await page.locator(".term__line").allTextContents();
+	check(opening[0] === "Microsoft(R) Windows 95", "Wrong DOS banner");
+	check(opening.includes("   (C)Copyright Microsoft Corp 1981-1995."), "Wrong copyright year");
+	check(opening.includes("C:\\PORTFOLIO>ADAM.EXE"), "Chat program did not launch");
+	check(opening.includes("ADAM> how u doing :)"), "ASCII greeting missing");
 	// Test controls unobstructed by the deliberately overlapping desktop windows.
 	await page.locator(".win--dos").evaluate((el) => {
 		el.style.cssText += ";left:20px;top:20px;width:640px;height:480px;z-index:100";
@@ -62,7 +67,7 @@ async function checkTerminal(page) {
 	await page.evaluate(() => { window.clipboardDenied = true; });
 	await page.getByRole("button", { name: "Paste", exact: true }).click();
 	check((await page.locator(".term__status").innerText()).includes("Clipboard unavailable"), "Clipboard denial was not explained");
-	return "PASS: DOS chrome, font, copy, selection-aware paste, sizing, and clipboard denial";
+	return "PASS: Windows 95 opening, DOS chrome, font, copy/paste, sizing, and clipboard denial";
 }
 
 try {

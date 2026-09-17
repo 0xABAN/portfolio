@@ -11,17 +11,17 @@ import {
 } from "react";
 import "./terminal.css";
 
-const GREETING = "how u doing 😎";
-const BOT = "> adam bot: ";
-const YOU = "> you: ";
+const GREETING = "how u doing :)";
+const BOT = "ADAM> ";
+const YOU = "YOU> ";
 const SHELL = "C:\\PORTFOLIO>";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 // keep in sync with portfolio_backend.chat.BROKE_MSG
 const BROKE_MSG = "sry i'm too broke to afford this rn";
 
 const COPYRIGHT = [
-	"Microsoft(R) Windows 98",
-	"   (C)Copyright Microsoft Corp 1981-1998.",
+	"Microsoft(R) Windows 95",
+	"   (C)Copyright Microsoft Corp 1981-1995.",
 	"",
 ] as const;
 
@@ -178,10 +178,10 @@ export function Terminal() {
 		setInput("");
 		setLines([]);
 
-		// cold open — blank CRT / shell coming up (~2x faster than first pass)
+		// Cold open: the DOS session starts before the chat program.
 		await pause(350);
 
-		// BIOS-ish copyright dump (line-by-line, not instant)
+		// Shell startup banner, not a BIOS or simulated operating-system boot.
 		for (const text of COPYRIGHT) {
 			if (!alive()) return;
 			append(text);
@@ -195,7 +195,7 @@ export function Terminal() {
 
 		// human-speed command entry
 		await typewrite(
-			"adam",
+			"ADAM.EXE",
 			(full) => {
 				if (!alive()) return;
 				setLineText(cmdId, SHELL + full);
