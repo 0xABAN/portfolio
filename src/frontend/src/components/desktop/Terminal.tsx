@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent,
 	useCallback,
@@ -137,7 +136,6 @@ export function Terminal() {
 	const [busy, setBusy] = useState(true);
 	const [booted, setBooted] = useState(false);
 	const [history, setHistory] = useState<ChatMessage[]>([]);
-	const [fontSize, setFontSize] = useState(16);
 	const [clipboardStatus, setClipboardStatus] = useState("");
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -386,12 +384,9 @@ export function Terminal() {
 	}
 
 	return (
-		<div className="term" style={{ "--term-font-size": `${fontSize}px` } as CSSProperties}>
+		<div className="term">
 			<div className="term__toolbar" role="group" aria-label="MS-DOS controls">
-				<select aria-label="Terminal font size" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))}>
-					<option value={16}>8 x 16</option>
-					<option value={32}>16 x 32</option>
-				</select>
+				<span className="term__font-size">8 x 16</span>
 				<span className="term__separator" aria-hidden="true" />
 				<button type="button" className="term__tool" aria-label="Copy" title="Copy selection or transcript"
 					onPointerDown={(event) => event.preventDefault()} onClick={() => void copy()}>

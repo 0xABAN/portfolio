@@ -89,9 +89,12 @@ async function checkTerminal(page) {
 	await page.evaluate(() => { window.testClipboard = "DOS"; });
 	await page.getByRole("button", { name: "Paste", exact: true }).click();
 	check(await input.inputValue() === "hello DOS", "Paste did not replace the selection");
-	await page.getByRole("combobox", { name: "Terminal font size" }).selectOption("32");
-	check(await page.locator(".term__body").evaluate((el) => getComputedStyle(el).fontSize) === "32px", "Font size did not change");
-	await page.getByRole("combobox", { name: "Terminal font size" }).selectOption("16");
+	const fontLabel = page.locator(".term__font-size");
+	check(await fontLabel.innerText() === "8 x 16", "Fixed font label is missing");
+	check(await fontLabel.evaluate((el) => el.tagName === "SPAN" && el.tabIndex === -1), "Font label is still interactive");
+	check(await page.getByRole("combobox", { name: "Terminal font size" }).count() === 0, "Font resize selector still exists");
+	await fontLabel.click();
+	check(await page.locator(".term__body").evaluate((el) => getComputedStyle(el).fontSize) === "16px", "Terminal font size is not fixed at 16px");
 	await page.evaluate(() => { window.clipboardDenied = true; });
 	await page.getByRole("button", { name: "Paste", exact: true }).click();
 	check((await page.locator(".term__status").innerText()).includes("Clipboard unavailable"), "Clipboard denial was not explained");
@@ -106,10 +109,10 @@ async function checkTerminal(page) {
 	check(await input.evaluate((el) => getComputedStyle(el).color) === "rgb(192, 192, 192)", "Native input text is invisible");
 	await input.fill("long command ".repeat(100));
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Long input overflowed the terminal");
-	const fontSize = page.getByRole("combobox", { name: "Terminal font size" });
-	await fontSize.focus();
+	const copy = page.getByRole("button", { name: "Copy", exact: true });
+	await copy.focus();
 	await page.keyboard.press("Tab");
-	check(await page.getByRole("button", { name: "Copy", exact: true }).evaluate((el) => el === document.activeElement), "Toolbar keyboard focus was stolen");
+	check(await page.getByRole("button", { name: "Paste", exact: true }).evaluate((el) => el === document.activeElement), "Toolbar keyboard focus was stolen");
 	await input.fill("composition");
 	await input.dispatchEvent("keydown", { key: "Enter", isComposing: true });
 	check(await page.evaluate(() => window.testChatRequests.length) === 0, "IME confirmation submitted a message");
@@ -127,12 +130,12 @@ async function checkTerminal(page) {
 	await page.evaluate(() => window.chatToken(" there"));
 	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> hello there"));
 	check(!(await prompt.isVisible()), "YOU prompt appeared before the stream completed");
-	await fontSize.focus();
+	await copy.focus();
 	await page.evaluate(() => window.finishChat());
 	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
 	check(await prompt.isVisible(), "YOU prompt did not return after completion");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").content) === '"_"', "Idle cursor did not return after completion");
-	check(await fontSize.evaluate((el) => el === document.activeElement), "Reply completion stole focus from the toolbar");
+	check(await copy.evaluate((el) => el === document.activeElement), "Reply completion stole focus from the toolbar");
 	check((await page.locator(".term__line").allTextContents()).includes("ADAM> hello there"), "Streamed tokens were not assembled");
 
 	await input.fill("VeR");
