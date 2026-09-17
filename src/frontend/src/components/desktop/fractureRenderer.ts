@@ -36,8 +36,11 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 		element: layer.querySelector<HTMLElement>(`[data-piece="${asset.id}"]`)!,
 		growthElement: layer.querySelector<HTMLElement>(`[data-growth="${asset.id}"]`)!,
 		growthImage: layer.querySelector<HTMLImageElement>(`[data-growth="${asset.id}"] img`)!,
+		angle: asset.angle * Math.PI / 180,
+		falloff: asset.edge ? "" : spriteFalloff(asset),
 		growthRadius: Math.max(...asset.outline.map((point) => Math.hypot(point.x - 800, point.y - 500))),
 		offset: ZERO,
+		growth: 0,
 		elapsed: 0,
 		cycle: null as FractureBranchClock["cycle"],
 		pose: REST,
@@ -51,8 +54,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 
 	function render(delta: number) {
 		for (const piece of pieces) {
-			const { pose } = piece;
-			const angle = piece.asset.angle * Math.PI / 180;
+			const { angle, pose } = piece;
 			const turn = rotation + piece.twitch;
 			const reach = piece.asset.edge
 				? edgeReachScale(angle + turn * Math.PI / 180, piece.growthRadius * viewport.a, size.width, size.height)
@@ -65,14 +67,15 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 			if (!pointer && Math.hypot(piece.offset.x, piece.offset.y) < 0.01) piece.offset = ZERO;
 			placeSprite(piece.element, piece.asset, { ...ambient, e: ambient.e + piece.offset.x, f: ambient.f + piece.offset.y });
 
-			const growth = piece.cycle ? fractureGrowthAt(piece.cycle, piece.elapsed) : 0;
-			piece.growthImage.style.opacity = String(Math.min(0.7, growth * 3));
-			if (growth > 0) {
+			const opacity = String(Math.min(0.7, piece.growth * 3));
+			if (piece.growthImage.style.opacity !== opacity) piece.growthImage.style.opacity = opacity;
+			if (piece.growth > 0) {
 				const matrix = composeMatrix(viewport, branchMatrix(angle, turn, reach * pose.scale, pose.thickness));
 				placeSprite(piece.growthElement, piece.asset, { ...matrix, e: matrix.e + piece.offset.x, f: matrix.f + piece.offset.y });
-				const radius = piece.growthRadius * growth;
+				const radius = piece.growthRadius * piece.growth;
 				const reveal = `radial-gradient(circle ${radius}px at ${800 - piece.asset.x}px ${500 - piece.asset.y}px, #000 75%, transparent 100%)`;
-				piece.growthImage.style.maskImage = piece.asset.edge ? reveal : `${reveal}, ${spriteFalloff(piece.asset)}`;
+				const mask = piece.asset.edge ? reveal : `${reveal}, ${piece.falloff}`;
+				if (piece.growthImage.style.maskImage !== mask) piece.growthImage.style.maskImage = mask;
 			}
 		}
 		placeSprite(details, FRACTURE_DETAILS, composeMatrix(viewport, branchMatrix(0, rotation, 1, 1)));
@@ -95,7 +98,8 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 		rotation = fractureRotationAt(rotationMotion, rotationElapsed);
 		advanceFractureActivity(activity, angularPieces, delta);
 		for (const piece of pieces) {
-			piece.pose = piece.cycle ? fractureDriftAt(piece.cycle, piece.elapsed) : REST;
+			piece.growth = piece.cycle ? fractureGrowthAt(piece.cycle, piece.elapsed) : 0;
+			piece.pose = piece.cycle ? fractureDriftAt(piece.cycle, piece.elapsed, piece.growth) : REST;
 			piece.twitch = fractureTwitchAt(piece.twitchCycle, piece.twitchElapsed);
 		}
 		render(delta);
@@ -113,6 +117,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 			activity = createFractureActivity();
 			for (const piece of pieces) {
 				piece.elapsed = 0;
+				piece.growth = 0;
 				piece.cycle = null;
 				piece.pose = REST;
 				piece.twitchElapsed = 0;

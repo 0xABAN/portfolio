@@ -169,8 +169,12 @@ export function fractureGrowthAt(cycle: ReturnType<typeof createFractureDrift>, 
 	return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-export function fractureDriftAt(cycle: ReturnType<typeof createFractureDrift>, elapsed: number) {
-	const eased = fractureGrowthAt(cycle, elapsed);
+export function fractureDriftAt(
+	cycle: ReturnType<typeof createFractureDrift>,
+	elapsed: number,
+	growth = fractureGrowthAt(cycle, elapsed),
+) {
+	const eased = growth;
 	return {
 		rotation: cycle.rotation * eased,
 		scale: 1 + (cycle.scale - 1) * eased,
