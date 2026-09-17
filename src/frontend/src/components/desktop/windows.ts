@@ -200,7 +200,7 @@ function layoutErrorStack(paint: Rect): DesktopWindow[] {
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	const me = {
 		id: "me",
-		title: "adam",
+		title: "Adam-paint",
 		z: 2,
 		kind: "paint" as const,
 		src: "/photos/street.png",
