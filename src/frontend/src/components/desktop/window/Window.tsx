@@ -27,6 +27,8 @@ type Props = {
 	minimizable?: boolean;
 	onMinimizeAction: (id: string) => void;
 	onCloseAction?: (id: string) => void;
+	onMaximizeAction?: (id: string) => void;
+	maximized?: boolean;
 	onMoveAction: (id: string, x: number, y: number) => void;
 	onTrashAction?: (id: string) => void;
 	onTrashHoverAction?: (hot: boolean) => void;
@@ -79,6 +81,8 @@ function WindowInner({
 	minimizable = true,
 	onMinimizeAction,
 	onCloseAction,
+	onMaximizeAction,
+	maximized = false,
 	onMoveAction,
 	children,
 }: Props) {
@@ -101,7 +105,7 @@ function WindowInner({
 	}, [x, y, w, h, z]);
 
 	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
-		if ((e.target as HTMLElement).closest(".win-min")) return;
+		if (maximized || (e.target as HTMLElement).closest(".win-min")) return;
 		e.currentTarget.setPointerCapture(e.pointerId);
 		const el = rootRef.current;
 		const originX = el?.offsetLeft ?? x;
@@ -168,6 +172,7 @@ function WindowInner({
 			data-window-id={id}
 			data-active={active}
 			data-minimized={minimized}
+			data-maximized={maximized}
 			inert={minimized}
 			aria-hidden={minimized || undefined}
 			tabIndex={-1}
@@ -189,6 +194,7 @@ function WindowInner({
 				onPointerMove={onTitlePointerMove}
 				onPointerUp={onTitlePointerUp}
 				onPointerCancel={onTitlePointerUp}
+				onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest("button")) onMaximizeAction?.(id); }}
 			>
 				{icon ? (
 					// eslint-disable-next-line @next/next/no-img-element
@@ -209,6 +215,8 @@ function WindowInner({
 						onPointerDown={(ev) => ev.stopPropagation()}
 					/>
 				) : null}
+				{onMaximizeAction && <button type="button" className={`win-min win-max chrome-raised${maximized ? " win-max--restore" : ""}`}
+					aria-label={maximized ? "Restore window" : "Maximize"} onClick={() => onMaximizeAction(id)} onPointerDown={(event) => event.stopPropagation()} />}
 				{onCloseAction ? (
 					<button
 						type="button"

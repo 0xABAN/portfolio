@@ -25,7 +25,7 @@ import { Taskbar } from "./Taskbar";
 import { Terminal } from "./Terminal";
 import { Word } from "./word/Word";
 import { Window } from "./window/Window";
-import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./windowState";
+import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./windowState";
 import {
 	TASKBAR_H,
 	altCropStyle,
@@ -121,7 +121,7 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 		case "bio":
 			return <Bio />;
 		case "word":
-			return <Word />;
+			return <Word onCloseAction={() => onClose(id)} onMinimizeAction={() => onMinimize(id)} />;
 		case "recycle-bin":
 			return <RecycleBin onCloseAction={() => onClose(id)} />;
 		case "explorer":
@@ -262,6 +262,10 @@ function DesktopWorkspace() {
 		setWindows((prev) => minimizeWindowTree(prev, id));
 	}, []);
 
+	const maximizeWindow = useCallback((id: string) => {
+		setWindows((prev) => toggleMaximizeWindow(prev, id, window.innerWidth, window.innerHeight));
+	}, []);
+
 	/** Measure after the task exists, including launches after a full quit. */
 	const focusWindow = useCallback((id: string) => {
 		requestAnimationFrame(() => {
@@ -285,7 +289,7 @@ function DesktopWorkspace() {
 			}
 			// Only explicit launches/restores may move keyboard focus.
 			root.focus({ preventScroll: true });
-			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"]')?.focus({ preventScroll: true });
+			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
 		});
 	}, []);
 
@@ -507,6 +511,8 @@ function DesktopWorkspace() {
 						minimizable={w.id !== "alt"}
 						onMinimizeAction={minimizeWindow}
 						onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
+						onMaximizeAction={w.kind === "word" ? maximizeWindow : undefined}
+						maximized={Boolean(w.restoreBounds)}
 						onMoveAction={moveWindow}
 					>
 						<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}

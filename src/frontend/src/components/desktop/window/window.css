@@ -103,6 +103,31 @@
 	content: none;
 }
 
+.win-max::after {
+	left: 3px;
+	top: 2px;
+	right: auto;
+	bottom: auto;
+	width: 9px;
+	height: 8px;
+	border: 1px solid #000;
+	border-top-width: 2px;
+	background: #c0c0c0;
+}
+
+.win-max--restore::before {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 1px;
+	width: 8px;
+	height: 7px;
+	border: 1px solid #000;
+	border-top-width: 2px;
+}
+
+.win-max--restore::after { left: 2px; top: 4px; width: 8px; height: 7px; }
+
 .win__client {
 	position: relative;
 	flex: 1;

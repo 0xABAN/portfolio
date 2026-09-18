@@ -28,6 +28,8 @@ export type DesktopWindow = {
 	minimized?: boolean;
 	/** An explicit launch bypasses the initial boot reveal schedule. */
 	launched?: boolean;
+	/** Geometry to return to after maximizing an independent app window. */
+	restoreBounds?: Rect;
 };
 
 /** Shared with the desktop CSS variable so bounds and chrome cannot drift. */
@@ -270,6 +272,7 @@ export function reflowDesktop(
 
 	const resized = current.map((w) => {
 		if (w.parentId) return w;
+		if (w.restoreBounds) return { ...w, x: 0, y: 0, w: vw, h: vh - TASKBAR_H };
 		const old = oldLayout.get(w.id);
 		const target = newLayout.get(w.id);
 		const width = target?.w ?? w.w;
@@ -356,13 +359,16 @@ export function makeRecycleBinWindow(z: number, vw?: number, vh?: number): Deskt
 }
 
 export function makeWordWindow(z: number, vw?: number, vh?: number): DesktopWindow {
+	const { vw: width, vh: height } = viewport(vw, vh);
+	const w = Math.min(880, Math.max(260, width - 24));
+	const h = Math.min(700, Math.max(240, height - TASKBAR_H - 48));
 	return {
 		id: "word",
-		title: "resume.doc - Microsoft Word",
+		title: "Microsoft Word - resume.doc",
 		kind: "word",
-		icon: "/icons/notepad.svg",
+		icon: "/icons/word/app.png",
 		z,
-		...layoutCentered(700, 520, vw, vh),
+		...layoutCentered(w, h, width, height),
 	};
 }
 

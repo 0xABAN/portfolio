@@ -17,7 +17,7 @@ export const EXPLORER_FILES: readonly ExplorerFile[] = [
 	{
 		id: "resume",
 		name: "resume.doc",
-		icon: "/icons/notepad.svg",
+		icon: "/icons/word/document.png",
 		action: "word",
 	},
 	{
