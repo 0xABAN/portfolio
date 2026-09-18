@@ -19,7 +19,7 @@ const result = browser("run-code", `async (page) => {
 	const psp = page.locator("#desktop-window-experience");
 	const xmb = page.locator(".psp-xmb");
 	const screen = page.locator(".psp__screen");
-	const initialCategory = await xmb.getAttribute("data-category");
+	const initialProject = await xmb.getAttribute("data-project");
 	const titlebars = await psp.locator(".win-titlebar").count();
 	const beforeScreenClick = await psp.boundingBox();
 	const screenBox = await screen.boundingBox();
@@ -28,7 +28,7 @@ const result = browser("run-code", `async (page) => {
 
 	await xmb.focus();
 	await page.keyboard.press("ArrowRight");
-	const nextCategory = await xmb.getAttribute("data-category");
+	const nextProject = await xmb.getAttribute("data-project");
 	await page.keyboard.press("ArrowDown");
 	const selectedItem = await page.locator(".psp-xmb__item.is-selected").innerText();
 	await page.keyboard.press("Enter");
@@ -37,8 +37,8 @@ const result = browser("run-code", `async (page) => {
 	const listVisible = await page.locator(".psp-xmb__items").count();
 
 	return {
-		initialCategory,
-		nextCategory,
+		initialProject,
+		nextProject,
 		selectedItem,
 		detailVisible,
 		listVisible,
@@ -47,9 +47,9 @@ const result = browser("run-code", `async (page) => {
 	};
 }`);
 
-assert.match(result, /"initialCategory":"music"/);
-assert.match(result, /"nextCategory":"video"/);
-assert.match(result, /"selectedItem":"definitive multiplayer"/);
+assert.match(result, /"initialProject":"amazon"/);
+assert.match(result, /"nextProject":"ibm"/);
+assert.match(result, /"selectedItem":"Item 2"/);
 assert.match(result, /"detailVisible":1/);
 assert.match(result, /"listVisible":1/);
 assert.match(result, /"titlebars":0/);
