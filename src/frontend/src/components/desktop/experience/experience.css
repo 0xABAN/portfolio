@@ -1,7 +1,7 @@
 .psp {
 	position: fixed;
 	inset: 0;
-	z-index: 4;
+	z-index: 5;
 	overflow: hidden;
 	pointer-events: none;
 }
@@ -12,7 +12,25 @@
 	left: 50%;
 	width: min(100vw, 1100px);
 	aspect-ratio: 1;
-	transform: translate(-50%, -50%);
+	transform: translate(calc(-50% + var(--psp-x, 0px)), calc(-50% + var(--psp-y, 0px)));
+	pointer-events: auto;
+	cursor: grab;
+	touch-action: none;
+}
+
+.psp__canvas--dragging {
+	cursor: grabbing;
+}
+
+.psp__screen {
+	position: absolute;
+	top: 33.17%;
+	left: 25.68%;
+	z-index: 1;
+	width: 48.89%;
+	height: 28.86%;
+	background: #fff;
+	pointer-events: none;
 }
 
 .psp__art {
