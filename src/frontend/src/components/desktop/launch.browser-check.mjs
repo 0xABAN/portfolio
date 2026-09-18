@@ -83,8 +83,8 @@ async function checkLaunches(page) {
 	await task("bio").click();
 	check(await win("bio").isVisible() && !(await busy()), "Taskbar restoration should remain immediate");
 	await task("explorer").click();
-	await win("explorer").getByRole("button", { name: "resume.pdf", exact: true }).click();
-	check(!(await busy()) && await page.evaluate(() => window.openedLinks.length) === 1, "External links were delayed out of their user gesture");
+	await delayed("word", 1500, () => win("explorer").getByRole("button", { name: "resume.doc", exact: true }).click());
+	check(await page.evaluate(() => window.openedLinks.length) === 0, "Resume opened an external link");
 
 	// playwright-cli waits on a page timer after run-code returns.
 	await page.clock.resume();

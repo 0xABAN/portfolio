@@ -1,7 +1,9 @@
-export type ExplorerFile =
-	| { id: string; name: string; icon: string; action: "bio" }
-	| { id: string; name: string; icon: string; action: "experience" }
-	| { id: string; name: string; icon: string; action: "href"; href: string };
+export type ExplorerFile = {
+	id: string;
+	name: string;
+	icon: string;
+	action: "bio" | "experience" | "word";
+};
 
 export const EXPLORER_PATH = "C:\\secrets";
 
@@ -14,10 +16,9 @@ export const EXPLORER_FILES: readonly ExplorerFile[] = [
 	},
 	{
 		id: "resume",
-		name: "resume.pdf",
-		icon: "/icons/pdf.png",
-		action: "href",
-		href: "https://github.com/0xABAN/jobs/blob/main/src/resume/default/Adam_Torres_Encarnacion_Resume.pdf",
+		name: "resume.doc",
+		icon: "/icons/notepad.svg",
+		action: "word",
 	},
 	{
 		id: "experience",

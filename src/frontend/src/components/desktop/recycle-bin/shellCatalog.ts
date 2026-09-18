@@ -50,10 +50,9 @@ export const SHELL_ITEMS: readonly ShellItem[] = [
 	})),
 	...EXPLORER_FILES.map((file): ShellItem => ({
 		id: file.id, name: file.name, icon: file.icon, kind: "file",
-		type: file.id === "bio" ? "Text Document" : file.id === "resume" ? "PDF Document" : "Application",
+		type: file.id === "bio" ? "Text Document" : file.id === "resume" ? "Microsoft Word Document" : "Application",
 		bytes: file.id === "bio" ? 4096 : file.id === "resume" ? 768 * 1024 : 512 * 1024,
-		open: file.action === "href" ? undefined : file.action,
-		href: file.action === "href" ? file.href : undefined,
+		open: file.action,
 	})),
 ];
 

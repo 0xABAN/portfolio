@@ -21,7 +21,7 @@ test("task order survives switching, minimizing and restoring", () => {
 
 test("launching opens missing apps once and restores without resetting geometry", () => {
 	let windows = layoutDesktop(1440, 900).filter((w) => w.id !== "me" && w.id !== "alt");
-	for (const id of ["me", "terminal", "github", "explorer", "bio", "experience", "cd-player"] as AppId[]) {
+	for (const id of ["me", "terminal", "github", "explorer", "bio", "experience", "cd-player", "word"] as AppId[]) {
 		windows = openApp(windows, id, 1440, 900);
 		const opened = windows.find((w) => w.id === id)!;
 		windows = minimizeWindowTree(windows.map((w) => w.id === id ? { ...w, x: w.x + 17 } : w), id);

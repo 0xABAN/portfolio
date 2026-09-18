@@ -18,7 +18,8 @@ export type DesktopWindow = {
 		| "terminal"
 		| "bio"
 		| "explorer"
-		| "cd-player";
+		| "cd-player"
+		| "word";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -338,6 +339,17 @@ export function makeCdPlayerWindow(z: number, vw?: number, vh?: number): Desktop
 		// Desktop aligns this to the actual task button when the app is restored.
 		x: 8,
 		y: Math.max(0, height - TASKBAR_H - 188 - 4),
+	};
+}
+
+export function makeWordWindow(z: number, vw?: number, vh?: number): DesktopWindow {
+	return {
+		id: "word",
+		title: "resume.doc - Microsoft Word",
+		kind: "word",
+		icon: "/icons/notepad.svg",
+		z,
+		...layoutCentered(700, 520, vw, vh),
 	};
 }
 

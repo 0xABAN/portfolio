@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
+import { Word } from "./word/Word";
 import { CdPlayer } from "./CdPlayer";
 import { useCdPlayerAudio } from "./useCdPlayerAudio";
 import { DesktopSparks } from "./DesktopSparks";
@@ -128,6 +129,8 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 			return <Terminal />;
 		case "bio":
 			return <Bio />;
+		case "word":
+			return <Word />;
 		case "explorer":
 			return <Explorer onOpenFileAction={onOpenExplorerFile} />;
 	}
@@ -317,7 +320,7 @@ export function Desktop() {
 	}, [focusWindow]);
 
 	const openExplorerFile = useCallback((file: ExplorerFile) => {
-		if (file.action === "bio" || file.action === "experience") launchApp(file.action);
+		if (file.action === "bio" || file.action === "experience" || file.action === "word") launchApp(file.action);
 		else window.open(file.href, "_blank", "noopener,noreferrer");
 	}, [launchApp]);
 
@@ -466,7 +469,7 @@ export function Desktop() {
 						)}
 						minimizable={w.id !== "alt"}
 						onMinimizeAction={minimizeWindow}
-						onCloseAction={w.kind === "cd-player" ? closeWindow : undefined}
+						onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
 						onMoveAction={moveWindow}
 						onTrashHoverAction={setBinHot}
 						onTrashAction={trashWindow}

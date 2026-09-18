@@ -16,6 +16,7 @@ const GROUPS = [
 	{ label: "Documents", icon: "/icons/folder.png", items: [
 		{ id: "explorer", label: "secrets", icon: "/icons/folder.png" },
 		{ id: "bio", label: "bio.txt", icon: "/icons/notepad.svg" },
+		{ id: "word", label: "resume.doc", icon: "/icons/notepad.svg" },
 	] },
 ] as const;
 
