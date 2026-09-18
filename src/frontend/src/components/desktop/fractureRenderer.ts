@@ -132,7 +132,7 @@ export function installFractureRenderer(root: HTMLElement, layer: HTMLElement) {
 		}
 	}
 	function move(event: PointerEvent) {
-		pointer = active && hover.matches && event.pointerType === "mouse" && event.target === desktop
+		pointer = active && hover.matches && event.pointerType === "mouse"
 			? { x: event.clientX, y: event.clientY } : null;
 	}
 

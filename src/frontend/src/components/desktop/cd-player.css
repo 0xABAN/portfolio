@@ -1,5 +1,5 @@
 .cd-player__body {
-	font: 11px / 1.2 "MS Sans Serif", Tahoma, sans-serif;
+	font: 11px / 1.2 "Win95 UI", Tahoma, sans-serif;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;

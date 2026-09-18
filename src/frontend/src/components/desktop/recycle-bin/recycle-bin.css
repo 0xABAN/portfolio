@@ -9,7 +9,7 @@
 	font: 11px / 1.3 "Win95 UI", Tahoma, sans-serif;
 }
 
-.desktop:not(.desktop--busy) [data-shell-surface] :is(button, [role="option"]) { cursor: var(--cursor-arrow); }
+.desktop:not(.desktop--busy) [data-shell-surface] :is(button, [role="option"]):not(:disabled, [aria-disabled="true"]) { cursor: var(--cursor-hand); }
 .shell-menubar, .shell-toolbar { display: flex; flex: none; align-items: center; gap: 2px; padding: 2px 4px; border-bottom: 1px solid var(--chrome-lo); }
 .shell-menubar > button, .shell-toolbar > button { padding: 3px 6px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; white-space: nowrap; }
 .shell-menubar > button:hover, .shell-menubar > button[aria-expanded="true"], .shell-toolbar > button:not(:disabled):hover { border-color: var(--chrome-hi) var(--chrome-lo) var(--chrome-lo) var(--chrome-hi); }

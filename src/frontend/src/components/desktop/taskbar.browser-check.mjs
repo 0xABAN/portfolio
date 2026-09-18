@@ -16,21 +16,59 @@ async function checkTaskbar(page) {
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
 	await page.evaluate(() => {
-		// Observe the real page-lifetime transport without adding production test hooks.
 		window.audioActions = [];
-		window.Audio = class extends window.Audio {
-			requestedVolume = 1;
-			constructor(...args) {
-				super(...args);
-				super.volume = 0; // Silence physical output without interfering with the fade.
-				window.taskbarAudio = this;
-			}
-			get volume() { return this.requestedVolume; }
-			set volume(value) { this.requestedVolume = value; }
-			play() { window.audioActions.push("play"); return super.play(); }
-			pause() { window.audioActions.push("pause"); return super.pause(); }
-			load() { window.audioActions.push("load"); return super.load(); }
+		const listeners = {};
+		const Events = {
+			READY: "ready",
+			PLAY: "play",
+			PAUSE: "pause",
+			FINISH: "finish",
+			PLAY_PROGRESS: "playProgress",
+			ERROR: "error",
 		};
+		const emit = (event, data) => {
+			for (const listener of listeners[event] || []) listener(data);
+		};
+		let progress;
+		let position = 0;
+		function Widget() {
+			return {
+				bind(event, listener) {
+					(listeners[event] ||= []).push(listener);
+					if (event === Events.READY) queueMicrotask(listener);
+				},
+				unbind(event) { listeners[event] = []; },
+				play() {
+					window.audioActions.push("play");
+					emit(Events.PLAY);
+					if (!progress) {
+						progress = setInterval(() => {
+							position += 1000;
+							emit(Events.PLAY_PROGRESS, { currentPosition: position });
+						}, 250);
+					}
+				},
+				pause() {
+					window.audioActions.push("pause");
+					clearInterval(progress);
+					progress = undefined;
+					emit(Events.PAUSE);
+				},
+				seekTo(milliseconds) { position = milliseconds; },
+				setVolume() {},
+				load(_url, options) {
+					window.audioActions.push("load");
+					position = 0;
+					queueMicrotask(() => {
+						emit(Events.READY);
+						options?.callback?.();
+					});
+				},
+				getPosition(callback) { callback(position); },
+			};
+		}
+		Widget.Events = Events;
+		window.SC = { Widget };
 	});
 	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
@@ -40,31 +78,68 @@ async function checkTaskbar(page) {
 	const cdIconBounds = await cdIcon.boundingBox();
 	const secretsBounds = await page.locator('[data-app-id="explorer"]').boundingBox();
 	check(cdIconBounds.x === secretsBounds.x && cdIconBounds.y < secretsBounds.y, "CD Player icon is not above Secrets");
+	const iconCell = async (locator) => {
+		const bounds = await locator.boundingBox();
+		return bounds && `${bounds.x}:${bounds.y}`;
+	};
+	const firstIcon = page.locator('[data-icon-id="hollow-knight"]');
+	const secondIcon = page.locator('[data-icon-id="silksong"]');
+	const firstCell = await iconCell(firstIcon);
+	const secondCell = await iconCell(secondIcon);
+	await firstIcon.dragTo(secondIcon);
+	check(await iconCell(firstIcon) === secondCell && await iconCell(secondIcon) === firstCell, "Desktop icons did not swap grid cells");
+	check(await page.evaluate(() => localStorage.getItem("portfolio.desktop.icon-order") === null), "Desktop icon positions must not be persisted");
+	const beforeBlankMove = await iconCell(firstIcon);
+	await page.evaluate(async () => {
+		const source = document.querySelector('[data-icon-id="hollow-knight"]');
+		const surface = document.querySelector(".desktop__icons");
+		if (!source || !surface) throw new Error("Grid drag fixtures are missing");
+		const dataTransfer = new DataTransfer();
+		source.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer }));
+		await new Promise(requestAnimationFrame);
+		const bounds = surface.getBoundingClientRect();
+		const event = { bubbles: true, cancelable: true, clientX: bounds.right - 48, clientY: bounds.bottom - 56, dataTransfer };
+		surface.dispatchEvent(new DragEvent("dragover", event));
+		surface.dispatchEvent(new DragEvent("drop", event));
+		await new Promise(requestAnimationFrame);
+		source.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer }));
+	});
+	check(await iconCell(firstIcon) !== beforeBlankMove, "Desktop icons cannot move to an empty grid cell");
+	const recycleBin = page.locator("[data-recycle-bin]");
+	const secretsIcon = page.locator('[data-icon-id="secrets"]');
+	check(await recycleBin.evaluate((el) => el instanceof HTMLButtonElement && el.draggable), "Recycle Bin is not a draggable desktop icon");
 	const secrets = page.locator('[data-app-id="explorer"]');
 	const bubble = secrets.locator(".desk-icon__bubble");
 	const bubbleBody = bubble.locator(".desk-icon__bubble-body");
 	check(await bubbleBody.innerText() === "don't click me!", "Secrets speech bubble has the wrong text");
 	check(await bubble.evaluate(async (el) => {
+		await document.fonts.load('italic 700 14px "Rose Tinted"');
 		const style = getComputedStyle(el);
 		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
+		const text = getComputedStyle(el.querySelector(".desk-icon__bubble-text"));
 		const art = new Image();
 		art.src = "/icons/secrets-bubble.svg";
 		await art.decode();
 		return art.naturalWidth === 120 && art.naturalHeight === 58
+			&& document.fonts.check('italic 700 14px "Rose Tinted"')
+			&& body.fontFamily.includes("Rose Tinted")
+			&& body.fontSize === "14px" && body.fontStyle === "italic" && body.fontWeight === "700"
+			&& text.transform !== "none"
 			&& style.top === "-32px"
-			&& style.width === "144px" && style.height === "70px"
-			&& body.paddingLeft === "24px" && body.paddingRight === "20px"
+			&& style.width === "200px" && style.height === "78px"
+			&& style.zIndex === "4"
+			&& body.paddingLeft === "50px" && body.paddingRight === "30px"
 			&& body.backgroundImage.includes("/icons/secrets-bubble.svg")
 			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
-	}), "Secrets speech bubble lost its angular, pixelated, noninteractive artwork");
+	}), "Secrets speech bubble lost its Rose Tinted font, angle, or existing artwork");
 	check(await bubble.evaluate((el) => [...el.querySelectorAll(".desk-icon__bubble-x, .desk-icon__bubble-y, .desk-icon__bubble-body")]
 		.every((part) => getComputedStyle(part).animationName === "none")), "Secrets bubble moves when reduced motion is requested");
 	for (const width of [1440, 390, 320]) {
 		await page.setViewportSize({ width, height: 900 });
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
 		const bounds = await bubble.boundingBox();
-		check(bounds.width <= 150 && bounds.height <= 75, "Secrets bubble is too large");
+		check(bounds.width <= 206 && bounds.height <= 83, "Secrets bubble is too large");
 		check(bounds.x >= art.x + art.width && bounds.x + bounds.width <= width, "Secrets bubble is not beside the folder or clips off-screen");
 	}
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -79,9 +154,13 @@ async function checkTaskbar(page) {
 		await cursor.decode();
 		return cursor.naturalWidth === 20 && cursor.naturalHeight === 20;
 	}), "Retro hand cursor failed to load");
-	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"]):not([data-shell-surface] *)';
-	check(await page.locator(clickable).evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) =>
-		[el, ...el.querySelectorAll("span, img, svg")].every((part) => getComputedStyle(part).cursor.includes('/cursors/hand.svg") 7 1, pointer')))), "Clickable controls or their artwork lost the hand cursor");
+	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"])';
+	check(await page.locator(clickable).evaluateAll((nodes) => nodes.filter((el) => !el.closest("[data-shell-surface]")).length > 0 && nodes
+		.filter((el) => !el.closest("[data-shell-surface]"))
+		.every((el) => [el, ...el.querySelectorAll("span, img, svg")]
+			.every((part) => getComputedStyle(part).cursor.includes('/cursors/hand.svg") 7 1, pointer')))), "Clickable controls or their artwork lost the hand cursor");
+	check(await page.locator('[data-shell-surface] :is(button, [role="option"]):not(:disabled, [aria-disabled="true"])').evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) =>
+		[el, ...el.querySelectorAll("span, img, svg")].every((part) => getComputedStyle(part).cursor.includes("/cursors/hand.svg")))), "Clickable shell controls lost the hand cursor");
 	check(await page.locator('.desktop :is(button:disabled, [aria-disabled="true"])').evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) => !getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "Disabled controls advertise clickability");
 	check(await page.locator(".win-titlebar, .paint__canvas, .paint__menu-item, .term__font-size").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/arrow.cur"))), "Hand cursor replaced dragging, painting or decorative cursors");
 	check(await page.locator(".term__input").evaluate((el) => getComputedStyle(el).cursor) === "text", "Terminal lost its text cursor");
@@ -116,6 +195,15 @@ async function checkTaskbar(page) {
 			&& el.getAnimations({ subtree: true }).length >= 4;
 	}), "Secrets bubble shifts, resizes or rotates are not independently animated");
 	check(await secrets.locator(".desk-icon__art").evaluate((el) => getComputedStyle(el).animationName === "none"), "Speech bubble shares the folder bounce");
+	const binCell = await iconCell(recycleBin);
+	const secretsCell = await iconCell(secretsIcon);
+	await recycleBin.dragTo(secretsIcon);
+	check(await iconCell(recycleBin) === secretsCell && await iconCell(secretsIcon) === binCell, "Recycle Bin did not swap grid cells");
+	await recycleBin.dragTo(secretsIcon);
+	check(await iconCell(recycleBin) === binCell && await iconCell(secretsIcon) === secretsCell, "Recycle Bin did not return to its original grid cell");
+	await secretsIcon.dragTo(cdIcon);
+	check(await bubble.count() === 0, "Dragging Secrets did not dismiss its speech bubble");
+	await secretsIcon.dragTo(cdIcon);
 	await page.locator(".fracture-background--ready").waitFor();
 	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
@@ -287,6 +375,8 @@ async function checkTaskbar(page) {
 		const bold = await document.fonts.load('700 11px "Win95 UI"');
 		return regular.length === 1 && bold.length === 1;
 	}), "Win95 fonts did not load");
+	check(await page.locator(".desktop, .taskbar, .win:not(.win--dos):not(.win--error), .paint, .gh-app, .cd-player__body, .start-menu, .explorer, .exp").evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) => getComputedStyle(el).fontFamily.includes("Win95 UI"))), "Non-terminal UI did not use the Win95 font");
+	check(await page.locator(".win--dos").evaluate((el) => getComputedStyle(el).fontFamily.startsWith("Tahoma")), "Terminal UI font changed");
 	check(await page.locator(".taskbar").evaluate((el) => el.getBoundingClientRect().height === 32), "Taskbar height drifted");
 	check(await start.evaluate((el) => getComputedStyle(el).borderTopWidth === "1px"), "Start lost its layered 1px bevel");
 	check(await page.locator(".taskbar__tray .taskbar__speaker").count() === 1, "Speaker is not inside the recessed tray");
@@ -377,6 +467,7 @@ async function checkTaskbar(page) {
 	// Ordinary desktop typing uses native input insertion, not a simulated keyboard.
 	await input.fill("");
 	await music.click();
+	await page.evaluate(() => new Promise(requestAnimationFrame));
 	await page.keyboard.type("Hello ");
 	check(await input.inputValue() === "Hello ", "Desktop typing lost or duplicated the first character");
 	check(await input.evaluate((el) => el === document.activeElement), "Desktop typing did not focus Terminal");
@@ -406,7 +497,7 @@ async function checkTaskbar(page) {
 	await player.getByRole("button", { name: "Close CD Player" }).click();
 	check(await player.count() === 0 && await music.count() === 0, "Close did not remove the app and its task");
 	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Close did not quit the audio transport");
-	await page.waitForFunction(() => document.activeElement?.getAttribute("data-app-id") === "cd-player");
+	await page.waitForFunction(() => !document.getElementById("desktop-window-cd-player") && document.activeElement?.getAttribute("data-app-id") !== "cd-player");
 
 	for (const editable of ["textarea", "contenteditable"]) {
 		await page.evaluate((kind) => {

@@ -48,17 +48,19 @@
 	text-overflow: ellipsis;
 }
 
-@font-face {
-	font-family: "Archivo Black";
-	src: url("/fonts/archivo-black.woff2") format("woff2");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-
 .win--dos {
+	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
 	border-color: #dfdfdf #000 #000 #dfdfdf;
 	box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+}
+
+.win--error {
+	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
+}
+
+.win--dos .win-close,
+.win--error .win-close {
+	font: 700 12px / 1 Arial, sans-serif;
 }
 
 .win--dos .win-titlebar {
@@ -96,7 +98,7 @@
 
 .win-close {
 	color: var(--chrome-text);
-	font: 700 12px / 1 Arial, sans-serif;
+	font: 700 12px / 1 "Win95 UI", Tahoma, sans-serif;
 }
 
 .win-close::after {

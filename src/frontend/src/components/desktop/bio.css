@@ -6,10 +6,7 @@
 	overflow: auto;
 	background: var(--chrome-face);
 	color: var(--chrome-text);
-	font:
-		12px / 1.4 Tahoma,
-		"MS Sans Serif",
-		sans-serif;
+	font: 12px / 1.4 "Win95 UI", Tahoma, sans-serif;
 }
 
 .bio__section {

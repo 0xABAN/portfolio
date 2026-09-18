@@ -16,25 +16,46 @@ async function checkAudio(page) {
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
 	await page.addInitScript(() => {
-		// Keep real media loading/playback, but silence the test's physical output.
-		window.Audio = class extends window.Audio {
-			requestedVolume = 1;
-			constructor(...args) {
-				super(...args);
-				super.volume = 0;
-				window.taskbarAudio = this;
-			}
-			get volume() { return this.requestedVolume; }
-			set volume(value) { this.requestedVolume = value; }
-			play() {
-				window.playAttempts = (window.playAttempts || 0) + 1;
-				const result = window.blockAudio
-					? Promise.reject(new DOMException("Gesture required", "NotAllowedError"))
-					: super.play();
-				window.audioStarted = result.then(() => true, () => false);
-				return result;
-			}
+		const listeners = {};
+		const Events = {
+			READY: "ready",
+			PLAY: "play",
+			PAUSE: "pause",
+			FINISH: "finish",
+			PLAY_PROGRESS: "playProgress",
+			ERROR: "error",
 		};
+		const emit = (event, data) => {
+			for (const listener of listeners[event] || []) listener(data);
+		};
+		function Widget() {
+			return {
+				bind(event, listener) {
+					(listeners[event] ||= []).push(listener);
+					if (event === Events.READY) queueMicrotask(listener);
+				},
+				unbind(event) { listeners[event] = []; },
+				play() {
+					window.playAttempts = (window.playAttempts || 0) + 1;
+					const result = window.blockAudio
+						? Promise.reject(new DOMException("Gesture required", "NotAllowedError"))
+						: Promise.resolve().then(() => emit(Events.PLAY));
+					window.audioStarted = result.then(() => true, () => false);
+					return result;
+				},
+				pause() { emit(Events.PAUSE); },
+				seekTo(milliseconds) { window.widgetPosition = milliseconds; },
+				setVolume() {},
+				load(_url, options) {
+					queueMicrotask(() => {
+						emit(Events.READY);
+						options?.callback?.();
+					});
+				},
+			};
+		}
+		Widget.Events = Events;
+		window.SC = { Widget };
 	});
 	await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
 
@@ -88,6 +109,9 @@ async function checkAudio(page) {
 	await player.getByRole("button", { name: "Pause", exact: true }).click();
 	await page.locator(".taskbar__clock").click();
 	check((await state()).paused, "A later gesture resumed deliberately paused music");
+	await page.evaluate(() => { window.widgetPosition = 5000; });
+	await player.getByRole("button", { name: "Stop", exact: true }).click();
+	check(await page.evaluate(() => window.widgetPosition === 0), "Stop reset the display without rewinding the SoundCloud widget");
 
 	await boot();
 	await speaker.click();
@@ -123,6 +147,7 @@ async function checkAudio(page) {
 	check((await state()).volume > 0, "Quit check did not start during the fade");
 	await player.getByRole("button", { name: "Close CD Player" }).click();
 	check(await player.count() === 0 && await task.count() === 0, "Quit left an app window or task behind");
+	check(await page.evaluate(() => document.activeElement?.getAttribute("data-app-id") !== "cd-player"), "Quit focused the desktop shortcut");
 	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Quit did not stop, rewind and unload the music");
 	const quitAttempts = (await state()).attempts;
 	await page.clock.runFor(20_000);

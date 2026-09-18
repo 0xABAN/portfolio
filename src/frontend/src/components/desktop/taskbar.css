@@ -77,7 +77,7 @@
 	background-color: var(--chrome-btn);
 	color: inherit;
 	font: inherit;
-	cursor: var(--cursor-arrow);
+	cursor: var(--cursor-hand);
 	user-select: none;
 }
 

@@ -78,6 +78,7 @@ async function checkWord(page, source) {
 	}), "Word title bar is blue instead of black");
 	check(await win.getByRole("toolbar", { name: "Standard", exact: true }).getByRole("button").count() === 21, "Standard toolbar does not match the reference");
 	check(await win.getByRole("toolbar", { name: "Formatting", exact: true }).getByRole("button").count() === 13, "Formatting toolbar is incomplete");
+	check(await win.getByRole("button", { name: "New", exact: true }).evaluate((button) => !getComputedStyle(button).cursor.includes("/cursors/hand.svg")), "Disabled Word controls advertise clickability");
 	check(await win.getByRole("combobox", { name: "Font", exact: true }).inputValue() === "Times New Roman", "Font selector is missing");
 	check(await win.getByRole("combobox", { name: "Font size", exact: true }).inputValue() === "12", "Font selector does not show 12 pt");
 	check(await doc.locator("li, .word__paragraph, .word__contact, .word__job, .word__role").evaluateAll((elements) => elements.every((element) => getComputedStyle(element).fontSize === "16px")), "Resume text is not uniformly 12 pt");

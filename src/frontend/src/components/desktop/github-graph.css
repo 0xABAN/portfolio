@@ -9,10 +9,7 @@
 	overflow: hidden;
 	background: #0a0a0a;
 	color: #c8c8c8;
-	font:
-		10px / 1.2 Tahoma,
-		"MS Sans Serif",
-		sans-serif;
+	font: 10px / 1.2 "Win95 UI", Tahoma, sans-serif;
 	user-select: none;
 }
 

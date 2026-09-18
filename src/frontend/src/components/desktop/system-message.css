@@ -9,6 +9,7 @@
 	padding: 14px 16px 12px;
 	background: var(--chrome-face);
 	color: var(--chrome-text);
+	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
 }
 
 .sysmsg__row {

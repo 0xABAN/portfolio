@@ -11,10 +11,7 @@
 	flex-direction: column;
 	background: var(--chrome-face);
 	color: var(--chrome-text);
-	font:
-		11px / 1 Tahoma,
-		"MS Sans Serif",
-		sans-serif;
+	font: 11px / 1 "Win95 UI", Tahoma, sans-serif;
 	user-select: none;
 }
 
