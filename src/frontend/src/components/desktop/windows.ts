@@ -315,7 +315,7 @@ export function makeExperienceWindow(
 ): DesktopWindow {
 	const { vw: W, vh: H } = viewport(vw, vh);
 	const ratio = 1158 / 536;
-	const w = Math.max(240, Math.min(900, W - 24, Math.floor((H - TASKBAR_H - 24) * ratio)));
+	const w = Math.max(240, Math.min(1800, W - 24, Math.floor((H - TASKBAR_H - 24) * ratio)));
 	const h = Math.round(w / ratio);
 	return {
 		id: EXPERIENCE_WINDOW_ID,
