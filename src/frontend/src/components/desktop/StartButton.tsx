@@ -2,6 +2,7 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { WindowsLogo } from "./WindowsLogo";
+import { useShell } from "./recycle-bin/ShellProvider";
 import type { AppId } from "./windowState";
 import "./start-menu.css";
 
@@ -33,6 +34,7 @@ function menuItems(scope: Element) {
 
 /** Native light-dismiss owns opening/closing; only menu navigation needs JavaScript. */
 export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRestoreDecorations }: Props) {
+	const shell = useShell();
 	const menu = useRef<HTMLDivElement>(null);
 	const [open, setOpen] = useState(false);
 	const [group, setGroup] = useState<string | null>(null);
@@ -137,6 +139,9 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRes
 						onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }} onClick={() => run(onRestoreDecorationsAction)}>
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
+					</button>
+					<button type="button" role="menuitem" onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }} onClick={() => run(shell.reset)}>
+						<span className="start-menu__arrow" aria-hidden="true" /><span>Reset portfolio</span>
 					</button>
 					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"
 						onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }}

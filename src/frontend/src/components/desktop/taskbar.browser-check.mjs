@@ -79,7 +79,7 @@ async function checkTaskbar(page) {
 		await cursor.decode();
 		return cursor.naturalWidth === 20 && cursor.naturalHeight === 20;
 	}), "Retro hand cursor failed to load");
-	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"])';
+	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"]):not([data-shell-surface] *)';
 	check(await page.locator(clickable).evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) =>
 		[el, ...el.querySelectorAll("span, img, svg")].every((part) => getComputedStyle(part).cursor.includes('/cursors/hand.svg") 7 1, pointer')))), "Clickable controls or their artwork lost the hand cursor");
 	check(await page.locator('.desktop :is(button:disabled, [aria-disabled="true"])').evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) => !getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "Disabled controls advertise clickability");
@@ -147,8 +147,8 @@ async function checkTaskbar(page) {
 		["LinkedIn", "https://www.linkedin.com/in/adam-torres-encarnacion/"],
 		["Twitter", "https://x.com/0xABANN"],
 	]) {
-		const shortcut = page.locator(".desktop__icons").getByRole("button", { name: label, exact: true });
-		await shortcut.click();
+		const shortcut = page.locator(".desktop__icons").getByRole("option", { name: label, exact: true });
+		await shortcut.dblclick();
 		const opened = await page.evaluate(() => window.openedLinks.at(-1));
 		check(JSON.stringify(opened) === JSON.stringify([url, "_blank", "noopener,noreferrer"]), "Social destination or opener protection changed");
 		check(await shortcut.locator("img").evaluate((el) => el.complete && el.naturalWidth === 32), "Desktop shortcut artwork failed to load");
@@ -182,7 +182,7 @@ async function checkTaskbar(page) {
 	check(await win("alt").isVisible(), "Nested window did not restore");
 	check(JSON.stringify(await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId))) === JSON.stringify(order), "Switching reordered tasks");
 
-	await secrets.click();
+	await secrets.dblclick();
 	await win("explorer").waitFor();
 	await page.waitForFunction(() => document.getElementById("desktop-window-explorer").contains(document.activeElement));
 	check(await bubble.count() === 0 && await secrets.locator(".desk-icon__badge").count() === 0, "Secrets bubble or badge survived the first opening");
@@ -256,7 +256,7 @@ async function checkTaskbar(page) {
 	await start.click();
 	await menu.getByRole("menuitem", { name: "Documents", exact: true }).click();
 	await page.waitForFunction(() => document.activeElement?.textContent === "secrets");
-	await page.keyboard.press("End");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await waitForLaunch();
 	check(await win("bio").evaluate((el) => el === window.savedBio && !el.inert), "Start replaced rather than restored bio.txt");
@@ -311,14 +311,14 @@ async function checkTaskbar(page) {
 	await page.evaluate(() => new Promise(requestAnimationFrame));
 	check(!(await player.isVisible()), "Hover or focus opened CD Player without a click");
 	const beforeOpen = await audioState();
-	await cdIcon.click();
+	await cdIcon.dblclick();
 	await waitForLaunch();
 	await player.waitFor();
 	check(await player.locator("button:not(:disabled)").evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "CD controls lost the hand cursor");
 	check(await player.evaluate((el) => el.parentElement.classList.contains("desktop__windows")), "CD Player is not a desktop app");
 	check(await music.getAttribute("aria-pressed") === "true", "CD Player did not become the active task");
 	check(await audioState() === beforeOpen, "Opening CD Player changed existing music");
-	await cdIcon.click();
+	await cdIcon.dblclick();
 	await waitForLaunch();
 	check(await player.count() === 1 && await music.count() === 1 && await audioState() === beforeOpen, "Repeated launches duplicated the app or restarted music");
 	const playerBounds = await player.boundingBox();

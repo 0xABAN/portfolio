@@ -14,6 +14,7 @@ async function checkLaunches(page) {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
+	await page.route((url) => url.hostname === "w.soundcloud.com" && url.pathname === "/player/", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Muted test player</title>" }));
 	await page.locator(".rsod").waitFor();
 	await page.evaluate(() => {
 		// These checks exercise app launching, not audio output.
@@ -57,13 +58,13 @@ async function checkLaunches(page) {
 		await menu.getByRole("menuitem", { name: label, exact: true }).click();
 	}
 
-	await delayed("cd-player", 1500, () => icon("cd-player").click(), () => icon("explorer").click());
+	await delayed("cd-player", 1500, () => icon("cd-player").dblclick(), () => icon("explorer").dblclick());
 	check(await win("explorer").count() === 0, "A second click queued another app during the wait");
-	await delayed("explorer", 500, () => icon("explorer").click());
-	await delayed("bio", 1500, () => win("explorer").getByRole("button", { name: "bio.txt", exact: true }).click());
+	await delayed("explorer", 500, () => icon("explorer").dblclick());
+	await delayed("bio", 1500, () => win("explorer").getByRole("option", { name: "bio.txt", exact: true }).dblclick());
 	await task("explorer").click();
 	check(!(await busy()) && await win("explorer").isVisible(), "Taskbar switching unexpectedly used the launch delay");
-	await delayed("experience", 1500, () => win("explorer").getByRole("button", { name: "experience.exe", exact: true }).click());
+	await delayed("experience", 1500, () => win("explorer").getByRole("option", { name: "experience.exe", exact: true }).dblclick());
 
 	for (const [id, label, group] of [
 		["me", "Paint", "Programs"],
@@ -83,7 +84,7 @@ async function checkLaunches(page) {
 	await task("bio").click();
 	check(await win("bio").isVisible() && !(await busy()), "Taskbar restoration should remain immediate");
 	await task("explorer").click();
-	await delayed("word", 1500, () => win("explorer").getByRole("button", { name: "resume.doc", exact: true }).click());
+	await delayed("word", 1500, () => win("explorer").getByRole("option", { name: "resume.doc", exact: true }).dblclick());
 	check(await page.evaluate(() => window.openedLinks.length) === 0, "Resume opened an external link");
 
 	// playwright-cli waits on a page timer after run-code returns.

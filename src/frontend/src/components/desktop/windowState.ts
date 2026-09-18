@@ -1,6 +1,6 @@
-import { layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, makeWordWindow, type DesktopWindow } from "./windows";
+import { layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, makeWordWindow, type DesktopWindow } from "./windows";
 
-export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience" | "cd-player" | "word";
+export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience" | "cd-player" | "recycle-bin" | "word";
 
 export function isDecoration(w: DesktopWindow) {
 	return w.kind === "error" || w.id === "new";
@@ -11,7 +11,8 @@ export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: num
 	let next = windows;
 	if (!windows.some((w) => w.id === id)) {
 		const z = Math.max(0, ...windows.map((w) => w.z)) + 1;
-		const created = id === "bio" ? [makeBioWindow(z, vw, vh)]
+		const created = id === "recycle-bin" ? [makeRecycleBinWindow(z, vw, vh)]
+			: id === "bio" ? [makeBioWindow(z, vw, vh)]
 			: id === "word" ? [makeWordWindow(z, vw, vh)]
 			: id === "experience" ? [makeExperienceWindow(z, vw, vh)]
 			: id === "explorer" ? [makeExplorerWindow(z, windows.find((w) => w.id === "me"), vw, vh)]

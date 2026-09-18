@@ -62,13 +62,6 @@ function dragDelta(d: DragOrigin, clientX: number, clientY: number) {
 	};
 }
 
-/** Ignore windows without changing styles; other overlays must still block the bin. */
-function hitTrash(clientX: number, clientY: number) {
-	const under = document.elementsFromPoint(clientX, clientY)
-		.find((element) => !element.closest(".win"));
-	return Boolean(under?.closest("[data-recycle-bin]"));
-}
-
 function WindowInner({
 	id,
 	active,
@@ -87,29 +80,16 @@ function WindowInner({
 	onMinimizeAction,
 	onCloseAction,
 	onMoveAction,
-	onTrashAction,
-	onTrashHoverAction,
 	children,
 }: Props) {
 	const rootRef = useRef<HTMLElement>(null);
 	const lastFocus = useRef<HTMLElement | null>(null);
 	const drag = useRef<DragOrigin | null>(null);
 	const moveRef = useRef(onMoveAction);
-	const trashRef = useRef(onTrashAction);
-	const trashHoverRef = useRef(onTrashHoverAction);
-	const trashHot = useRef(false);
 
 	useEffect(() => {
 		moveRef.current = onMoveAction;
-		trashRef.current = onTrashAction;
-		trashHoverRef.current = onTrashHoverAction;
 	});
-
-	function setTrashHot(hot: boolean) {
-		if (trashHot.current === hot) return;
-		trashHot.current = hot;
-		trashHoverRef.current?.(hot);
-	}
 
 	useLayoutEffect(() => {
 		const el = rootRef.current;
@@ -143,7 +123,6 @@ function WindowInner({
 		const el = rootRef.current;
 		if (!d || !el) return;
 		const { x: nx, y: ny } = dragDelta(d, e.clientX, e.clientY);
-		setTrashHot(hitTrash(e.clientX, e.clientY));
 
 		if (!d.live) {
 			el.style.left = `${nx}px`;
@@ -170,13 +149,8 @@ function WindowInner({
 			d.raf = 0;
 		}
 		drag.current = null;
-		setTrashHot(false);
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
-		}
-		if (hitTrash(e.clientX, e.clientY) && trashRef.current) {
-			trashRef.current(id);
-			return;
 		}
 		const el = rootRef.current;
 		const fallback = dragDelta(d, e.clientX, e.clientY);

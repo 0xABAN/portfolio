@@ -5,13 +5,17 @@ import { flushSync } from "react-dom";
 import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
 import { useBootReveal } from "../boot/useBootReveal";
 import { Bio } from "./Bio";
-import { Word } from "./word/Word";
 import { CdPlayer } from "./CdPlayer";
 import { useCdPlayerAudio } from "./useCdPlayerAudio";
 import { DesktopSparks } from "./DesktopSparks";
 import { FractureBackground } from "./FractureBackground";
 import { Explorer } from "./explorer/Explorer";
-import type { ExplorerFile } from "./explorer/explorerData";
+import { RecycleBin } from "./recycle-bin/RecycleBin";
+import { BIN_ICON, DESK_ICONS as FILE_ICONS, type DeskIcon as CatalogIcon } from "./recycle-bin/shellCatalog";
+import { itemOf, type ShellNode } from "./recycle-bin/recycleBinState";
+import { ShellProvider, useShell } from "./recycle-bin/ShellProvider";
+import { ShellDialogs } from "./recycle-bin/ShellDialogs";
+import { useDesktopSelection } from "./recycle-bin/useDesktopSelection";
 import { GitHubGraph } from "./GitHubGraph";
 import { Neko } from "./Neko";
 import { Paint } from "./paint/Paint";
@@ -19,10 +23,10 @@ import { Experience } from "./experience/Experience";
 import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
 import { Terminal } from "./Terminal";
+import { Word } from "./word/Word";
 import { Window } from "./window/Window";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./windowState";
 import {
-	GITHUB_URL,
 	TASKBAR_H,
 	altCropStyle,
 	clampToParent,
@@ -34,42 +38,27 @@ import {
 } from "./windows";
 import "./desktop.css";
 
-type DeskIcon = {
-	id: string;
-	label: string;
-	src: string;
-	href?: string;
-	open?: AppId;
-};
+type DeskIcon = CatalogIcon & { recycle?: boolean; catalogId?: string };
 
-function game(
-	id: string,
-	label: string,
-	href: string,
-): DeskIcon {
-	return { id, label, src: `/icons/games/${id}.png`, href };
-}
-
-const DESK_ICONS: DeskIcon[] = [
-	// Apps precede folders; Recycle Bin is rendered last.
-	game("hollow-knight", "Hollow Knight", "https://store.steampowered.com/app/367520/Hollow_Knight/"),
-	game("silksong", "Silksong", "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
-	game("terraria", "Terraria", "https://store.steampowered.com/app/105600/Terraria/"),
-	game("roblox", "Roblox", "https://www.roblox.com/"),
-	game("persona-3-reload", "Persona 3 Reload", "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
-	game("persona-5-royal", "Persona 5 Royal", "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
-	game("undertale", "Undertale", "https://store.steampowered.com/app/391540/Undertale/"),
-	{ id: "social-github", label: "GitHub", src: "/icons/social/github.svg", href: GITHUB_URL },
-	{ id: "social-linkedin", label: "LinkedIn", src: "/icons/social/linkedin.svg", href: "https://www.linkedin.com/in/adam-torres-encarnacion/" },
-	{ id: "social-twitter", label: "Twitter", src: "/icons/social/twitter.svg", href: "https://x.com/0xABANN" },
-	{ id: "cd-player-icon", label: "CD Player", src: "/icons/cd.png", open: "cd-player" },
-	{ id: "secrets", label: "secrets", src: "/icons/folder.png", open: "explorer" },
-];
-
-const RECYCLE_BIN = {
+const RECYCLE_BIN: DeskIcon = {
 	id: "recycle-bin",
 	label: "Recycle Bin",
-} as const;
+	src: "/icons/recycle-bin-empty.png",
+	recycle: true,
+};
+
+const DESK_ICONS: DeskIcon[] = [...FILE_ICONS, RECYCLE_BIN];
+
+function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
+	const order = (node: ShellNode) => {
+		const index = FILE_ICONS.findIndex((icon) => icon.id === node.catalogId);
+		return index < 0 ? FILE_ICONS.length : index;
+	};
+	return [...nodes.filter((node) => node.parentId === "desktop").sort((a, b) => order(a) - order(b)).map((node) => {
+		const item = itemOf(node);
+		return { id: node.id, catalogId: node.catalogId, label: item.name, src: item.icon, open: item.open, href: item.href };
+	}), RECYCLE_BIN];
+}
 
 /** Soft bounce after boot to pull the eye. */
 const ATTENTION_DELAY_MS = 1000;
@@ -104,7 +93,7 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 }
 
 /** Content does not depend on window position, except for the magnifier crop. */
-const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onOpenExplorerFile }: {
+const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onClose, onOpenShell, folderId }: {
 	id: string;
 	kind: DesktopWindow["kind"];
 	src?: string;
@@ -112,7 +101,9 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 	cropStyle?: CSSProperties;
 	audio?: ReturnType<typeof useCdPlayerAudio>;
 	onMinimize: (id: string) => void;
-	onOpenExplorerFile: (file: ExplorerFile) => void;
+	onClose: (id: string) => void;
+	onOpenShell: (id: string) => void;
+	folderId: string;
 }) {
 	switch (kind) {
 		case "cd-player":
@@ -131,8 +122,10 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 			return <Bio />;
 		case "word":
 			return <Word />;
+		case "recycle-bin":
+			return <RecycleBin onCloseAction={() => onClose(id)} />;
 		case "explorer":
-			return <Explorer onOpenFileAction={onOpenExplorerFile} />;
+			return <Explorer folderId={folderId} onOpenAction={onOpenShell} />;
 	}
 
 	if (src) {
@@ -159,6 +152,13 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 });
 
 export function Desktop() {
+	return <ShellProvider><DesktopWorkspace /></ShellProvider>;
+}
+
+function DesktopWorkspace() {
+	const shell = useShell();
+	const { getSnapshot, notice } = shell;
+	const [explorerFolder, setExplorerFolder] = useState("secrets");
 	// Boot mounts this client-only, so window is available on first paint
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
 		layoutDesktop(window.innerWidth, window.innerHeight),
@@ -166,13 +166,11 @@ export function Desktop() {
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
-	const [trashed, setTrashed] = useState<ReadonlySet<string>>(() => new Set());
-	const [binFull, setBinFull] = useState(false);
+	const binFull = shell.state.entries.length > 0;
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
 	const [secretsOpened, setSecretsOpened] = useState(false);
-	const skipClick = useRef(false);
 	const cdDragged = useRef(false);
 	const revealed = useBootReveal();
 	const cdWindow = windows.find((w) => w.id === "cd-player");
@@ -216,7 +214,7 @@ export function Desktop() {
 			const ownsInput = target.isContentEditable || target.closest(
 				'input, textarea, select, [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]',
 			);
-			if (target !== input && ownsInput) return;
+			if (target !== input && (ownsInput || target.closest('[data-shell-surface], dialog'))) return;
 			if (event.key === " " && target.closest('button, a[href], summary, [role="button"], [role="menuitem"]')) return;
 
 			if (target === input) {
@@ -238,16 +236,10 @@ export function Desktop() {
 	}, []);
 
 	function hasNotification(id: string) {
-		return id === "secrets" && !secretsOpened;
+		return shell.state.nodes.find((node) => node.id === id)?.catalogId === "secrets" && !secretsOpened;
 	}
 
 	const bounceSecrets = attention && !secretsOpened && !windows.some((w) => w.id === "explorer");
-
-	function trashIcon(id: string) {
-		if (!id || id === RECYCLE_BIN.id) return;
-		setBinFull(true);
-		setTrashed((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
-	}
 
 	const closeWindow = useCallback((id: string) => {
 		if (id === "cd-player") {
@@ -257,12 +249,6 @@ export function Desktop() {
 		}
 		setWindows((prev) => prev.filter((w) => w.id !== id && w.parentId !== id));
 	}, [audio]);
-
-	const trashWindow = useCallback((id: string) => {
-		setBinFull(true);
-		setBinHot(false);
-		closeWindow(id);
-	}, [closeWindow]);
 
 	function isBootVisible(w: DesktopWindow) {
 		return w.launched || !BOOT_WINDOWS.has(w.id) || revealed.has(w.id);
@@ -279,6 +265,9 @@ export function Desktop() {
 	/** Measure after the task exists, including launches after a full quit. */
 	const focusWindow = useCallback((id: string) => {
 		requestAnimationFrame(() => {
+			const root = document.getElementById(`desktop-window-${id}`);
+			// Typing or another activation can win before this scheduled focus runs.
+			if (!root || root.dataset.active !== "true" || root.hasAttribute("inert")) return;
 			if (id === "cd-player" && !cdDragged.current) {
 				const task = document.querySelector(`[data-task-id="${id}"]`);
 				const layer = document.querySelector(".desktop__windows");
@@ -295,7 +284,8 @@ export function Desktop() {
 				}
 			}
 			// Only explicit launches/restores may move keyboard focus.
-			document.getElementById(`desktop-window-${id}`)?.focus({ preventScroll: true });
+			root.focus({ preventScroll: true });
+			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"]')?.focus({ preventScroll: true });
 		});
 	}, []);
 
@@ -305,24 +295,41 @@ export function Desktop() {
 	}, [focusWindow]);
 
 	/** All launchers share the wait; taskbar restores deliberately bypass it. */
-	const launchApp = useCallback((id: AppId) => {
+	const launchApp = useCallback((id: AppId, sourceId?: string) => {
 		if (launchTimer.current !== null) return;
+		const catalogId = id === "explorer" ? "secrets" : id === "word" ? "resume" : id === "bio" || id === "experience" ? id : undefined;
+		const required = sourceId ?? (catalogId ? getSnapshot().state.nodes.find((node) => node.catalogId === catalogId)?.id : undefined);
+		if (catalogId && !required || required && required !== "desktop" && !getSnapshot().state.nodes.some((node) => node.id === required)) {
+			notice("The file or folder could not be found. Restore it from the Recycle Bin before opening it.", "File not found");
+			return;
+		}
+		if (id === "explorer") setExplorerFolder(required ?? "desktop");
 		setBusy(true);
 		// ponytail: fixed fake load delay — tune if it feels too snappy/slow
 		launchTimer.current = window.setTimeout(() => {
 			launchTimer.current = null;
+			if (required && required !== "desktop" && !getSnapshot().state.nodes.some((node) => node.id === required)) {
+				setBusy(false);
+				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "File not found");
+				return;
+			}
 			const { innerWidth, innerHeight } = window;
 			if (id === "explorer") setSecretsOpened(true);
 			setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
 			setBusy(false);
 			focusWindow(id);
-		}, id === "explorer" ? 500 : 1500);
-	}, [focusWindow]);
+		}, id === "explorer" || id === "recycle-bin" ? 500 : 1500);
+	}, [focusWindow, getSnapshot, notice]);
 
-	const openExplorerFile = useCallback((file: ExplorerFile) => {
-		if (file.action === "bio" || file.action === "experience" || file.action === "word") launchApp(file.action);
-		else window.open(file.href, "_blank", "noopener,noreferrer");
-	}, [launchApp]);
+	const openShell = useCallback((id: string) => {
+		if (id === "desktop") { launchApp("explorer", "desktop"); return; }
+		if (id === "recycle-bin") { launchApp("recycle-bin"); return; }
+		const node = getSnapshot().state.nodes.find((node) => node.id === id);
+		if (!node) { notice("This item is no longer available.", "File not found"); return; }
+		const item = itemOf(node);
+		if (item.open) launchApp(item.open, node.id);
+		else if (item.href) window.open(item.href, "_blank", "noopener,noreferrer");
+	}, [launchApp, getSnapshot, notice]);
 
 	const moveWindow = useCallback((id: string, x: number, y: number) => {
 		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
@@ -362,33 +369,56 @@ export function Desktop() {
 		});
 	}, [cdWindow]);
 
-	function openDeskIcon(icon: DeskIcon) {
-		if (skipClick.current) {
-			skipClick.current = false;
-			return;
-		}
-		if (icon.open) launchApp(icon.open);
-		else if (icon.href) window.open(icon.href, "_blank", "noopener,noreferrer");
-	}
-
-	const visibleWindows = windows.filter(isBootVisible);
+	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
+	const visibleWindows = windows.filter(isBootVisible).map((w) => {
+		if (w.kind === "recycle-bin") return { ...w, icon: binFull ? BIN_ICON.full : BIN_ICON.empty };
+		if (w.kind === "explorer") return { ...w, title: explorerFolder === "desktop" ? "Desktop" : explorerNode ? itemOf(explorerNode).name : w.title };
+		return w;
+	});
 	const activeId = activeWindowId(visibleWindows);
+	const deskIcons = shellDeskIcons(shell.state.nodes);
+	const visibleDeskIcons = deskIcons.filter((icon) => !DESK_ICONS.some((original) => original.id === (icon.catalogId ?? icon.id)) || revealed.has(icon.catalogId ?? icon.id));
+	const desktopSelection = useDesktopSelection(visibleDeskIcons, openShell);
 
 	return (
-		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}>
+		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
+			onDragOver={(event) => {
+				if ((event.target as HTMLElement).closest(".win, .taskbar, dialog")) return;
+				if (shell.canDrop(event, "desktop")) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }
+			}}
+			onDrop={(event) => {
+				if (!(event.target as HTMLElement).closest(".win, .taskbar, dialog")) shell.drop(event, "desktop");
+			}}>
+
 			<FractureBackground active={revealed.has("fracture")} />
-			<ul className="desktop__icons" aria-label="Desktop">
-				{DESK_ICONS.filter(
-					(icon) => revealed.has(icon.id) && !trashed.has(icon.id),
-				).map((icon) => (
-					<li key={icon.id}>
+			<ul
+				className="desktop__icons"
+				aria-label="Desktop"
+				role="listbox"
+				aria-multiselectable="true"
+				data-shell-surface=""
+				onKeyDown={desktopSelection.onKeyDown}
+				onContextMenu={(e) => { if (e.target === e.currentTarget) desktopSelection.onContextMenu(e); }}
+				onPointerDown={(e) => { if (e.target === e.currentTarget) desktopSelection.clear(); }}
+				onDragOver={(e) => {
+					if (!shell.canDrop(e, "desktop")) return;
+					e.preventDefault();
+					e.dataTransfer.dropEffect = "move";
+				}}
+				onDrop={(e) => shell.drop(e, "desktop")}
+			>
+				{visibleDeskIcons.map((icon, index) => (
+					<li
+						key={icon.id}
+						role="presentation"
+					>
 						<button
 							type="button"
 							className={
 								[
-									"desk-icon",
-									icon.href ? "desk-icon--app" : "",
-									icon.id === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
+									"desk-icon shell-desktop-item",
+									(icon.catalogId ?? icon.id) === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
+									icon.recycle && binHot ? "desk-icon--drop-hot" : "",
 									draggingId === icon.id ? "desk-icon--dragging" : "",
 								]
 									.filter(Boolean)
@@ -396,55 +426,62 @@ export function Desktop() {
 							}
 							title={icon.label}
 							data-app-id={icon.open}
-							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : undefined}
-							draggable
+							data-icon-id={icon.id}
+							data-shell-item={icon.id}
+							data-shortcut={icon.href || icon.open === "cd-player" ? "" : undefined}
+							role="option"
+							aria-selected={desktopSelection.selected.includes(icon.id)}
+							tabIndex={index === 0 ? 0 : -1}
+							data-recycle-bin={icon.recycle ? "" : undefined}
+							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : icon.label}
+							draggable={!icon.recycle}
+							onDragOver={(e) => {
+								if (icon.recycle) {
+									if (!shell.canDrop(e, "bin")) return;
+									e.preventDefault();
+									e.dataTransfer.dropEffect = "move";
+									setBinHot(true);
+									return;
+								}
+								if (icon.open !== "explorer" || !shell.canDrop(e, icon.id)) return;
+								e.preventDefault();
+								e.dataTransfer.dropEffect = "move";
+							}}
+							onDragLeave={() => {
+								if (icon.recycle) setBinHot(false);
+							}}
+							onDrop={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								if (icon.recycle) shell.drop(e, "bin");
+								else if (icon.open === "explorer") shell.drop(e, icon.id);
+								shell.endDrag();
+								setBinHot(false);
+								setDraggingId(null);
+							}}
 							onDragStart={(e) => {
-								skipClick.current = true;
-								e.dataTransfer.setData("text/plain", icon.id);
-								e.dataTransfer.effectAllowed = "move";
+								shell.startDrag(e, { kind: "nodes", ids: desktopSelection.forItem(icon.id).filter((id) => id !== RECYCLE_BIN.id) });
 								setDraggingId(icon.id);
 							}}
 							onDragEnd={() => {
+								shell.endDrag();
 								setDraggingId(null);
 								setBinHot(false);
 							}}
-							onClick={() => openDeskIcon(icon)}
-						>
-							<DeskIconGlyph src={icon.src} label={icon.label} notification={hasNotification(icon.id)} />
-						</button>
-					</li>
-				))}
-				{revealed.has(RECYCLE_BIN.id) ? (
-					<li>
-						<button
-							type="button"
-							data-recycle-bin=""
-							className={binHot ? "desk-icon desk-icon--drop-hot" : "desk-icon"}
-							title={RECYCLE_BIN.label}
-							onDragOver={(e) => {
-								e.preventDefault();
-								e.dataTransfer.dropEffect = "move";
-								setBinHot(true);
+							onClick={(e) => {
+								desktopSelection.select(icon.id, e);
 							}}
-							onDragLeave={() => setBinHot(false)}
-							onDrop={(e) => {
-								e.preventDefault();
-								setBinHot(false);
-								setDraggingId(null);
-								trashIcon(e.dataTransfer.getData("text/plain"));
-							}}
+							onDoubleClick={() => openShell(icon.id)}
+							onContextMenu={(e) => desktopSelection.onContextMenu(e, icon.id)}
 						>
 							<DeskIconGlyph
-								src={
-									binFull
-										? "/icons/recycle-bin-full.png"
-										: "/icons/recycle-bin-empty.png"
-								}
-								label={RECYCLE_BIN.label}
+								src={icon.recycle ? (binFull ? "/icons/recycle-bin-full.png" : "/icons/recycle-bin-empty.png") : icon.src}
+								label={icon.label}
+								notification={hasNotification(icon.id)}
 							/>
 						</button>
 					</li>
-				) : null}
+				))}
 			</ul>
 			<div className="desktop__windows">
 				{visibleWindows.map((w) => {
@@ -471,13 +508,11 @@ export function Desktop() {
 						onMinimizeAction={minimizeWindow}
 						onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
 						onMoveAction={moveWindow}
-						onTrashHoverAction={setBinHot}
-						onTrashAction={trashWindow}
 					>
 						<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
 							audio={w.kind === "cd-player" ? audio : undefined}
 							cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
-							onMinimize={minimizeWindow} onOpenExplorerFile={openExplorerFile} />
+							onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
 					</Window>;
 				})}
 			</div>
@@ -496,6 +531,8 @@ export function Desktop() {
 				revealed={revealed}
 			/>
 			{revealed.has("neko") ? <Neko /> : null}
+			<ShellDialogs />
+			{desktopSelection.menu}
 		</div>
 	);
 }

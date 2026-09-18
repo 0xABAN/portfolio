@@ -133,7 +133,7 @@ async function checkAudio(page) {
 	await page.setViewportSize({ width: 390, height: 844 });
 	check(await task.count() === 0, "Resize resurrected the closed player");
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await launcher.click();
+	await launcher.dblclick();
 	await page.clock.runFor(1500);
 	await player.waitFor();
 	check(await page.evaluate(() => window.audioStarted), "Desktop icon did not restart the closed player");

@@ -1,5 +1,6 @@
 import { EXPLORER_FILES } from "../explorer/explorerData";
 import type { AppId } from "../windowState";
+import { GITHUB_URL } from "../windows";
 
 export type DeskIcon = {
 	id: string;
@@ -21,7 +22,7 @@ export const DESK_ICONS: DeskIcon[] = [
 	game("persona-3-reload", "Persona 3 Reload", "https://store.steampowered.com/app/2161700/Persona_3_Reload/"),
 	game("persona-5-royal", "Persona 5 Royal", "https://store.steampowered.com/app/1687950/Persona_5_Royal/"),
 	game("undertale", "Undertale", "https://store.steampowered.com/app/391540/Undertale/"),
-	{ id: "social-github", label: "GitHub", src: "/icons/social/github.svg", href: "https://github.com/0xABAN" },
+	{ id: "social-github", label: "GitHub", src: "/icons/social/github.svg", href: GITHUB_URL },
 	{ id: "social-linkedin", label: "LinkedIn", src: "/icons/social/linkedin.svg", href: "https://www.linkedin.com/in/adam-torres-encarnacion/" },
 	{ id: "social-twitter", label: "Twitter", src: "/icons/social/twitter.svg", href: "https://x.com/0xABANN" },
 	{ id: "cd-player-icon", label: "CD Player", src: "/icons/cd.png", open: "cd-player" },

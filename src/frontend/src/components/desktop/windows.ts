@@ -19,6 +19,7 @@ export type DesktopWindow = {
 		| "bio"
 		| "explorer"
 		| "cd-player"
+		| "recycle-bin"
 		| "word";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
@@ -339,6 +340,18 @@ export function makeCdPlayerWindow(z: number, vw?: number, vh?: number): Desktop
 		// Desktop aligns this to the actual task button when the app is restored.
 		x: 8,
 		y: Math.max(0, height - TASKBAR_H - 188 - 4),
+	};
+}
+
+/** A shell folder window, independent of the items stored inside it. */
+export function makeRecycleBinWindow(z: number, vw?: number, vh?: number): DesktopWindow {
+	const { vw: width, vh: height } = viewport(vw, vh);
+	const w = Math.min(760, Math.max(240, width - 24));
+	const h = Math.min(400, Math.max(200, height - TASKBAR_H - 48));
+	return {
+		id: "recycle-bin", title: "Recycle Bin", kind: "recycle-bin",
+		icon: "/icons/recycle-bin-empty.png", z,
+		...layoutCentered(w, h, width, height),
 	};
 }
 
