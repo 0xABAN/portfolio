@@ -247,6 +247,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		},
 		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
 		...layoutErrorStack(me),
+		makeExperienceWindow(30, vw, vh),
 	];
 	return windows.map((w) => w.parentId ? w : {
 		...w,
@@ -313,19 +314,15 @@ export function makeExperienceWindow(
 	vh?: number,
 ): DesktopWindow {
 	const { vw: W, vh: H } = viewport(vw, vh);
-	const w = 760;
-	const h = 520;
-	const x = Math.round((W - w) / 2) - 300;
-	const y = Math.round((H - TASKBAR_H - h) / 2) + 300;
+	const ratio = 1158 / 536;
+	const w = Math.max(240, Math.min(900, W - 24, Math.floor((H - TASKBAR_H - 24) * ratio)));
+	const h = Math.round(w / ratio);
 	return {
 		id: EXPERIENCE_WINDOW_ID,
-		title: "experience",
+		title: "PSP Projects",
 		kind: "experience",
-		icon: "/icons/exe.png",
-		x: Math.max(0, Math.min(x, W - w)),
-		y: Math.max(0, Math.min(y, H - TASKBAR_H - h)),
-		w,
-		h,
+		icon: "/icons/psp.png",
+		...layoutCentered(w, h, W, H),
 		z: baseZ,
 	};
 }

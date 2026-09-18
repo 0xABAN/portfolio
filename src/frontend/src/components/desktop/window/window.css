@@ -16,6 +16,18 @@
 	font-size: 12px;
 }
 
+.win--frameless {
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.win--frameless .win__client {
+	margin: 0;
+	overflow: hidden;
+	background: transparent;
+}
+
 .win-titlebar {
 	display: flex;
 	align-items: center;

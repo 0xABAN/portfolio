@@ -29,6 +29,7 @@ type Props = {
 	onCloseAction?: (id: string) => void;
 	onMaximizeAction?: (id: string) => void;
 	maximized?: boolean;
+	frameless?: boolean;
 	onMoveAction: (id: string, x: number, y: number) => void;
 	onTrashAction?: (id: string) => void;
 	onTrashHoverAction?: (hot: boolean) => void;
@@ -83,6 +84,7 @@ function WindowInner({
 	onCloseAction,
 	onMaximizeAction,
 	maximized = false,
+	frameless = false,
 	onMoveAction,
 	children,
 }: Props) {
@@ -176,9 +178,13 @@ function WindowInner({
 			inert={minimized}
 			aria-hidden={minimized || undefined}
 			tabIndex={-1}
-			className={variant ? `win win--${variant}` : "win"}
+			className={["win", variant ? `win--${variant}` : "", frameless ? "win--frameless" : ""].filter(Boolean).join(" ")}
 			aria-label={title || id}
 			onPointerDownCapture={() => onActivateAction(id)}
+			onPointerDown={frameless ? onTitlePointerDown : undefined}
+			onPointerMove={frameless ? onTitlePointerMove : undefined}
+			onPointerUp={frameless ? onTitlePointerUp : undefined}
+			onPointerCancel={frameless ? onTitlePointerUp : undefined}
 			onFocusCapture={(event) => {
 				onActivateAction(id);
 				if (event.target === event.currentTarget) {
@@ -188,7 +194,7 @@ function WindowInner({
 				}
 			}}
 		>
-			<header
+			{!frameless && <header
 				className="win-titlebar"
 				onPointerDown={onTitlePointerDown}
 				onPointerMove={onTitlePointerMove}
@@ -228,8 +234,8 @@ function WindowInner({
 						×
 					</button>
 				) : null}
-			</header>
-			<div className="win__client chrome-sunken">{children}</div>
+			</header>}
+			<div className={frameless ? "win__client" : "win__client chrome-sunken"}>{children}</div>
 		</section>
 	);
 }

@@ -1,41 +1,25 @@
 .psp {
-	position: fixed;
-	inset: 0;
-	z-index: 5;
+	position: relative;
+	width: 100%;
+	height: 100%;
 	overflow: hidden;
 	pointer-events: none;
 }
 
-.psp__canvas {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: min(100vw, 1100px);
-	aspect-ratio: 1;
-	transform: translate(calc(-50% + var(--psp-x, 0px)), calc(-50% + var(--psp-y, 0px)));
-	pointer-events: auto;
-	cursor: grab;
-	touch-action: none;
-}
-
-.psp__canvas--dragging {
-	cursor: grabbing;
-}
-
 .psp__screen {
 	position: absolute;
-	top: 33.17%;
-	left: 25.68%;
+	top: 12.5%;
+	left: 23.58%;
 	z-index: 1;
-	width: 48.89%;
-	height: 28.86%;
+	width: 52.85%;
+	height: 67.35%;
 	background: #fff;
-	pointer-events: none;
 }
 
 .psp__art {
 	position: absolute;
 	inset: 0;
+	z-index: 0;
 	width: 100%;
 	height: 100%;
 	pointer-events: none;

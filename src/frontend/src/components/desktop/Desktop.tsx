@@ -504,7 +504,6 @@ function DesktopWorkspace() {
 			}}>
 
 			<FractureBackground active={revealed.has("fracture")} />
-			<Experience />
 			<ul
 				className="desktop__icons"
 				aria-label="Desktop"
@@ -643,6 +642,7 @@ function DesktopWorkspace() {
 						onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
 						onMaximizeAction={w.kind === "word" ? maximizeWindow : undefined}
 						maximized={Boolean(w.restoreBounds)}
+						frameless={w.kind === "experience"}
 						onMoveAction={moveWindow}
 					>
 						<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
