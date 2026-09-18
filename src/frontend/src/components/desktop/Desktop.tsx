@@ -13,7 +13,7 @@ import { Explorer } from "./explorer/Explorer";
 import { RecycleBin } from "./recycle-bin/RecycleBin";
 import { BIN_ICON, DESK_ICONS as FILE_ICONS, type DeskIcon as CatalogIcon } from "./recycle-bin/shellCatalog";
 import { itemOf, type ShellNode } from "./recycle-bin/recycleBinState";
-import { ShellProvider, useShell } from "./recycle-bin/ShellProvider";
+import { useShell } from "./recycle-bin/ShellProvider";
 import { ShellDialogs } from "./recycle-bin/ShellDialogs";
 import { useDesktopSelection } from "./recycle-bin/useDesktopSelection";
 import { GitHubGraph } from "./GitHubGraph";
@@ -203,10 +203,21 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 });
 
 export function Desktop() {
-	return <ShellProvider><DesktopWorkspace /></ShellProvider>;
+	return <PspPreview />;
 }
 
-function DesktopWorkspace() {
+function PspPreview() {
+	const revealed = useBootReveal();
+
+	return (
+		<div className="desktop psp-preview" style={{ "--taskbar-height": "0px" } as CSSProperties}>
+			<FractureBackground active={revealed.has("fracture")} />
+			<Experience />
+		</div>
+	);
+}
+
+export function DesktopWorkspace() {
 	const shell = useShell();
 	const { getSnapshot, notice } = shell;
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
