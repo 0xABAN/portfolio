@@ -49,13 +49,26 @@
 	pointer-events: none;
 }
 
-.desktop__windows > .win {
+.desktop__windows > .win,
+.desktop__psp-layer > .win {
 	pointer-events: auto;
 	outline: none;
 }
 
+.desktop__windows--raised {
+	z-index: 6;
+}
+
+.desktop__psp-layer {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	pointer-events: none;
+}
+
 /* Retain layout, scroll positions and canvas resolution while excluding interaction. */
-.desktop__windows > .win[data-minimized="true"] {
+.desktop__windows > .win[data-minimized="true"],
+.desktop__psp-layer > .win[data-minimized="true"] {
 	visibility: hidden;
 	pointer-events: none;
 }

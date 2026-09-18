@@ -493,6 +493,43 @@ function DesktopWorkspace() {
 	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, openShell);
 
+	const renderWindow = (w: DesktopWindow) => {
+		const parent = windows.find((p) => p.id === w.parentId);
+		return <Window
+			key={w.id}
+			id={w.id}
+			active={(w.parentId ?? w.id) === activeId}
+			minimized={Boolean(w.minimized)}
+			onActivateAction={activate}
+			title={w.title}
+			icon={w.icon}
+			x={w.x}
+			y={w.y}
+			w={w.w}
+			h={w.h}
+			z={w.z}
+			variant={w.kind === "terminal" ? "dos" : w.kind === "error" ? "error" : undefined}
+			// Nested crop + parent-of-nested need live React geometry while dragging
+			liveMove={Boolean(
+				w.parentId || windows.some((c) => c.parentId === w.id),
+			)}
+			minimizable={w.id !== "alt"}
+			onMinimizeAction={minimizeWindow}
+			onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
+			onMaximizeAction={w.kind === "word" ? maximizeWindow : undefined}
+			maximized={Boolean(w.restoreBounds)}
+			frameless={w.kind === "experience"}
+			onMoveAction={moveWindow}
+		>
+			<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
+				audio={w.kind === "cd-player" ? audio : undefined}
+				cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
+				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
+		</Window>;
+	};
+	const normalWindows = visibleWindows.filter((w) => w.kind !== "experience");
+	const pspWindow = visibleWindows.find((w) => w.kind === "experience");
+
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
 			onDragOver={(event) => {
@@ -616,41 +653,11 @@ function DesktopWorkspace() {
 					</li>
 				))}
 			</ul>
-			<div className="desktop__windows">
-				{visibleWindows.map((w) => {
-					const parent = windows.find((p) => p.id === w.parentId);
-					return <Window
-						key={w.id}
-						id={w.id}
-						active={(w.parentId ?? w.id) === activeId}
-						minimized={Boolean(w.minimized)}
-						onActivateAction={activate}
-						title={w.title}
-						icon={w.icon}
-						x={w.x}
-						y={w.y}
-						w={w.w}
-						h={w.h}
-						z={w.z}
-						variant={w.kind === "terminal" ? "dos" : w.kind === "error" ? "error" : undefined}
-						// Nested crop + parent-of-nested need live React geometry while dragging
-						liveMove={Boolean(
-							w.parentId || windows.some((c) => c.parentId === w.id),
-						)}
-						minimizable={w.id !== "alt"}
-						onMinimizeAction={minimizeWindow}
-						onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
-						onMaximizeAction={w.kind === "word" ? maximizeWindow : undefined}
-						maximized={Boolean(w.restoreBounds)}
-						frameless={w.kind === "experience"}
-						onMoveAction={moveWindow}
-					>
-						<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
-							audio={w.kind === "cd-player" ? audio : undefined}
-							cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
-							onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
-					</Window>;
-				})}
+			<div className={activeId !== "experience" ? "desktop__windows desktop__windows--raised" : "desktop__windows"}>
+				{normalWindows.map(renderWindow)}
+			</div>
+			<div className="desktop__psp-layer">
+				{pspWindow ? renderWindow(pspWindow) : null}
 			</div>
 			{revealed.has("fracture") ? <DesktopSparks /> : null}
 			<Taskbar

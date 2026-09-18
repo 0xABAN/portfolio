@@ -107,7 +107,7 @@ function WindowInner({
 	}, [x, y, w, h, z]);
 
 	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
-		if (maximized || (e.target as HTMLElement).closest(".win-min")) return;
+		if (maximized || (e.target as HTMLElement).closest(".win-min, [data-no-window-drag]")) return;
 		e.currentTarget.setPointerCapture(e.pointerId);
 		const el = rootRef.current;
 		const originX = el?.offsetLeft ?? x;
