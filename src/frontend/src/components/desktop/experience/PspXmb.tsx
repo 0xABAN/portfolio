@@ -154,7 +154,7 @@ export function PspXmb() {
 	const screenArtwork = category.id === "jobs"
 		? "/photos/hxh-red.png"
 		: category.id === "projects"
-			? "/photos/reze-red.png"
+			? "/photos/reze-mono.png"
 			: null;
 	const detailOpen = state.detailId !== null;
 
