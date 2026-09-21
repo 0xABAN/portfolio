@@ -25,7 +25,7 @@ const result = browser("run-code", `async (page) => {
 	const titlebars = await psp.locator(".win-titlebar").count();
 	const beforeScreenClick = await psp.boundingBox();
 	const screenBox = await screen.boundingBox();
-	await page.mouse.click(screenBox.x + screenBox.width * 0.85, screenBox.y + screenBox.height * 0.75);
+	await page.mouse.click(screenBox.x + screenBox.width * 0.98, screenBox.y + screenBox.height * 0.75);
 	const afterScreenClick = await psp.boundingBox();
 
 	await xmb.focus();

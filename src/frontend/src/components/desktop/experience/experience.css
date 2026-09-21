@@ -52,11 +52,11 @@
 	--psp-muted: rgba(223, 237, 249, 0.58);
 	--psp-blue: #71c8e7;
 	position: absolute;
-	top: 16.6667%;
-	left: 16.6667%;
-	width: 66.6666%;
-	height: 66.6666%;
-	transform: scale(1.5);
+	top: 33.3333%;
+	left: 33.3333%;
+	width: 33.3333%;
+	height: 33.3333%;
+	transform: scale(3);
 	transform-origin: center;
 	overflow: hidden;
 	outline: none;
