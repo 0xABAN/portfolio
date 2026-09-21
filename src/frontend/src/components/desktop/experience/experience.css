@@ -52,11 +52,11 @@
 	--psp-muted: rgba(223, 237, 249, 0.58);
 	--psp-blue: #71c8e7;
 	position: absolute;
-	top: 33.3333%;
-	left: 33.3333%;
-	width: 33.3333%;
-	height: 33.3333%;
-	transform: scale(3);
+	top: 25%;
+	left: 25%;
+	width: 50%;
+	height: 50%;
+	transform: scale(2);
 	transform-origin: center;
 	overflow: hidden;
 	outline: none;
@@ -65,7 +65,7 @@
 	font-size: 9px;
 	font-weight: 400;
 	letter-spacing: 0.015em;
-	text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.95), 2px 3px 2px rgba(0, 0, 0, 0.7);
+	text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.85), 2px 2px 2px rgba(0, 0, 0, 0.55);
 	background:
 		radial-gradient(ellipse at 68% 46%, rgba(68, 145, 183, 0.45), transparent 42%),
 		linear-gradient(145deg, #24435a 0%, #07131f 48%, #02060b 100%);
@@ -149,7 +149,9 @@
 	z-index: 2;
 	display: flex;
 	align-items: flex-start;
-	justify-content: space-between;
+	gap: 8px;
+	justify-content: flex-start;
+	overflow: hidden;
 }
 
 .psp-xmb__category,
@@ -165,7 +167,8 @@
 
 .psp-xmb__category {
 	display: flex;
-	width: 10.5%;
+	width: 58px;
+	flex: 0 0 58px;
 	flex-direction: column;
 	align-items: center;
 	gap: 2px;
