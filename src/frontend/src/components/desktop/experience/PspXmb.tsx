@@ -151,6 +151,11 @@ export function PspXmb() {
 	const selectedItemRef = useRef<HTMLButtonElement>(null);
 	const category = CATEGORIES[state.categoryIndex];
 	const project = category.items[state.itemIndex];
+	const screenArtwork = category.id === "jobs"
+		? "/photos/hxh-red.png"
+		: category.id === "projects"
+			? "/photos/reze-red.png"
+			: null;
 	const detailOpen = state.detailId !== null;
 
 	useEffect(() => {
@@ -192,8 +197,8 @@ export function PspXmb() {
 		<div
 			ref={rootRef}
 			className="psp-xmb"
-			style={category.id === "jobs" ? {
-				backgroundImage: 'linear-gradient(90deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.2) 48%, transparent 78%), linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 48%), radial-gradient(ellipse at center, rgba(7, 16, 25, 0.04) 28%, rgba(3, 8, 14, 0.52) 100%), linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72)), url("/photos/hxh-red.png")',
+			style={screenArtwork ? {
+				backgroundImage: `linear-gradient(90deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.2) 48%, transparent 78%), linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 48%), radial-gradient(ellipse at center, rgba(7, 16, 25, 0.04) 28%, rgba(3, 8, 14, 0.52) 100%), linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72)), url("${screenArtwork}")`,
 				backgroundPosition: "center",
 				backgroundSize: "cover",
 			} : undefined}
