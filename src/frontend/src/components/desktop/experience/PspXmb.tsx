@@ -193,7 +193,7 @@ export function PspXmb() {
 			ref={rootRef}
 			className="psp-xmb"
 			style={category.id === "jobs" ? {
-				backgroundImage: 'radial-gradient(ellipse at center, rgba(7, 16, 25, 0.04) 28%, rgba(3, 8, 14, 0.52) 100%), linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72)), url("/photos/hxh-red.png")',
+				backgroundImage: 'linear-gradient(90deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.2) 48%, transparent 78%), linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 48%), radial-gradient(ellipse at center, rgba(7, 16, 25, 0.04) 28%, rgba(3, 8, 14, 0.52) 100%), linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72)), url("/photos/hxh-red.png")',
 				backgroundPosition: "center",
 				backgroundSize: "cover",
 			} : undefined}
