@@ -19,7 +19,7 @@ const result = browser("run-code", `async (page) => {
 	const psp = page.locator("#desktop-window-experience");
 	const xmb = page.locator(".psp-xmb");
 	const screen = page.locator(".psp__screen");
-	const initialProject = await xmb.getAttribute("data-project");
+	const initialCategory = await xmb.getAttribute("data-category");
 	const titlebars = await psp.locator(".win-titlebar").count();
 	const beforeScreenClick = await psp.boundingBox();
 	const screenBox = await screen.boundingBox();
@@ -28,7 +28,7 @@ const result = browser("run-code", `async (page) => {
 
 	await xmb.focus();
 	await page.keyboard.press("ArrowRight");
-	const nextProject = await xmb.getAttribute("data-project");
+	const nextCategory = await xmb.getAttribute("data-category");
 	await page.keyboard.press("ArrowDown");
 	const selectedItem = await page.locator(".psp-xmb__item.is-selected").innerText();
 	await page.keyboard.press("Enter");
@@ -37,8 +37,8 @@ const result = browser("run-code", `async (page) => {
 	const listVisible = await page.locator(".psp-xmb__items").count();
 
 	return {
-		initialProject,
-		nextProject,
+		initialCategory,
+		nextCategory,
 		selectedItem,
 		detailVisible,
 		listVisible,
@@ -47,8 +47,8 @@ const result = browser("run-code", `async (page) => {
 	};
 }`);
 
-assert.match(result, /"initialProject":"amazon"/);
-assert.match(result, /"nextProject":"ibm"/);
+assert.match(result, /"initialCategory":"jobs"/);
+assert.match(result, /"nextCategory":"projects"/);
 assert.match(result, /"selectedItem":"Item 2"/);
 assert.match(result, /"detailVisible":1/);
 assert.match(result, /"listVisible":1/);

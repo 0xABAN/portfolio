@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { ALL_ITEMS, type Project } from "./experienceData";
+import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
-type PspIconName = "folder" | "link" | "info";
+type PspIconName = "jobs" | "projects" | "settings" | "folder" | "info";
 
 type TemplateItem = {
 	id: string;
@@ -12,16 +11,24 @@ type TemplateItem = {
 	icon: PspIconName;
 };
 
+type PspCategory = {
+	id: "jobs" | "projects" | "settings";
+	label: string;
+	icon: PspIconName;
+	items: readonly TemplateItem[];
+	disabled?: boolean;
+};
+
 type ViewState = {
-	projectIndex: number;
+	categoryIndex: number;
 	itemIndex: number;
 	detailId: string | null;
 	optionsOpen: boolean;
 };
 
 type ViewAction =
-	| { type: "project"; delta: number }
-	| { type: "select-project"; index: number }
+	| { type: "category"; delta: number }
+	| { type: "select-category"; index: number }
 	| { type: "item"; delta: number }
 	| { type: "select-item"; index: number }
 	| { type: "open" }
@@ -34,33 +41,42 @@ export const TEMPLATE_ITEMS: readonly TemplateItem[] = [
 	{ id: "item-3", label: "Item 3", description: "Template item 3.", icon: "folder" },
 ];
 
-export const PROJECTS_RAIL: readonly Project[] = ALL_ITEMS;
+export const CATEGORIES: readonly PspCategory[] = [
+	{ id: "jobs", label: "Jobs", icon: "jobs", items: TEMPLATE_ITEMS },
+	{ id: "projects", label: "Projects", icon: "projects", items: TEMPLATE_ITEMS },
+	{ id: "settings", label: "Settings", icon: "settings", items: TEMPLATE_ITEMS, disabled: true },
+];
 
+const NAVIGABLE_CATEGORY_COUNT = 2;
 const wrap = (value: number, length: number) => (value + length) % length;
 
 export function initialState(): ViewState {
-	return { projectIndex: 0, itemIndex: 0, detailId: null, optionsOpen: false };
+	return { categoryIndex: 0, itemIndex: 0, detailId: null, optionsOpen: false };
 }
 
 export function reducer(state: ViewState, action: ViewAction): ViewState {
+	const category = CATEGORIES[state.categoryIndex];
+
 	switch (action.type) {
-		case "project": {
-			const projectIndex = wrap(state.projectIndex + action.delta, PROJECTS_RAIL.length);
-			return { ...state, projectIndex, detailId: null, optionsOpen: false };
+		case "category": {
+			const categoryIndex = wrap(state.categoryIndex + action.delta, NAVIGABLE_CATEGORY_COUNT);
+			return { ...state, categoryIndex, detailId: null, optionsOpen: false };
 		}
-		case "select-project":
-			return { ...state, projectIndex: action.index, detailId: null, optionsOpen: false };
+		case "select-category":
+			return action.index < NAVIGABLE_CATEGORY_COUNT
+				? { ...state, categoryIndex: action.index, detailId: null, optionsOpen: false }
+				: state;
 		case "item":
 			return {
 				...state,
-				itemIndex: wrap(state.itemIndex + action.delta, TEMPLATE_ITEMS.length),
+				itemIndex: wrap(state.itemIndex + action.delta, category.items.length),
 				detailId: null,
 				optionsOpen: false,
 			};
 		case "select-item":
 			return { ...state, itemIndex: action.index, detailId: null, optionsOpen: false };
 		case "open":
-			return { ...state, detailId: PROJECTS_RAIL[state.projectIndex]?.id ?? null, optionsOpen: false };
+			return { ...state, detailId: `${category.id}-${category.items[state.itemIndex]?.id ?? "item"}`, optionsOpen: false };
 		case "back":
 			return { ...state, detailId: null, optionsOpen: false };
 		case "toggle-options":
@@ -70,8 +86,10 @@ export function reducer(state: ViewState, action: ViewAction): ViewState {
 
 function Icon({ name }: { name: PspIconName }) {
 	const paths: Record<PspIconName, ReactNode> = {
+		jobs: <><rect x="7" y="14" width="34" height="25" rx="2" /><path d="M17 14v-4h14v4M7 22h34M21 22v4h6v-4" /></>,
+		projects: <><path d="M5 13h13l4 4h21v20H5z" /><path d="M5 18h38" /></>,
+		settings: <><path d="m24 6 3 4 5-1 2 5-4 3 1 5 5 2-2 5-5-1-3 4-4-3-4 3-3-4-5 1-2-5 4-2-1-5-4-3 2-5 5 1 3-4z" /><circle cx="24" cy="24" r="6" /></>,
 		folder: <><path d="M5 13h13l4 4h17v19H5z" /><path d="M5 18h34" /></>,
-		link: <><path d="M19 29 15 33a6 6 0 0 1-9-8l7-7a6 6 0 0 1 9 0" /><path d="m29 19 4-4a6 6 0 0 1 9 8l-7 7a6 6 0 0 1-9 0" /><path d="m16 28 16-16" /></>,
 		info: <><circle cx="24" cy="24" r="17" /><path d="M24 21v11M24 15v1" /></>,
 	};
 
@@ -94,21 +112,16 @@ function StatusBar() {
 	);
 }
 
-function Detail({ project, item, onBack }: { project: Project; item: TemplateItem; onBack: () => void }) {
+function Detail({ category, item, onBack }: { category: PspCategory; item: TemplateItem; onBack: () => void }) {
 	return (
 		<div className="psp-xmb__detail" data-page="detail">
 			<button type="button" className="psp-xmb__back" onClick={onBack}>◀ Back</button>
 			<div className="psp-xmb__detail-body">
 				<div className="psp-xmb__detail-icon"><Icon name={item.icon} /></div>
 				<div>
-					<h2>{project.title}</h2>
+					<h2>{category.label}</h2>
 					<strong className="psp-xmb__detail-item">{item.label}</strong>
-					<p>{project.blurb}</p>
-					{project.src ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img className="psp-xmb__detail-image" src={project.src} alt="" />
-					) : null}
-					{project.href ? <a className="psp-xmb__detail-link" href={project.href} target="_blank" rel="noreferrer">Open ▶</a> : null}
+					<p>{item.description}</p>
 				</div>
 			</div>
 			<div className="psp-xmb__hint">○ Back&nbsp;&nbsp; × Select</div>
@@ -119,8 +132,8 @@ function Detail({ project, item, onBack }: { project: Project; item: TemplateIte
 export function PspXmb() {
 	const [state, dispatch] = useReducer(reducer, undefined, initialState);
 	const rootRef = useRef<HTMLDivElement>(null);
-	const project = PROJECTS_RAIL[state.projectIndex];
-	const item = TEMPLATE_ITEMS[state.itemIndex];
+	const category = CATEGORIES[state.categoryIndex];
+	const item = category.items[state.itemIndex];
 	const detailOpen = state.detailId !== null;
 
 	useEffect(() => {
@@ -131,10 +144,10 @@ export function PspXmb() {
 		if (event.target !== event.currentTarget) return;
 		if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
 			event.preventDefault();
-			dispatch({ type: "project", delta: -1 });
+			dispatch({ type: "category", delta: -1 });
 		} else if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
 			event.preventDefault();
-			dispatch({ type: "project", delta: 1 });
+			dispatch({ type: "category", delta: 1 });
 		} else if (event.key === "ArrowUp" || event.key.toLowerCase() === "w") {
 			event.preventDefault();
 			dispatch({ type: "item", delta: -1 });
@@ -158,7 +171,7 @@ export function PspXmb() {
 		<div
 			ref={rootRef}
 			className="psp-xmb"
-			data-project={project.id}
+			data-category={category.id}
 			data-no-window-drag
 			tabIndex={0}
 			role="application"
@@ -169,53 +182,48 @@ export function PspXmb() {
 			<div className="psp-xmb__wave" aria-hidden="true" />
 			<StatusBar />
 			{detailOpen ? (
-				<Detail project={project} item={item} onBack={() => dispatch({ type: "back" })} />
+				<Detail category={category} item={item} onBack={() => dispatch({ type: "back" })} />
 			) : (
 				<>
-					<div
-						className="psp-xmb__project-rail"
-						style={{ "--project-index": state.projectIndex } as CSSProperties}
-						role="listbox"
-						aria-label="Projects"
-					>
-						{PROJECTS_RAIL.map((entry, index) => (
+					<div className="psp-xmb__categories" role="tablist" aria-label="Categories">
+						{CATEGORIES.map((entry, index) => (
 							<button
 								key={entry.id}
 								type="button"
-								className={index === state.projectIndex ? "psp-xmb__project is-selected" : "psp-xmb__project"}
-								role="option"
-								aria-selected={index === state.projectIndex}
-								aria-label={entry.title}
-								onClick={() => index === state.projectIndex
-									? dispatch({ type: "open" })
-									: dispatch({ type: "select-project", index })}
-							>
-								{/* eslint-disable-next-line @next/next/no-img-element */}
-								<img src={entry.src} alt="" draggable={false} />
-								<span>{entry.title}</span>
-							</button>
-						))}
-					</div>
-					<div className="psp-xmb__selected-project">
-						<strong>{project.title}</strong>
-						<span>Memory Stick™ · {project.blurb}</span>
-					</div>
-					<div className="psp-xmb__items" role="listbox" aria-label="Project items">
-						{TEMPLATE_ITEMS.map((entry, index) => (
-							<button
-								key={entry.id}
-								type="button"
-								className={index === state.itemIndex ? "psp-xmb__item is-selected" : "psp-xmb__item"}
-								role="option"
-								aria-selected={index === state.itemIndex}
-								onClick={() => index === state.itemIndex
-									? dispatch({ type: "open" })
-									: dispatch({ type: "select-item", index })}
+								className={["psp-xmb__category", index === state.categoryIndex ? "is-selected" : "", entry.disabled ? "is-disabled" : ""].filter(Boolean).join(" ")}
+								role="tab"
+								aria-selected={index === state.categoryIndex}
+								aria-disabled={entry.disabled || undefined}
+								disabled={entry.disabled}
+								onClick={() => dispatch({ type: "select-category", index })}
 							>
 								<Icon name={entry.icon} />
 								<span>{entry.label}</span>
 							</button>
 						))}
+					</div>
+					<div className="psp-xmb__selection">
+						<div className="psp-xmb__selected-heading">
+							<Icon name={category.icon} />
+							<div><strong>{category.label}</strong><span>Memory Stick™</span></div>
+						</div>
+						<div className="psp-xmb__items" role="listbox" aria-label={`${category.label} items`}>
+							{TEMPLATE_ITEMS.map((entry, index) => (
+								<button
+									key={entry.id}
+									type="button"
+									className={index === state.itemIndex ? "psp-xmb__item is-selected" : "psp-xmb__item"}
+									role="option"
+									aria-selected={index === state.itemIndex}
+									onClick={() => index === state.itemIndex
+										? dispatch({ type: "open" })
+										: dispatch({ type: "select-item", index })}
+								>
+									<Icon name={entry.icon} />
+									<span>{entry.label}</span>
+								</button>
+							))}
+						</div>
 					</div>
 					{state.optionsOpen ? (
 						<div className="psp-xmb__options" role="menu">
