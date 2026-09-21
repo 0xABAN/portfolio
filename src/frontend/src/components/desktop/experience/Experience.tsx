@@ -10,7 +10,7 @@ export function Experience() {
 				<PspXmb />
 			</div>
 			{/* eslint-disable-next-line @next/next/no-img-element */}
-			<img className="psp__art" src="/icons/psp.png?v=vhs" alt="" draggable={false} />
+			<img className="psp__art" src="/icons/psp.png?v=current" alt="" draggable={false} />
 		</div>
 	);
 }

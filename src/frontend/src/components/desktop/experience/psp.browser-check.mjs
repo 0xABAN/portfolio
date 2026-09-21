@@ -27,24 +27,30 @@ const result = browser("run-code", `async (page) => {
 	const afterScreenClick = await psp.boundingBox();
 
 	await xmb.focus();
-	await page.keyboard.press("ArrowRight");
-	const nextCategory = await xmb.getAttribute("data-category");
 	const categoryLabels = await psp.locator(".psp-xmb__category").allTextContents();
 	const disabledCategories = await psp.locator(".psp-xmb__category:disabled").count();
+	const initialItems = await psp.locator(".psp-xmb__item").allTextContents();
 	await page.keyboard.press("ArrowDown");
 	const selectedItem = await page.locator(".psp-xmb__item.is-selected").innerText();
 	await page.keyboard.press("Enter");
+	const detailTitle = await page.locator(".psp-xmb__detail h2").innerText();
 	const detailVisible = await page.locator(".psp-xmb__detail").count();
 	await page.keyboard.press("Escape");
-	const listVisible = await page.locator(".psp-xmb__items").count();
+	await page.keyboard.press("ArrowRight");
+	const nextCategory = await xmb.getAttribute("data-category");
+	const projectItems = await psp.locator(".psp-xmb__item").allTextContents();
+	const listVisible = await psp.locator(".psp-xmb__items").count();
 
 	return {
 		initialCategory,
 		nextCategory,
 		categoryLabels,
 		disabledCategories,
+		initialItems,
 		selectedItem,
+		detailTitle,
 		detailVisible,
+		projectItems,
 		listVisible,
 		titlebars,
 		screenDrag: [afterScreenClick.x - beforeScreenClick.x, afterScreenClick.y - beforeScreenClick.y],
@@ -55,7 +61,10 @@ assert.match(result, /"initialCategory":"jobs"/);
 assert.match(result, /"nextCategory":"projects"/);
 assert.match(result, /"categoryLabels":\["Jobs","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
 assert.match(result, /"disabledCategories":7/);
-assert.match(result, /"selectedItem":"Item 2"/);
+assert.match(result, /"initialItems":\["amazon","ibm"\]/);
+assert.match(result, /"selectedItem":"ibm"/);
+assert.match(result, /"detailTitle":"ibm"/);
+assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-check","maestro","simulacra","terrar.ai"\]/);
 assert.match(result, /"detailVisible":1/);
 assert.match(result, /"listVisible":1/);
 assert.match(result, /"titlebars":0/);

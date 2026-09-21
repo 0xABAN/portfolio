@@ -241,7 +241,7 @@
 
 .psp-xmb__item {
 	display: flex;
-	width: 84px;
+	width: 190px;
 	align-items: center;
 	gap: 6px;
 	padding: 3px 10px 3px 4px;
@@ -250,6 +250,14 @@
 	background: transparent;
 	text-align: left;
 	transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.psp-xmb__item-image {
+	width: 22px;
+	height: 22px;
+	flex: none;
+	border-radius: 1px;
+	object-fit: cover;
 }
 
 .psp-xmb__item.is-selected {
@@ -336,9 +344,12 @@
 	color: var(--psp-blue);
 }
 
-.psp-xmb__detail-icon .psp-xmb__icon {
+.psp-xmb__detail-icon .psp-xmb__icon,
+.psp-xmb__detail-icon img {
 	width: 36px;
 	height: 36px;
+	border-radius: 1px;
+	object-fit: cover;
 	filter: drop-shadow(0 0 4px rgba(113, 200, 231, 0.8));
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { PROJECTS, WORK, type Project } from "./experienceData";
 
 type PspIconName =
 	| "jobs"
@@ -12,21 +13,13 @@ type PspIconName =
 	| "game"
 	| "network"
 	| "psn"
-	| "folder"
-	| "info";
-
-type TemplateItem = {
-	id: string;
-	label: string;
-	description: string;
-	icon: PspIconName;
-};
+	| "folder";
 
 type PspCategory = {
 	id: "jobs" | "projects" | "settings" | "photo" | "music" | "video" | "game" | "network" | "psn";
 	label: string;
 	icon: PspIconName;
-	items: readonly TemplateItem[];
+	items: readonly Project[];
 	disabled?: boolean;
 };
 
@@ -46,22 +39,18 @@ type ViewAction =
 	| { type: "back" }
 	| { type: "toggle-options" };
 
-export const TEMPLATE_ITEMS: readonly TemplateItem[] = [
-	{ id: "item-1", label: "Item 1", description: "Template item 1.", icon: "folder" },
-	{ id: "item-2", label: "Item 2", description: "Template item 2.", icon: "folder" },
-	{ id: "item-3", label: "Item 3", description: "Template item 3.", icon: "folder" },
-];
+const EMPTY_ITEMS: readonly Project[] = [];
 
 export const CATEGORIES: readonly PspCategory[] = [
-	{ id: "jobs", label: "Jobs", icon: "jobs", items: TEMPLATE_ITEMS },
-	{ id: "projects", label: "Projects", icon: "projects", items: TEMPLATE_ITEMS },
-	{ id: "settings", label: "Settings", icon: "settings", items: TEMPLATE_ITEMS, disabled: true },
-	{ id: "photo", label: "Photo", icon: "photo", items: TEMPLATE_ITEMS, disabled: true },
-	{ id: "music", label: "Music", icon: "music", items: TEMPLATE_ITEMS, disabled: true },
-	{ id: "video", label: "Video", icon: "video", items: TEMPLATE_ITEMS, disabled: true },
-	{ id: "game", label: "Game", icon: "game", items: TEMPLATE_ITEMS, disabled: true },
-	{ id: "network", label: "Network", icon: "network", items: TEMPLATE_ITEMS, disabled: true },
-	{ id: "psn", label: "PlayStation Network", icon: "psn", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "jobs", label: "Jobs", icon: "jobs", items: WORK },
+	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS },
+	{ id: "settings", label: "Settings", icon: "settings", items: EMPTY_ITEMS, disabled: true },
+	{ id: "photo", label: "Photo", icon: "photo", items: EMPTY_ITEMS, disabled: true },
+	{ id: "music", label: "Music", icon: "music", items: EMPTY_ITEMS, disabled: true },
+	{ id: "video", label: "Video", icon: "video", items: EMPTY_ITEMS, disabled: true },
+	{ id: "game", label: "Game", icon: "game", items: EMPTY_ITEMS, disabled: true },
+	{ id: "network", label: "Network", icon: "network", items: EMPTY_ITEMS, disabled: true },
+	{ id: "psn", label: "PlayStation Network", icon: "psn", items: EMPTY_ITEMS, disabled: true },
 ];
 
 const NAVIGABLE_CATEGORY_COUNT = 2;
@@ -77,23 +66,23 @@ export function reducer(state: ViewState, action: ViewAction): ViewState {
 	switch (action.type) {
 		case "category": {
 			const categoryIndex = wrap(state.categoryIndex + action.delta, NAVIGABLE_CATEGORY_COUNT);
-			return { ...state, categoryIndex, detailId: null, optionsOpen: false };
+			return { ...state, categoryIndex, itemIndex: 0, detailId: null, optionsOpen: false };
 		}
 		case "select-category":
 			return action.index < NAVIGABLE_CATEGORY_COUNT
-				? { ...state, categoryIndex: action.index, detailId: null, optionsOpen: false }
+				? { ...state, categoryIndex: action.index, itemIndex: 0, detailId: null, optionsOpen: false }
 				: state;
 		case "item":
 			return {
 				...state,
-				itemIndex: wrap(state.itemIndex + action.delta, category.items.length),
+				itemIndex: category.items.length ? wrap(state.itemIndex + action.delta, category.items.length) : 0,
 				detailId: null,
 				optionsOpen: false,
 			};
 		case "select-item":
 			return { ...state, itemIndex: action.index, detailId: null, optionsOpen: false };
 		case "open":
-			return { ...state, detailId: `${category.id}-${category.items[state.itemIndex]?.id ?? "item"}`, optionsOpen: false };
+			return { ...state, detailId: category.items[state.itemIndex]?.id ?? null, optionsOpen: false };
 		case "back":
 			return { ...state, detailId: null, optionsOpen: false };
 		case "toggle-options":
@@ -113,7 +102,6 @@ function Icon({ name }: { name: PspIconName }) {
 		network: <><circle cx="24" cy="24" r="17" /><path d="M7 24h34M24 7c5 5 7 11 7 17s-2 12-7 17c-5-5-7-11-7-17s2-12 7-17zM10 14h28M10 34h28" /></>,
 		psn: <><path d="M17 38V9l10 3c5 2 8 6 8 11 0 5-3 8-8 8l-5-1" /><path d="m11 36 15-5M11 40l23-7" /></>,
 		folder: <><path d="M5 13h13l4 4h17v19H5z" /><path d="M5 18h34" /></>,
-		info: <><circle cx="24" cy="24" r="17" /><path d="M24 21v11M24 15v1" /></>,
 	};
 
 	return <svg className="psp-xmb__icon" viewBox="0 0 48 48" aria-hidden="true">{paths[name]}</svg>;
@@ -135,16 +123,21 @@ function StatusBar() {
 	);
 }
 
-function Detail({ category, item, onBack }: { category: PspCategory; item: TemplateItem; onBack: () => void }) {
+function Detail({ project, onBack }: { project: Project; onBack: () => void }) {
 	return (
 		<div className="psp-xmb__detail" data-page="detail">
 			<button type="button" className="psp-xmb__back" onClick={onBack}>◀ Back</button>
 			<div className="psp-xmb__detail-body">
-				<div className="psp-xmb__detail-icon"><Icon name={item.icon} /></div>
+				<div className="psp-xmb__detail-icon">
+					{project.src ? (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img src={project.src} alt="" draggable={false} />
+					) : <Icon name="folder" />}
+				</div>
 				<div>
-					<h2>{category.label}</h2>
-					<strong className="psp-xmb__detail-item">{item.label}</strong>
-					<p>{item.description}</p>
+					<h2>{project.title}</h2>
+					<p>{project.blurb}</p>
+					{project.href ? <a className="psp-xmb__detail-link" href={project.href} target="_blank" rel="noreferrer">Open ▶</a> : null}
 				</div>
 			</div>
 			<div className="psp-xmb__hint">○ Back&nbsp;&nbsp; × Select</div>
@@ -156,7 +149,7 @@ export function PspXmb() {
 	const [state, dispatch] = useReducer(reducer, undefined, initialState);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const category = CATEGORIES[state.categoryIndex];
-	const item = category.items[state.itemIndex];
+	const project = category.items[state.itemIndex];
 	const detailOpen = state.detailId !== null;
 
 	useEffect(() => {
@@ -204,8 +197,8 @@ export function PspXmb() {
 		>
 			<div className="psp-xmb__wave" aria-hidden="true" />
 			<StatusBar />
-			{detailOpen ? (
-				<Detail category={category} item={item} onBack={() => dispatch({ type: "back" })} />
+			{detailOpen && project ? (
+				<Detail project={project} onBack={() => dispatch({ type: "back" })} />
 			) : (
 				<>
 					<div className="psp-xmb__categories" role="tablist" aria-label="Categories">
@@ -231,7 +224,7 @@ export function PspXmb() {
 							<div><strong>{category.label}</strong><span>Memory Stick™</span></div>
 						</div>
 						<div className="psp-xmb__items" role="listbox" aria-label={`${category.label} items`}>
-							{TEMPLATE_ITEMS.map((entry, index) => (
+							{category.items.map((entry, index) => (
 								<button
 									key={entry.id}
 									type="button"
@@ -242,8 +235,11 @@ export function PspXmb() {
 										? dispatch({ type: "open" })
 										: dispatch({ type: "select-item", index })}
 								>
-									<Icon name={entry.icon} />
-									<span>{entry.label}</span>
+									{entry.src ? (
+										// eslint-disable-next-line @next/next/no-img-element
+										<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
+									) : <Icon name="folder" />}
+									<span>{entry.title}</span>
 								</button>
 							))}
 						</div>
