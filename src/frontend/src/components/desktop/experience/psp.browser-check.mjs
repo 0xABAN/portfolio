@@ -96,9 +96,9 @@ const result = browser("run-code", `async (page) => {
 
 assert.match(result, /"initialPspVisible":0/);
 assert.match(result, /"initialCategory":"jobs"/);
-assert.match(result, /"initialBackground".*reze\.png/);
+assert.match(result, /"initialBackground".*jobs-image\.png/);
 assert.match(result, /"nextCategory":"projects"/);
-assert.match(result, /"projectBackground".*hxh-red\.png/);
+assert.match(result, /"projectBackground".*projects-image\.png/);
 assert.match(result, /"categoryLabels":\["Jobs","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
 assert.match(result, /"disabledCategories":7/);
 assert.match(result, /"initialItems":\["amazon","ibm"\]/);
