@@ -234,13 +234,6 @@ export function PspXmb() {
 						))}
 					</div>
 					<div className="psp-xmb__selection">
-						<div className="psp-xmb__selected-heading">
-							{project?.src ? (
-								// eslint-disable-next-line @next/next/no-img-element
-								<img src={project.src} alt="" draggable={false} />
-							) : <Icon name={category.icon} />}
-							<div><strong>{project?.title ?? category.label}</strong><span>{project?.blurb ?? ""}</span></div>
-						</div>
 						<div className="psp-xmb__items" role="listbox" aria-label={`${category.label} items`}>
 							{category.items.map((entry, index) => (
 								<button
@@ -258,7 +251,10 @@ export function PspXmb() {
 										// eslint-disable-next-line @next/next/no-img-element
 										<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
 									) : <Icon name="folder" />}
-									<span>{entry.title}</span>
+									<span className="psp-xmb__item-content">
+										<strong>{entry.title}</strong>
+										<span>{entry.blurb}</span>
+									</span>
 								</button>
 							))}
 						</div>
