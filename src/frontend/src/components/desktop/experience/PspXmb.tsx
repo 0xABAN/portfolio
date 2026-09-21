@@ -126,9 +126,9 @@ export function PspXmb() {
 	const category = CATEGORIES[state.categoryIndex];
 	const project = category.items[state.itemIndex];
 	const screenArtwork = category.id === "jobs"
-		? "/photos/hxh-red.png"
+		? "/photos/reze.png"
 		: category.id === "projects"
-			? "/photos/reze.png"
+			? "/photos/hxh-red.png"
 			: null;
 	useEffect(() => {
 		rootRef.current?.focus({ preventScroll: true });
