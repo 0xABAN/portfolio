@@ -43,14 +43,13 @@
 	pointer-events: none;
 	user-select: none;
 	filter:
-		drop-shadow(0 0 1px rgba(5, 12, 18, 0.8))
+		drop-shadow(0 0 1px rgba(0, 0, 0, 0.8))
 		drop-shadow(0 10px 10px rgba(0, 0, 0, 0.16));
 }
 
 .psp-xmb {
-	--psp-white: rgba(246, 250, 255, 0.94);
-	--psp-muted: rgba(223, 237, 249, 0.58);
-	--psp-blue: #71c8e7;
+	--psp-white: rgba(255, 255, 255, 0.94);
+	--psp-muted: rgba(255, 255, 255, 0.58);
 	position: absolute;
 	top: 25%;
 	left: 25%;
@@ -111,7 +110,7 @@
 	display: flex;
 	align-items: center;
 	gap: 7px;
-	color: rgba(245, 250, 255, 0.88);
+	color: rgba(255, 255, 255, 0.88);
 	font-size: 8px;
 }
 
@@ -194,11 +193,11 @@
 .psp-xmb__category.is-selected {
 	color: var(--psp-white);
 	transform: translateY(-2px) scale(1.15);
-	filter: drop-shadow(0 0 4px rgba(157, 229, 246, 0.7));
+	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
 }
 
 .psp-xmb__category.is-disabled {
-	color: rgba(223, 237, 249, 0.28);
+	color: rgba(255, 255, 255, 0.28);
 	filter: none;
 }
 
@@ -221,8 +220,8 @@
 .psp-xmb__selected-heading .psp-xmb__icon {
 	width: 30px;
 	height: 30px;
-	color: var(--psp-blue);
-	filter: drop-shadow(0 0 4px rgba(113, 200, 231, 0.8));
+	color: var(--psp-white);
+	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
 }
 
 .psp-xmb__selected-heading div {
@@ -276,13 +275,13 @@
 
 .psp-xmb__item.is-selected {
 	color: var(--psp-white);
-	background: linear-gradient(90deg, rgba(151, 213, 232, 0.42), transparent);
+	background: linear-gradient(90deg, rgba(255, 255, 255, 0.32), transparent);
 	transform: translateX(4px);
 }
 
 .psp-xmb__item.is-selected .psp-xmb__icon {
-	color: var(--psp-blue);
-	filter: drop-shadow(0 0 3px rgba(113, 200, 231, 0.8));
+	color: var(--psp-white);
+	filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
 }
 
 .psp-xmb__icon {
@@ -315,9 +314,9 @@
 	display: grid;
 	min-width: 76px;
 	padding: 3px;
-	border: 1px solid rgba(226, 245, 255, 0.7);
+	border: 1px solid rgba(255, 255, 255, 0.7);
 	border-radius: 2px;
-	background: rgba(9, 22, 35, 0.92);
+	background: rgba(0, 0, 0, 0.92);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
@@ -330,7 +329,7 @@
 
 .psp-xmb__options button:hover,
 .psp-xmb__options button:focus-visible {
-	background: rgba(133, 204, 228, 0.35);
+	background: rgba(255, 255, 255, 0.25);
 	outline: none;
 }
 
@@ -355,7 +354,7 @@
 }
 
 .psp-xmb__detail-icon {
-	color: var(--psp-blue);
+	color: var(--psp-white);
 }
 
 .psp-xmb__detail-icon .psp-xmb__icon,
@@ -364,7 +363,7 @@
 	height: 36px;
 	border-radius: 1px;
 	object-fit: cover;
-	filter: drop-shadow(0 0 4px rgba(113, 200, 231, 0.8));
+	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
 }
 
 .psp-xmb__detail h2 {
