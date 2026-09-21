@@ -203,7 +203,7 @@
 
 .psp-xmb__selection {
 	position: absolute;
-	top: 36%;
+	top: 34%;
 	left: 10%;
 	right: 10%;
 	z-index: 2;
@@ -211,7 +211,7 @@
 
 .psp-xmb__items {
 	display: grid;
-	max-height: 100px;
+	max-height: 108px;
 	gap: 1px;
 	overflow-y: auto;
 	scrollbar-width: none;
@@ -224,10 +224,11 @@
 
 .psp-xmb__item {
 	display: flex;
+	box-sizing: border-box;
 	width: 100%;
 	align-items: center;
-	gap: 12px;
-	padding: 6px 12px 6px 8px;
+	gap: 10px;
+	padding: 5px 10px 5px 7px;
 	border-radius: 2px;
 	color: var(--psp-muted);
 	background: transparent;
@@ -236,8 +237,8 @@
 }
 
 .psp-xmb__item-image {
-	width: 48px;
-	height: 48px;
+	width: 42px;
+	height: 42px;
 	flex: none;
 	border-radius: 1px;
 	object-fit: cover;
@@ -250,13 +251,18 @@
 }
 
 .psp-xmb__item-content strong {
-	font-size: 14px;
+	overflow: hidden;
+	font-size: 13px;
 	font-weight: 500;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .psp-xmb__item-content span {
+	overflow: hidden;
 	color: var(--psp-muted);
-	font-size: 10px;
+	font-size: 9px;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
