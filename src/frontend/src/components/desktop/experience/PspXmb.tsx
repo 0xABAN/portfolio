@@ -128,7 +128,7 @@ export function PspXmb() {
 	const screenArtwork = category.id === "jobs"
 		? "/photos/hxh-red.png"
 		: category.id === "projects"
-			? "/photos/reze-mono.png"
+			? "/photos/reze.png"
 			: null;
 	useEffect(() => {
 		rootRef.current?.focus({ preventScroll: true });
