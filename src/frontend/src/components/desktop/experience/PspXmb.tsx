@@ -148,6 +148,7 @@ function Detail({ project, onBack }: { project: Project; onBack: () => void }) {
 export function PspXmb() {
 	const [state, dispatch] = useReducer(reducer, undefined, initialState);
 	const rootRef = useRef<HTMLDivElement>(null);
+	const selectedItemRef = useRef<HTMLButtonElement>(null);
 	const category = CATEGORIES[state.categoryIndex];
 	const project = category.items[state.itemIndex];
 	const detailOpen = state.detailId !== null;
@@ -155,6 +156,10 @@ export function PspXmb() {
 	useEffect(() => {
 		rootRef.current?.focus({ preventScroll: true });
 	}, []);
+
+	useEffect(() => {
+		selectedItemRef.current?.scrollIntoView({ block: "nearest" });
+	}, [state.categoryIndex, state.itemIndex]);
 
 	function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
 		if (event.target !== event.currentTarget) return;
@@ -231,6 +236,7 @@ export function PspXmb() {
 									className={index === state.itemIndex ? "psp-xmb__item is-selected" : "psp-xmb__item"}
 									role="option"
 									aria-selected={index === state.itemIndex}
+									ref={index === state.itemIndex ? selectedItemRef : undefined}
 									onClick={() => index === state.itemIndex
 										? dispatch({ type: "open" })
 										: dispatch({ type: "select-item", index })}

@@ -41,6 +41,10 @@ const result = browser("run-code", `async (page) => {
 	await page.keyboard.press("ArrowRight");
 	const nextCategory = await xmb.getAttribute("data-category");
 	const projectItems = await psp.locator(".psp-xmb__item").allTextContents();
+	for (let index = 0; index < 4; index += 1) await page.keyboard.press("ArrowDown");
+	await page.waitForTimeout(50);
+	const scrolledItem = await psp.locator(".psp-xmb__item.is-selected").innerText();
+	const listScrollTop = await psp.locator(".psp-xmb__items").evaluate((element) => element.scrollTop);
 	const listVisible = await psp.locator(".psp-xmb__items").count();
 
 	return {
@@ -53,6 +57,8 @@ const result = browser("run-code", `async (page) => {
 		detailTitle,
 		detailVisible,
 		projectItems,
+		scrolledItem,
+		listScrollTop,
 		listVisible,
 		titlebars,
 		screenDrag: [afterScreenClick.x - beforeScreenClick.x, afterScreenClick.y - beforeScreenClick.y],
@@ -67,6 +73,8 @@ assert.match(result, /"initialItems":\["amazon","ibm"\]/);
 assert.match(result, /"selectedItem":"ibm"/);
 assert.match(result, /"detailTitle":"ibm"/);
 assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-check","maestro","simulacra","terrar.ai"\]/);
+assert.match(result, /"scrolledItem":"simulacra"/);
+assert.match(result, /"listScrollTop":[1-9]/);
 assert.match(result, /"detailVisible":1/);
 assert.match(result, /"listVisible":1/);
 assert.match(result, /"titlebars":0/);
