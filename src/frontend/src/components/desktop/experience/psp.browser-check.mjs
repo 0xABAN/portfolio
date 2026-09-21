@@ -17,13 +17,15 @@ const result = browser("run-code", `async (page) => {
 	await page.locator(".desktop--busy").waitFor({ state: "hidden" });
 
 	const psp = page.locator("#desktop-window-experience");
+	await psp.locator(".psp-xmb").waitFor({ state: "visible" });
+	await psp.locator(".psp-xmb__category").first().waitFor({ state: "visible" });
 	const xmb = page.locator(".psp-xmb");
 	const screen = page.locator(".psp__screen");
 	const initialCategory = await xmb.getAttribute("data-category");
 	const titlebars = await psp.locator(".win-titlebar").count();
 	const beforeScreenClick = await psp.boundingBox();
 	const screenBox = await screen.boundingBox();
-	await page.mouse.click(screenBox.x + screenBox.width / 2, screenBox.y + screenBox.height / 2);
+	await page.mouse.click(screenBox.x + screenBox.width * 0.85, screenBox.y + screenBox.height * 0.75);
 	const afterScreenClick = await psp.boundingBox();
 
 	await xmb.focus();
