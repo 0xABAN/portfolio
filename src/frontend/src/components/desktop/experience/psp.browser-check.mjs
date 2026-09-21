@@ -13,6 +13,7 @@ browser("open", "http://localhost:3000", "--browser", "chrome");
 const result = browser("run-code", `async (page) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.emulateMedia({ reducedMotion: "reduce" });
+	await page.locator(".rsod").waitFor({ state: "visible" });
 	await page.locator(".rsod").click();
 	await page.locator(".desktop--busy").waitFor({ state: "hidden" });
 
@@ -22,6 +23,7 @@ const result = browser("run-code", `async (page) => {
 	const xmb = page.locator(".psp-xmb");
 	const screen = page.locator(".psp__screen");
 	const initialCategory = await xmb.getAttribute("data-category");
+	const initialBackground = await xmb.evaluate((element) => getComputedStyle(element).backgroundImage);
 	const titlebars = await psp.locator(".win-titlebar").count();
 	const beforeScreenClick = await psp.boundingBox();
 	const screenBox = await screen.boundingBox();
@@ -40,6 +42,7 @@ const result = browser("run-code", `async (page) => {
 	await page.keyboard.press("Escape");
 	await page.keyboard.press("ArrowRight");
 	const nextCategory = await xmb.getAttribute("data-category");
+	const projectBackground = await xmb.evaluate((element) => getComputedStyle(element).backgroundImage);
 	const projectItems = await psp.locator(".psp-xmb__item").allTextContents();
 	for (let index = 0; index < 4; index += 1) await page.keyboard.press("ArrowDown");
 	await page.waitForTimeout(50);
@@ -49,7 +52,9 @@ const result = browser("run-code", `async (page) => {
 
 	return {
 		initialCategory,
+		initialBackground,
 		nextCategory,
+		projectBackground,
 		categoryLabels,
 		disabledCategories,
 		initialItems,
@@ -66,7 +71,9 @@ const result = browser("run-code", `async (page) => {
 }`);
 
 assert.match(result, /"initialCategory":"jobs"/);
+assert.match(result, /"initialBackground".*hxh\.png/);
 assert.match(result, /"nextCategory":"projects"/);
+assert.match(result, /"projectBackground"(?!.*hxh\.png)/);
 assert.match(result, /"categoryLabels":\["Jobs","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
 assert.match(result, /"disabledCategories":7/);
 assert.match(result, /"initialItems":\["amazon","ibm"\]/);

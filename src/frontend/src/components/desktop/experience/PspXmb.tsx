@@ -192,6 +192,11 @@ export function PspXmb() {
 		<div
 			ref={rootRef}
 			className="psp-xmb"
+			style={category.id === "jobs" ? {
+				backgroundImage: 'linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72)), url("/photos/hxh.png")',
+				backgroundPosition: "center",
+				backgroundSize: "cover",
+			} : undefined}
 			data-category={category.id}
 			data-no-window-drag
 			tabIndex={0}
