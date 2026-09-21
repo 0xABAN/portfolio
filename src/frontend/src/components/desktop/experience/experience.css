@@ -48,6 +48,28 @@
 		drop-shadow(0 10px 10px rgba(0, 0, 0, 0.16));
 }
 
+.psp__home-button {
+	position: absolute;
+	top: 84%;
+	left: 19%;
+	z-index: 4;
+	width: 7%;
+	height: 11%;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 12%;
+	background: transparent;
+	cursor: var(--cursor-hand);
+	pointer-events: auto;
+}
+
+.psp__home-button:hover,
+.psp__home-button:focus-visible {
+	border-color: color-mix(in srgb, #fff 45%, transparent);
+	background: color-mix(in srgb, #000 35%, transparent);
+	outline: none;
+}
+
 .psp-xmb {
 	--psp-white: rgba(255, 255, 255, 0.94);
 	--psp-muted: rgba(255, 255, 255, 0.58);

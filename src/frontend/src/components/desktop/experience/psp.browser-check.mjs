@@ -68,6 +68,10 @@ const result = browser("run-code", `async (page) => {
 	const scrolledItem = await psp.locator(".psp-xmb__item.is-selected .psp-xmb__item-content strong").innerText();
 	const listScrollTop = await psp.locator(".psp-xmb__items").evaluate((element) => element.scrollTop);
 	const listVisible = await psp.locator(".psp-xmb__items").count();
+	const homeButton = psp.getByRole("button", { name: "Close Experience", exact: true });
+	const homeCursor = await homeButton.evaluate((element) => getComputedStyle(element).cursor);
+	await homeButton.click();
+	const pspClosed = await page.locator("#desktop-window-experience").count();
 
 	return {
 		initialPspVisible,
@@ -89,6 +93,8 @@ const result = browser("run-code", `async (page) => {
 		scrolledItem,
 		listScrollTop,
 		listVisible,
+		homeCursor,
+		pspClosed,
 		titlebars,
 		screenDrag: [afterScreenClick.x - beforeScreenClick.x, afterScreenClick.y - beforeScreenClick.y],
 	};
@@ -113,6 +119,8 @@ assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-c
 assert.match(result, /"scrolledItem":"simulacra"/);
 assert.match(result, /"listScrollTop":[1-9]/);
 assert.match(result, /"listVisible":1/);
+assert.match(result, /"homeCursor".*hand\.svg/);
+assert.match(result, /"pspClosed":0/);
 assert.match(result, /"titlebars":0/);
 assert.match(result, /"screenDrag":\[0,0\]/);
 console.log(result);

@@ -166,7 +166,7 @@ const WindowContent = memo(function WindowContent({ id, kind, src, active, cropS
 		case "github":
 			return <GitHubGraph />;
 		case "experience":
-			return <Experience />;
+			return <Experience onClose={() => onClose(id)} />;
 		case "terminal":
 			return <Terminal />;
 		case "bio":
