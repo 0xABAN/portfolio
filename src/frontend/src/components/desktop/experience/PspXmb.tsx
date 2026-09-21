@@ -235,8 +235,11 @@ export function PspXmb() {
 					</div>
 					<div className="psp-xmb__selection">
 						<div className="psp-xmb__selected-heading">
-							<Icon name={category.icon} />
-							<div><strong>{category.label}</strong><span>Memory Stick™</span></div>
+							{project?.src ? (
+								// eslint-disable-next-line @next/next/no-img-element
+								<img src={project.src} alt="" draggable={false} />
+							) : <Icon name={category.icon} />}
+							<div><strong>{project?.title ?? category.label}</strong><span>{project?.blurb ?? ""}</span></div>
 						</div>
 						<div className="psp-xmb__items" role="listbox" aria-label={`${category.label} items`}>
 							{category.items.map((entry, index) => (

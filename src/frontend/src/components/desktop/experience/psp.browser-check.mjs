@@ -34,8 +34,12 @@ const result = browser("run-code", `async (page) => {
 	const categoryLabels = await psp.locator(".psp-xmb__category").allTextContents();
 	const disabledCategories = await psp.locator(".psp-xmb__category:disabled").count();
 	const initialItems = await psp.locator(".psp-xmb__item").allTextContents();
+	const initialHeading = await psp.locator(".psp-xmb__selected-heading strong").innerText();
+	const initialDescription = await psp.locator(".psp-xmb__selected-heading span").innerText();
 	await page.keyboard.press("ArrowDown");
-	const selectedItem = await page.locator(".psp-xmb__item.is-selected").innerText();
+	const selectedItem = await psp.locator(".psp-xmb__item.is-selected").innerText();
+	const selectedHeading = await psp.locator(".psp-xmb__selected-heading strong").innerText();
+	const selectedDescription = await psp.locator(".psp-xmb__selected-heading span").innerText();
 	await page.keyboard.press("Enter");
 	const detailTitle = await page.locator(".psp-xmb__detail h2").innerText();
 	const detailVisible = await page.locator(".psp-xmb__detail").count();
@@ -58,7 +62,11 @@ const result = browser("run-code", `async (page) => {
 		categoryLabels,
 		disabledCategories,
 		initialItems,
+		initialHeading,
+		initialDescription,
 		selectedItem,
+		selectedHeading,
+		selectedDescription,
 		detailTitle,
 		detailVisible,
 		projectItems,
@@ -77,7 +85,11 @@ assert.match(result, /"projectBackground".*reze-mono\.png/);
 assert.match(result, /"categoryLabels":\["Jobs","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
 assert.match(result, /"disabledCategories":7/);
 assert.match(result, /"initialItems":\["amazon","ibm"\]/);
+assert.match(result, /"initialHeading":"amazon"/);
+assert.match(result, /"initialDescription":"swe intern @ amazon summer 2026"/);
 assert.match(result, /"selectedItem":"ibm"/);
+assert.match(result, /"selectedHeading":"ibm"/);
+assert.match(result, /"selectedDescription":"ai eng co-op @ ibm 2025-2026"/);
 assert.match(result, /"detailTitle":"ibm"/);
 assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-check","maestro","simulacra","terrar.ai"\]/);
 assert.match(result, /"scrolledItem":"simulacra"/);

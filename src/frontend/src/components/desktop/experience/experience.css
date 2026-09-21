@@ -224,6 +224,13 @@
 	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
 }
 
+.psp-xmb__selected-heading img {
+	width: 30px;
+	height: 30px;
+	border-radius: 1px;
+	object-fit: cover;
+}
+
 .psp-xmb__selected-heading div {
 	display: grid;
 	gap: 1px;
