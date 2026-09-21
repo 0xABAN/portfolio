@@ -2,7 +2,18 @@
 
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
-type PspIconName = "jobs" | "projects" | "settings" | "folder" | "info";
+type PspIconName =
+	| "jobs"
+	| "projects"
+	| "settings"
+	| "photo"
+	| "music"
+	| "video"
+	| "game"
+	| "network"
+	| "psn"
+	| "folder"
+	| "info";
 
 type TemplateItem = {
 	id: string;
@@ -12,7 +23,7 @@ type TemplateItem = {
 };
 
 type PspCategory = {
-	id: "jobs" | "projects" | "settings";
+	id: "jobs" | "projects" | "settings" | "photo" | "music" | "video" | "game" | "network" | "psn";
 	label: string;
 	icon: PspIconName;
 	items: readonly TemplateItem[];
@@ -45,6 +56,12 @@ export const CATEGORIES: readonly PspCategory[] = [
 	{ id: "jobs", label: "Jobs", icon: "jobs", items: TEMPLATE_ITEMS },
 	{ id: "projects", label: "Projects", icon: "projects", items: TEMPLATE_ITEMS },
 	{ id: "settings", label: "Settings", icon: "settings", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "photo", label: "Photo", icon: "photo", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "music", label: "Music", icon: "music", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "video", label: "Video", icon: "video", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "game", label: "Game", icon: "game", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "network", label: "Network", icon: "network", items: TEMPLATE_ITEMS, disabled: true },
+	{ id: "psn", label: "PlayStation Network", icon: "psn", items: TEMPLATE_ITEMS, disabled: true },
 ];
 
 const NAVIGABLE_CATEGORY_COUNT = 2;
@@ -89,6 +106,12 @@ function Icon({ name }: { name: PspIconName }) {
 		jobs: <><rect x="7" y="14" width="34" height="25" rx="2" /><path d="M17 14v-4h14v4M7 22h34M21 22v4h6v-4" /></>,
 		projects: <><path d="M5 13h13l4 4h21v20H5z" /><path d="M5 18h38" /></>,
 		settings: <><path d="m24 6 3 4 5-1 2 5-4 3 1 5 5 2-2 5-5-1-3 4-4-3-4 3-3-4-5 1-2-5 4-2-1-5-4-3 2-5 5 1 3-4z" /><circle cx="24" cy="24" r="6" /></>,
+		photo: <><rect x="6" y="8" width="36" height="32" rx="2" /><circle cx="16" cy="18" r="3" /><path d="m8 35 10-10 7 7 5-5 10 8" /></>,
+		music: <><path d="M18 34V11l20-4v23" /><circle cx="12" cy="35" r="6" /><circle cx="32" cy="31" r="6" /></>,
+		video: <><rect x="5" y="11" width="29" height="26" rx="2" /><path d="m34 19 9-5v20l-9-5z" /></>,
+		game: <><path d="M10 18c2-6 8-8 14-4 6-4 12-2 14 4l4 13c1 5-5 8-8 4l-5-6H19l-5 6c-3 4-9 1-8-4z" /><path d="M14 21v8M10 25h8M31 23h.1M37 28h.1" /></>,
+		network: <><circle cx="24" cy="24" r="17" /><path d="M7 24h34M24 7c5 5 7 11 7 17s-2 12-7 17c-5-5-7-11-7-17s2-12 7-17zM10 14h28M10 34h28" /></>,
+		psn: <><path d="M17 38V9l10 3c5 2 8 6 8 11 0 5-3 8-8 8l-5-1" /><path d="m11 36 15-5M11 40l23-7" /></>,
 		folder: <><path d="M5 13h13l4 4h17v19H5z" /><path d="M5 18h34" /></>,
 		info: <><circle cx="24" cy="24" r="17" /><path d="M24 21v11M24 15v1" /></>,
 	};

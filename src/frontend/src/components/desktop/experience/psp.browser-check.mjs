@@ -29,6 +29,8 @@ const result = browser("run-code", `async (page) => {
 	await xmb.focus();
 	await page.keyboard.press("ArrowRight");
 	const nextCategory = await xmb.getAttribute("data-category");
+	const categoryLabels = await psp.locator(".psp-xmb__category").allTextContents();
+	const disabledCategories = await psp.locator(".psp-xmb__category:disabled").count();
 	await page.keyboard.press("ArrowDown");
 	const selectedItem = await page.locator(".psp-xmb__item.is-selected").innerText();
 	await page.keyboard.press("Enter");
@@ -39,6 +41,8 @@ const result = browser("run-code", `async (page) => {
 	return {
 		initialCategory,
 		nextCategory,
+		categoryLabels,
+		disabledCategories,
 		selectedItem,
 		detailVisible,
 		listVisible,
@@ -49,6 +53,8 @@ const result = browser("run-code", `async (page) => {
 
 assert.match(result, /"initialCategory":"jobs"/);
 assert.match(result, /"nextCategory":"projects"/);
+assert.match(result, /"categoryLabels":\["Jobs","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
+assert.match(result, /"disabledCategories":7/);
 assert.match(result, /"selectedItem":"Item 2"/);
 assert.match(result, /"detailVisible":1/);
 assert.match(result, /"listVisible":1/);

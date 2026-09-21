@@ -6,6 +6,16 @@ test("XMB navigation wraps jobs and projects while settings stays visual-only", 
 	let state = initialState();
 	assert.equal(CATEGORIES[state.categoryIndex].id, "jobs");
 	assert.equal(TEMPLATE_ITEMS.length, 3);
+	assert.deepEqual(CATEGORIES.slice(2).map((category) => category.label), [
+		"Settings",
+		"Photo",
+		"Music",
+		"Video",
+		"Game",
+		"Network",
+		"PlayStation Network",
+	]);
+	assert.ok(CATEGORIES.slice(2).every((category) => category.disabled));
 
 	state = reducer(state, { type: "category", delta: 1 });
 	assert.equal(CATEGORIES[state.categoryIndex].id, "projects");
@@ -17,7 +27,7 @@ test("XMB navigation wraps jobs and projects while settings stays visual-only", 
 	state = reducer(state, { type: "back" });
 	assert.equal(state.detailId, null);
 
-	state = reducer(state, { type: "select-category", index: 2 });
+	state = reducer(state, { type: "select-category", index: CATEGORIES.length - 1 });
 	assert.equal(CATEGORIES[state.categoryIndex].id, "projects");
 	state = reducer(state, { type: "category", delta: 1 });
 	assert.equal(CATEGORIES[state.categoryIndex].id, "jobs");
