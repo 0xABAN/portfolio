@@ -6,7 +6,8 @@ import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDec
 test("task order survives switching, minimizing and restoring", () => {
 	let windows = layoutDesktop(1440, 900);
 	const order = taskWindows(windows).map((w) => w.id);
-	assert.deepEqual(order, ["me", "terminal", "github", "cd-player", "experience"]);
+	assert.deepEqual(order, ["me", "terminal", "github", "cd-player"]);
+	assert.equal(windows.find((w) => w.id === "experience"), undefined);
 	assert.equal(activeWindowId(activateWindow(windows, "sysmsg-0")), undefined);
 	windows = activateWindow(windows, "terminal");
 	assert.equal(activeWindowId(windows), "terminal");

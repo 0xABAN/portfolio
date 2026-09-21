@@ -16,6 +16,11 @@ const result = browser("run-code", `async (page) => {
 	await page.locator(".rsod").waitFor({ state: "visible" });
 	await page.locator(".rsod").click();
 	await page.locator(".desktop--busy").waitFor({ state: "hidden" });
+	const initialPspVisible = await page.locator("#desktop-window-experience").count();
+	await page.locator('[data-app-id="explorer"]').dblclick();
+	const explorer = page.locator("#desktop-window-explorer");
+	await explorer.waitFor({ state: "visible" });
+	await explorer.getByRole("option", { name: "experience.exe", exact: true }).dblclick();
 
 	const psp = page.locator("#desktop-window-experience");
 	await psp.locator(".psp-xmb").waitFor({ state: "visible" });
@@ -65,6 +70,7 @@ const result = browser("run-code", `async (page) => {
 	const listVisible = await psp.locator(".psp-xmb__items").count();
 
 	return {
+		initialPspVisible,
 		initialCategory,
 		initialBackground,
 		nextCategory,
@@ -88,6 +94,7 @@ const result = browser("run-code", `async (page) => {
 	};
 }`);
 
+assert.match(result, /"initialPspVisible":0/);
 assert.match(result, /"initialCategory":"jobs"/);
 assert.match(result, /"initialBackground".*hxh-red\.png/);
 assert.match(result, /"nextCategory":"projects"/);

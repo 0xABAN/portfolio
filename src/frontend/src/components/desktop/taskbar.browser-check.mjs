@@ -245,7 +245,7 @@ async function checkTaskbar(page) {
 	const task = (id) => page.locator(`[data-task-id="${id}"]`);
 	const win = (id) => page.locator(`#desktop-window-${id}`);
 	const order = await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId));
-	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github", "cd-player", "experience"]), "Running apps or decorations have incorrect tasks");
+	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github", "cd-player"]), "Running apps or decorations have incorrect tasks");
 	check(await win("cd-player").evaluate((el) => el.inert) && await task("cd-player").getAttribute("aria-pressed") === "false", "CD Player did not start minimized");
 
 	await task("github").click();

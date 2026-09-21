@@ -70,7 +70,6 @@ async function checkLaunches(page) {
 		["me", "Paint", "Programs"],
 		["terminal", "MS-DOS Prompt", "Programs"],
 		["github", "Activity", "Programs"],
-		["experience", "Experience", "Programs"],
 		["cd-player", "CD Player", "Programs"],
 		["explorer", "secrets", "Documents"],
 		["bio", "bio.txt", "Documents"],

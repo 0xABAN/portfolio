@@ -247,7 +247,6 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		},
 		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
 		...layoutErrorStack(me),
-		makeExperienceWindow(30, vw, vh),
 	];
 	return windows.map((w) => w.parentId ? w : {
 		...w,
