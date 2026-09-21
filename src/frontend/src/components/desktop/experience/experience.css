@@ -56,18 +56,11 @@
 	width: 7%;
 	height: 11%;
 	padding: 0;
-	border: 1px solid transparent;
-	border-radius: 12%;
+	border: 0;
 	background: transparent;
 	cursor: var(--cursor-hand);
-	pointer-events: auto;
-}
-
-.psp__home-button:hover,
-.psp__home-button:focus-visible {
-	border-color: color-mix(in srgb, #fff 45%, transparent);
-	background: color-mix(in srgb, #000 35%, transparent);
 	outline: none;
+	pointer-events: auto;
 }
 
 .psp-xmb {
