@@ -20,11 +20,6 @@ test("XMB navigates the jobs and projects lists while PSP categories stay visual
 
 	state = reducer(state, { type: "item", delta: 1 });
 	assert.equal(CATEGORIES[state.categoryIndex].items[state.itemIndex].id, "ibm");
-	state = reducer(state, { type: "open" });
-	assert.equal(state.detailId, "ibm");
-	state = reducer(state, { type: "back" });
-	assert.equal(state.detailId, null);
-
 	state = reducer(state, { type: "category", delta: 1 });
 	assert.equal(CATEGORIES[state.categoryIndex].id, "projects");
 	assert.equal(state.itemIndex, 0);

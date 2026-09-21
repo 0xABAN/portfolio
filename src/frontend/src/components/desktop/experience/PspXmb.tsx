@@ -26,7 +26,6 @@ type PspCategory = {
 type ViewState = {
 	categoryIndex: number;
 	itemIndex: number;
-	detailId: string | null;
 	optionsOpen: boolean;
 };
 
@@ -35,8 +34,6 @@ type ViewAction =
 	| { type: "select-category"; index: number }
 	| { type: "item"; delta: number }
 	| { type: "select-item"; index: number }
-	| { type: "open" }
-	| { type: "back" }
 	| { type: "toggle-options" };
 
 const EMPTY_ITEMS: readonly Project[] = [];
@@ -57,7 +54,7 @@ const NAVIGABLE_CATEGORY_COUNT = 2;
 const wrap = (value: number, length: number) => (value + length) % length;
 
 export function initialState(): ViewState {
-	return { categoryIndex: 0, itemIndex: 0, detailId: null, optionsOpen: false };
+	return { categoryIndex: 0, itemIndex: 0, optionsOpen: false };
 }
 
 export function reducer(state: ViewState, action: ViewAction): ViewState {
@@ -66,25 +63,20 @@ export function reducer(state: ViewState, action: ViewAction): ViewState {
 	switch (action.type) {
 		case "category": {
 			const categoryIndex = wrap(state.categoryIndex + action.delta, NAVIGABLE_CATEGORY_COUNT);
-			return { ...state, categoryIndex, itemIndex: 0, detailId: null, optionsOpen: false };
+			return { ...state, categoryIndex, itemIndex: 0, optionsOpen: false };
 		}
 		case "select-category":
 			return action.index < NAVIGABLE_CATEGORY_COUNT
-				? { ...state, categoryIndex: action.index, itemIndex: 0, detailId: null, optionsOpen: false }
+				? { ...state, categoryIndex: action.index, itemIndex: 0, optionsOpen: false }
 				: state;
 		case "item":
 			return {
 				...state,
 				itemIndex: category.items.length ? wrap(state.itemIndex + action.delta, category.items.length) : 0,
-				detailId: null,
 				optionsOpen: false,
 			};
 		case "select-item":
-			return { ...state, itemIndex: action.index, detailId: null, optionsOpen: false };
-		case "open":
-			return { ...state, detailId: category.items[state.itemIndex]?.id ?? null, optionsOpen: false };
-		case "back":
-			return { ...state, detailId: null, optionsOpen: false };
+			return { ...state, itemIndex: action.index, optionsOpen: false };
 		case "toggle-options":
 			return { ...state, optionsOpen: !state.optionsOpen };
 	}
@@ -123,26 +115,8 @@ function StatusBar() {
 	);
 }
 
-function Detail({ project, onBack }: { project: Project; onBack: () => void }) {
-	return (
-		<div className="psp-xmb__detail" data-page="detail">
-			<button type="button" className="psp-xmb__back" onClick={onBack}>◀ Back</button>
-			<div className="psp-xmb__detail-body">
-				<div className="psp-xmb__detail-icon">
-					{project.src ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img src={project.src} alt="" draggable={false} />
-					) : <Icon name="folder" />}
-				</div>
-				<div>
-					<h2>{project.title}</h2>
-					<p>{project.blurb}</p>
-					{project.href ? <a className="psp-xmb__detail-link" href={project.href} target="_blank" rel="noreferrer">Open ▶</a> : null}
-				</div>
-			</div>
-			<div className="psp-xmb__hint">○ Back&nbsp;&nbsp; × Select</div>
-		</div>
-	);
+function openExternal(href?: string) {
+	if (href) window.open(href, "_blank", "noopener,noreferrer");
 }
 
 export function PspXmb() {
@@ -156,8 +130,6 @@ export function PspXmb() {
 		: category.id === "projects"
 			? "/photos/reze-mono.png"
 			: null;
-	const detailOpen = state.detailId !== null;
-
 	useEffect(() => {
 		rootRef.current?.focus({ preventScroll: true });
 	}, []);
@@ -182,11 +154,10 @@ export function PspXmb() {
 			dispatch({ type: "item", delta: 1 });
 		} else if (event.key === "Enter" || event.key.toLowerCase() === "x") {
 			event.preventDefault();
-			dispatch({ type: "open" });
+			openExternal(project?.href);
 		} else if (event.key === "Escape" || event.key === "Backspace") {
 			event.preventDefault();
-			if (detailOpen) dispatch({ type: "back" });
-			else if (state.optionsOpen) dispatch({ type: "toggle-options" });
+			if (state.optionsOpen) dispatch({ type: "toggle-options" });
 		} else if (event.key.toLowerCase() === "o") {
 			event.preventDefault();
 			dispatch({ type: "toggle-options" });
@@ -212,62 +183,57 @@ export function PspXmb() {
 		>
 			<div className="psp-xmb__wave" aria-hidden="true" />
 			<StatusBar />
-			{detailOpen && project ? (
-				<Detail project={project} onBack={() => dispatch({ type: "back" })} />
-			) : (
-				<>
-					<div className="psp-xmb__categories" role="tablist" aria-label="Categories">
-						{CATEGORIES.map((entry, index) => (
-							<button
-								key={entry.id}
-								type="button"
-								className={["psp-xmb__category", index === state.categoryIndex ? "is-selected" : "", entry.disabled ? "is-disabled" : ""].filter(Boolean).join(" ")}
-								role="tab"
-								aria-selected={index === state.categoryIndex}
-								aria-disabled={entry.disabled || undefined}
-								disabled={entry.disabled}
-								onClick={() => dispatch({ type: "select-category", index })}
-							>
-								<Icon name={entry.icon} />
-								<span>{entry.label}</span>
-							</button>
-						))}
-					</div>
-					<div className="psp-xmb__selection">
-						<div className="psp-xmb__items" role="listbox" aria-label={`${category.label} items`}>
-							{category.items.map((entry, index) => (
-								<button
-									key={entry.id}
-									type="button"
-									className={index === state.itemIndex ? "psp-xmb__item is-selected" : "psp-xmb__item"}
-									role="option"
-									aria-selected={index === state.itemIndex}
-									ref={index === state.itemIndex ? selectedItemRef : undefined}
-									onClick={() => index === state.itemIndex
-										? dispatch({ type: "open" })
-										: dispatch({ type: "select-item", index })}
-								>
-									{entry.src ? (
-										// eslint-disable-next-line @next/next/no-img-element
-										<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
-									) : <Icon name="folder" />}
-									<span className="psp-xmb__item-content">
-										<strong>{entry.title}</strong>
-										<span>{entry.blurb}</span>
-									</span>
-								</button>
-							))}
-						</div>
-					</div>
-					{state.optionsOpen ? (
-						<div className="psp-xmb__options" role="menu">
-							<button type="button" role="menuitem" onClick={() => dispatch({ type: "open" })}>Information</button>
-							<button type="button" role="menuitem" onClick={() => dispatch({ type: "toggle-options" })}>Close</button>
-						</div>
-					) : null}
-					<button className="psp-xmb__select" type="button" onClick={() => dispatch({ type: "toggle-options" })}>SELECT&nbsp; Options</button>
-				</>
-			)}
+			<div className="psp-xmb__categories" role="tablist" aria-label="Categories">
+				{CATEGORIES.map((entry, index) => (
+					<button
+						key={entry.id}
+						type="button"
+						className={["psp-xmb__category", index === state.categoryIndex ? "is-selected" : "", entry.disabled ? "is-disabled" : ""].filter(Boolean).join(" ")}
+						role="tab"
+						aria-selected={index === state.categoryIndex}
+						aria-disabled={entry.disabled || undefined}
+						disabled={entry.disabled}
+						onClick={() => dispatch({ type: "select-category", index })}
+					>
+						<Icon name={entry.icon} />
+						<span>{entry.label}</span>
+					</button>
+				))}
+			</div>
+			<div className="psp-xmb__selection">
+				<div className="psp-xmb__items" role="listbox" aria-label={`${category.label} items`}>
+					{category.items.map((entry, index) => (
+						<button
+							key={entry.id}
+							type="button"
+							className={index === state.itemIndex ? "psp-xmb__item is-selected" : "psp-xmb__item"}
+							role="option"
+							aria-selected={index === state.itemIndex}
+							ref={index === state.itemIndex ? selectedItemRef : undefined}
+							onClick={() => {
+								if (entry.href) openExternal(entry.href);
+								else if (index !== state.itemIndex) dispatch({ type: "select-item", index });
+							}}
+						>
+							{entry.src ? (
+								// eslint-disable-next-line @next/next/no-img-element
+								<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
+							) : <Icon name="folder" />}
+							<span className="psp-xmb__item-content">
+								<strong>{entry.title}</strong>
+								<span>{entry.blurb}</span>
+							</span>
+						</button>
+					))}
+				</div>
+			</div>
+			{state.optionsOpen ? (
+				<div className="psp-xmb__options" role="menu">
+					<button type="button" role="menuitem" onClick={() => openExternal(project?.href)}>Open link</button>
+					<button type="button" role="menuitem" onClick={() => dispatch({ type: "toggle-options" })}>Close</button>
+				</div>
+			) : null}
+			<button className="psp-xmb__select" type="button" onClick={() => dispatch({ type: "toggle-options" })}>SELECT&nbsp; Options</button>
 		</div>
 	);
 }

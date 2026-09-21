@@ -39,13 +39,25 @@ const result = browser("run-code", `async (page) => {
 	const selectedItem = await psp.locator(".psp-xmb__item.is-selected .psp-xmb__item-content strong").innerText();
 	const selectedCardDescription = await psp.locator(".psp-xmb__item.is-selected .psp-xmb__item-content span").innerText();
 	await page.keyboard.press("Enter");
-	const detailTitle = await page.locator(".psp-xmb__detail h2").innerText();
-	const detailVisible = await page.locator(".psp-xmb__detail").count();
+	const jobDetailVisible = await psp.locator(".psp-xmb__detail").count();
+	const jobListVisible = await psp.locator(".psp-xmb__items").count();
 	await page.keyboard.press("Escape");
 	await page.keyboard.press("ArrowRight");
 	const nextCategory = await xmb.getAttribute("data-category");
 	const projectBackground = await xmb.evaluate((element) => getComputedStyle(element).backgroundImage);
 	const projectItems = await psp.locator(".psp-xmb__item-content strong").allTextContents();
+	const openPopup = async (action) => {
+		const popupPromise = page.waitForEvent("popup");
+		await action();
+		const popup = await popupPromise;
+		await popup.waitForLoadState("domcontentloaded").catch(() => {});
+		const title = await popup.title();
+		await popup.close();
+		return title;
+	};
+	const projectEnterTitle = await openPopup(() => page.keyboard.press("Enter"));
+	const projectClickTitle = await openPopup(() => psp.locator(".psp-xmb__item.is-selected").click());
+	await xmb.focus();
 	for (let index = 0; index < 4; index += 1) await page.keyboard.press("ArrowDown");
 	await page.waitForTimeout(50);
 	const scrolledItem = await psp.locator(".psp-xmb__item.is-selected .psp-xmb__item-content strong").innerText();
@@ -63,8 +75,10 @@ const result = browser("run-code", `async (page) => {
 		initialCardDescription,
 		selectedItem,
 		selectedCardDescription,
-		detailTitle,
-		detailVisible,
+		jobDetailVisible,
+		jobListVisible,
+		projectEnterTitle,
+		projectClickTitle,
 		projectItems,
 		scrolledItem,
 		listScrollTop,
@@ -84,11 +98,13 @@ assert.match(result, /"initialItems":\["amazon","ibm"\]/);
 assert.match(result, /"initialCardDescription":"swe intern @ amazon summer 2026"/);
 assert.match(result, /"selectedItem":"ibm"/);
 assert.match(result, /"selectedCardDescription":"ai eng co-op @ ibm 2025-2026"/);
-assert.match(result, /"detailTitle":"ibm"/);
+assert.match(result, /"jobDetailVisible":0/);
+assert.match(result, /"jobListVisible":1/);
+assert.match(result, /"projectEnterTitle".*0xABAN\/copycat/);
+assert.match(result, /"projectClickTitle".*0xABAN\/copycat/);
 assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-check","maestro","simulacra","terrar.ai"\]/);
 assert.match(result, /"scrolledItem":"simulacra"/);
 assert.match(result, /"listScrollTop":[1-9]/);
-assert.match(result, /"detailVisible":1/);
 assert.match(result, /"listVisible":1/);
 assert.match(result, /"titlebars":0/);
 assert.match(result, /"screenDrag":\[0,0\]/);

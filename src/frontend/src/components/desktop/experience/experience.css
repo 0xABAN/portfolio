@@ -156,8 +156,7 @@
 .psp-xmb__category,
 .psp-xmb__item,
 .psp-xmb__select,
-.psp-xmb__options button,
-.psp-xmb__back {
+.psp-xmb__options button {
 	border: 0;
 	color: inherit;
 	font: inherit;
@@ -324,68 +323,6 @@
 .psp-xmb__options button:focus-visible {
 	background: rgba(255, 255, 255, 0.25);
 	outline: none;
-}
-
-.psp-xmb__detail {
-	position: absolute;
-	inset: 18% 9% 9%;
-	z-index: 3;
-}
-
-.psp-xmb__back {
-	padding: 0;
-	color: var(--psp-muted);
-	background: transparent;
-	font-size: 8px;
-}
-
-.psp-xmb__detail-body {
-	display: grid;
-	grid-template-columns: 42px 1fr;
-	gap: 10px;
-	margin-top: 12px;
-}
-
-.psp-xmb__detail-icon {
-	color: var(--psp-white);
-}
-
-.psp-xmb__detail-icon .psp-xmb__icon,
-.psp-xmb__detail-icon img {
-	width: 36px;
-	height: 36px;
-	border-radius: 1px;
-	object-fit: cover;
-	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
-}
-
-.psp-xmb__detail h2 {
-	margin: 0 0 4px;
-	font-size: 14px;
-	font-weight: 500;
-}
-
-.psp-xmb__detail-item {
-	display: block;
-	margin-bottom: 3px;
-	font-size: 9px;
-	font-weight: 400;
-}
-
-.psp-xmb__detail p {
-	max-width: 210px;
-	margin: 0;
-	color: var(--psp-muted);
-	font-size: 9px;
-	line-height: 1.35;
-}
-
-.psp-xmb__hint {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	color: var(--psp-muted);
-	font-size: 7px;
 }
 
 @media (prefers-reduced-motion: reduce) {
