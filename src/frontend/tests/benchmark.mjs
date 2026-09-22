@@ -14,6 +14,8 @@ import { mockSoundCloud } from './soundcloud.mjs';
 
 const [baseline, candidate, output = '/tmp/portfolio-benchmark.json'] = process.argv.slice(2);
 assert.ok(baseline && candidate, 'Supply baseline and candidate production URLs');
+const runs = Number(process.env.RUNS ?? 5);
+assert.ok(Number.isInteger(runs) && runs > 0, 'RUNS must be a positive integer');
 const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
 const { chromium } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -26,7 +28,7 @@ const profile = {
 const reports = [];
 
 try {
-  for (let run = 0; run < Number(process.env.RUNS ?? 5); run++) {
+  for (let run = 0; run < runs; run++) {
     const order = run % 2 ? [['candidate', candidate], ['baseline', baseline]] : [['baseline', baseline], ['candidate', candidate]];
     for (const [label, url] of order) {
       const context = await browser.newContext(profile);
@@ -99,6 +101,14 @@ try {
           await Promise.all([...document.images].map(image => image.decode()));
           window.benchmark.boot.imagesAt = performance.now();
         });
+        // Paint loads its source through a detached Image, outside document.images.
+        // Do not report asset readiness or bytes while that request is still running.
+        await page.waitForFunction(() => {
+          const canvas = document.querySelector('.paint__canvas');
+          return canvas?.width > 1 && canvas.getContext('2d').getImageData(0, 0, 1, 1).data[3] === 255;
+        });
+        await page.evaluate(() => { window.benchmark.boot.assetsAt = performance.now(); });
+        await metrics(); // Drain CDP events for the completed image requests.
         const startupTransferredBytes = transferred;
         // Sample steady-state separately, after the existing 10-second audio fade.
         await page.waitForFunction(() => performance.now() - window.benchmark.boot.revealAt >= 10_100);
@@ -119,11 +129,16 @@ try {
         const after = await metrics();
         context.off('requestfinished', onFinished);
         const audit = await page.evaluate(() => window.benchmark);
+        const audio = await page.evaluate(() => {
+          const transport = window.taskbarAudio;
+          return transport ? { paused: transport.paused, muted: transport.muted, volume: transport.volume, src: transport.src } : null;
+        });
         const sortedGaps = audit.frameGaps.toSorted((a, b) => a - b);
         const report = {
           run, label, cache, hydratedAt, ...audit.boot,
           bootRevealMs: audit.boot.revealAt - audit.boot.continueAt,
           imagesAfterContinueMs: audit.boot.imagesAt - audit.boot.continueAt,
+          assetsAfterContinueMs: audit.boot.assetsAt - audit.boot.continueAt,
           // CDP page-target bytes include local assets; not an all-frame live total.
           startupTransferredBytes,
           idleTaskMsPerSecond: (after.TaskDuration - before.TaskDuration) * 1000 / (after.Timestamp - before.Timestamp),
@@ -131,7 +146,7 @@ try {
           // rAF scheduling gaps are NOT rendered FPS or a weak-GPU simulation.
           idleRafGapP95Ms: sortedGaps[Math.floor(sortedGaps.length * 0.95)],
           idleLongTasks: audit.longTasks, inputEvents: audit.events,
-          jsHeapUsedBytes: after.JSHeapUsedSize, errors: [...errors],
+          jsHeapUsedBytes: after.JSHeapUsedSize, audio, errors: [...errors],
           // Includes completed iframe requests; sizes may include cached bodies.
           completedRequests: await Promise.all(finished),
         };

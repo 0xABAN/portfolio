@@ -21,8 +21,8 @@ const reports = [];
 await mkdir(directory, { recursive: true });
 
 try {
-  for (const width of [1440, 960, 390]) {
-    const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2,
+  for (const [width, height] of [[1440, 900], [960, 600], [390, 844]]) {
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(process.env.DPR ?? 2),
       reducedMotion: 'reduce', locale: 'en-US', timezoneId: 'UTC' });
     await context.route('**/api/views', route => route.fulfill({ json: { count: 1234 } }));
     await context.addInitScript(mockSoundCloud);
