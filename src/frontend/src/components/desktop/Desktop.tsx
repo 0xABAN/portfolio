@@ -657,7 +657,7 @@ function DesktopWorkspace() {
 				<div
 					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
 					style={{
-						zIndex: pspWindow ? pspWindow.z + (pspIsActive ? -1 : 1) : 0,
+						zIndex: pspWindow ? pspWindow.z + (pspIsActive ? 0 : 1) : 0,
 						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / window.innerWidth) * 100}%` : undefined,
 						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / window.innerHeight) * 100}%` : undefined,
 					} as CSSProperties}

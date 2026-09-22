@@ -175,6 +175,7 @@
 .desktop__icons {
 	position: absolute;
 	inset: 12px 0 calc(var(--taskbar-height) + 16px) 10px;
+	z-index: 2;
 	margin: 0;
 	padding: 0;
 	list-style: none;
