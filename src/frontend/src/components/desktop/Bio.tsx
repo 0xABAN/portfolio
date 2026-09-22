@@ -11,7 +11,7 @@ const SECTIONS = [
 	},
 	{
 		h: "highlights:",
-		p: "i've won 3 hackathons: first at yhacks (yale), first at hackprinceton, and second solo at nexhacks (bytedance).",
+		p: "i've now placed in 5 hackathons: first at yhacks (yale), first at hackprinceton, second solo at nexhacks (bytedance), first at hophacks (johns hopkins), and finalist at runpod.",
 	},
 	{
 		h: "career:",
