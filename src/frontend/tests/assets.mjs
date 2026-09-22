@@ -3,10 +3,10 @@ import { createHash } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import sharp from 'sharp';
 
-// SHA-256 values of the original PNG decoded RGB pixels.
+// Decoded RGB baselines. Overlay is the approved d7282a1 artwork, not its predecessor.
 const assets = [
   ['public/photos/street.png', 768, 1360, 3, '41f32e6bc7cd94b568fda0119de1be03f9237db5364094240fca3e9529724ee8'],
-  ['public/photos/overlay.png', 768, 1360, 3, 'c68508ad56c09cccd991bddc278453f5e22eaf14207a3822e8fb8ca2b19aa09f'],
+  ['public/photos/overlay.png', 943, 1668, 3, '7ac1a299509249a8434bb99a036bbdff414d6b3389fc3ba3d37b3ec86646e406'],
 ];
 
 for (const [file, width, height, channels, expectedHash] of assets) {

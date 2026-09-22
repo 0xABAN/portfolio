@@ -9,6 +9,7 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import sharp from 'sharp';
+import { mockSoundCloud } from './soundcloud.mjs';
 
 const [mode, url = 'http://localhost:3000', directory = '/tmp/portfolio-lossless'] = process.argv.slice(2);
 assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
@@ -23,7 +24,8 @@ try {
   for (const width of [1440, 960, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2,
       reducedMotion: 'reduce', locale: 'en-US', timezoneId: 'UTC' });
-    await context.route('**/api/views', route => route.fulfill({ json: { views: 1234 } }));
+    await context.route('**/api/views', route => route.fulfill({ json: { count: 1234 } }));
+    await context.addInitScript(mockSoundCloud);
     await context.route('https://github-contributions-api.jogruber.de/**', route => route.fulfill({ json: {
       contributions: Array.from({ length: 365 }, (_, i) => ({
         date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
@@ -33,28 +35,14 @@ try {
     await context.addInitScript(() => {
       let seed = 42;
       Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
-      HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
-      HTMLMediaElement.prototype.pause = function () {};
-      HTMLMediaElement.prototype.load = function () {};
-      window.renderCounts = {};
+      window.reactCommits = 0;
       // Observe React commits without adding profiling wrappers to production code.
       window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
         supportsFiber: true,
         renderers: new Map(),
         inject(renderer) { this.renderers.set(1, renderer); return 1; },
-        onCommitFiberRoot(_id, root) {
-          function visit(fiber) {
-            if (!fiber) return;
-            const type = fiber.type;
-            const name = type?.displayName ?? type?.name;
-            if (name && (fiber.flags & 1)) window.renderCounts[name] = (window.renderCounts[name] ?? 0) + 1;
-            // A memo bailout reuses its child fibers, including their old flags.
-            // Those descendants did not render in this commit.
-            if (!fiber.alternate || fiber.child !== fiber.alternate.child) visit(fiber.child);
-            visit(fiber.sibling);
-          }
-          visit(root.current);
-        },
+        // Production component names are minified; count commits, not name-based renders.
+        onCommitFiberRoot() { window.reactCommits++; },
         onCommitFiberUnmount() {},
       };
     });
@@ -130,20 +118,14 @@ try {
       await page.mouse.move(bar.x + 45, bar.y + 10);
       await page.mouse.down();
       await page.evaluate(() => new Promise(requestAnimationFrame));
-      await page.evaluate(() => { window.renderCounts = {}; });
+      await page.evaluate(() => { window.reactCommits = 0; });
       await measure('paint-drag', async () => {
         for (let i = 1; i <= 90; i++) {
           await page.mouse.move(bar.x + 45 + i / 3, bar.y + 10 + i / 9);
           await page.waitForTimeout(16);
         }
       });
-      const renders = await page.evaluate(() => window.renderCounts);
-      console.log('drag renders:', JSON.stringify(renders));
-      if (mode === 'compare') {
-        for (const name of ['ActivityCalendar', 'GitHubGraph', 'Terminal', 'Paint', 'CdPlayer', 'Sprite']) {
-          assert.equal(renders[name] ?? 0, 0, `${name} rerendered during geometry-only dragging`);
-        }
-      }
+      console.log('drag React commits (diagnostic):', await page.evaluate(() => window.reactCommits));
       await page.mouse.up();
       const after = await geometry();
       for (const id of ['me', 'alt']) {
@@ -167,7 +149,8 @@ try {
       assert.equal(await page.locator('.term__input').inputValue(), 'preserve this draft');
       await page.locator('.term__input').fill('');
 
-      // A dragged window must not hide a non-window overlay from bin hit testing.
+      // Since be5a5eb, windows are never files. Dragging one over the bin,
+      // with or without an overlay, must leave both the window and bin intact.
       await page.evaluate(() => {
         window.hitTestMutations = [];
         window.hitTestObserver = new MutationObserver(records => {
@@ -197,12 +180,20 @@ try {
       assert.equal(await win('sysmsg-4').count(), 1, 'Overlay must block recycling');
       await page.locator('#hit-test-overlay').evaluate(el => el.remove());
       await dropError();
-      assert.equal(await win('sysmsg-4').count(), 0, 'Drop through the dragged window must recycle it');
-      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
+      assert.equal(await win('sysmsg-4').count(), 1, 'Dragging a window must not recycle it');
+      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-empty.png');
       assert.equal(await page.evaluate(() => {
         window.hitTestObserver.disconnect();
         return window.hitTestMutations.length;
       }), 0, 'Hit testing must not toggle window pointer-events');
+
+      // Actual files still recycle through the shell's native drag operation.
+      await page.locator('.win:not([data-minimized="true"]) .win-min[aria-label="Minimize"]')
+        .evaluateAll(buttons => buttons.forEach(button => button.click()));
+      const shortcut = page.locator('.desktop__icons [data-shell-item="silksong"]');
+      await shortcut.dragTo(page.locator('[data-recycle-bin]'));
+      await shortcut.waitFor({ state: 'detached' });
+      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
 
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await page.waitForTimeout(3000);
