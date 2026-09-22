@@ -121,6 +121,10 @@
 	image-rendering: pixelated;
 }
 
+.task-btn__icon[src="/icons/playstation.svg"] {
+	filter: invert(1);
+}
+
 .task-btn__label {
 	overflow: hidden;
 	text-overflow: ellipsis;

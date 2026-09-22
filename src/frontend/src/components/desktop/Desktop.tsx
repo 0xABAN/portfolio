@@ -527,8 +527,8 @@ function DesktopWorkspace() {
 				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
 		</Window>;
 	};
-	const normalWindows = visibleWindows.filter((w) => w.kind !== "experience");
 	const pspWindow = visibleWindows.find((w) => w.kind === "experience");
+	const pspIsActive = activeId === "experience";
 
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
@@ -653,11 +653,17 @@ function DesktopWorkspace() {
 					</li>
 				))}
 			</ul>
-			<div className={activeId !== "experience" ? "desktop__windows desktop__windows--raised" : "desktop__windows"}>
-				{normalWindows.map(renderWindow)}
-			</div>
-			<div className="desktop__psp-layer">
-				{pspWindow ? renderWindow(pspWindow) : null}
+			<div className="desktop__windows">
+				<div
+					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
+					style={{
+						zIndex: pspWindow ? pspWindow.z + (pspIsActive ? -1 : 1) : 0,
+						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / window.innerWidth) * 100}%` : undefined,
+						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / window.innerHeight) * 100}%` : undefined,
+					} as CSSProperties}
+					aria-hidden="true"
+				/>
+				{visibleWindows.map(renderWindow)}
 			</div>
 			{revealed.has("fracture") ? <DesktopSparks /> : null}
 			<Taskbar

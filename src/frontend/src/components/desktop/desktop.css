@@ -49,26 +49,37 @@
 	pointer-events: none;
 }
 
-.desktop__windows > .win,
-.desktop__psp-layer > .win {
+.desktop__windows > .win {
 	pointer-events: auto;
 	outline: none;
 }
 
-.desktop__windows--raised {
-	z-index: 6;
+.desktop__psp-dimmer {
+	position: absolute;
+	inset: 0 0 var(--taskbar-height);
+	background: radial-gradient(
+		ellipse 45% 62% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
+		rgba(0, 0, 0, 0.4) 0%,
+		rgba(0, 0, 0, 0.22) 48%,
+		transparent 100%
+	);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 320ms ease;
 }
 
-.desktop__psp-layer {
-	position: absolute;
-	inset: 0;
-	z-index: 5;
-	pointer-events: none;
+.desktop__psp-dimmer--active {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.desktop__psp-dimmer {
+		transition: none;
+	}
 }
 
 /* Retain layout, scroll positions and canvas resolution while excluding interaction. */
-.desktop__windows > .win[data-minimized="true"],
-.desktop__psp-layer > .win[data-minimized="true"] {
+.desktop__windows > .win[data-minimized="true"] {
 	visibility: hidden;
 	pointer-events: none;
 }

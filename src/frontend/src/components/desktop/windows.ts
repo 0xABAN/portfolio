@@ -314,13 +314,15 @@ export function makeExperienceWindow(
 ): DesktopWindow {
 	const { vw: W, vh: H } = viewport(vw, vh);
 	const ratio = 1839 / 855;
-	const w = Math.max(240, Math.min(1350, W - 24, Math.floor((H - TASKBAR_H - 24) * ratio)));
-	const h = Math.round(w / ratio);
+	const maxW = Math.max(0, Math.min(1350, W - 16));
+	const maxH = Math.max(0, H - TASKBAR_H - 16);
+	const w = Math.max(1, Math.min(maxW, Math.floor(maxH * ratio)));
+	const h = Math.max(1, Math.round(w / ratio));
 	return {
 		id: EXPERIENCE_WINDOW_ID,
-		title: "PSP Projects",
+		title: "experience",
 		kind: "experience",
-		icon: "/icons/psp.png",
+		icon: "/icons/playstation.svg",
 		...layoutCentered(w, h, W, H),
 		z: baseZ,
 	};

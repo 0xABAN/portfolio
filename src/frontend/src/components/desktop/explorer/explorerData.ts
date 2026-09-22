@@ -23,7 +23,7 @@ export const EXPLORER_FILES: readonly ExplorerFile[] = [
 	{
 		id: "experience",
 		name: "experience.exe",
-		icon: "/icons/exe.png",
+		icon: "/icons/playstation.svg",
 		action: "experience",
 	},
 ] as const;

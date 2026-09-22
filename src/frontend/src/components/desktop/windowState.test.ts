@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { layoutDesktop, reflowDesktop, TASKBAR_H } from "./windows";
+import { layoutDesktop, makeExperienceWindow, reflowDesktop, TASKBAR_H } from "./windows";
 import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./windowState";
 
 test("task order survives switching, minimizing and restoring", () => {
@@ -18,6 +18,22 @@ test("task order survives switching, minimizing and restoring", () => {
 	assert.equal(activeWindowId(windows), "terminal");
 	assert.deepEqual(taskWindows(windows).map((w) => w.id), order);
 	assert.strictEqual(activateWindow(windows, "missing"), windows);
+});
+
+test("PSP fits narrow viewports and stays above previously open windows only when active", () => {
+	const mobile = makeExperienceWindow(1, 390, 844);
+	assert.equal(mobile.title, "experience");
+	assert.ok(mobile.x >= 0 && mobile.x + mobile.w <= 390);
+	assert.ok(mobile.y >= 0 && mobile.y + mobile.h <= 844 - TASKBAR_H);
+
+	let windows = openApp(layoutDesktop(1440, 900), "experience", 1440, 900);
+	const pspZ = windows.find((w) => w.id === "experience")!.z;
+	windows = openApp(windows, "terminal", 1440, 900);
+	assert.ok(windows.find((w) => w.id === "terminal")!.z > pspZ);
+	assert.ok(windows.find((w) => w.id === "github")!.z < pspZ);
+
+	windows = openApp(windows, "experience", 1440, 900);
+	assert.ok(windows.find((w) => w.id === "experience")!.z > windows.find((w) => w.id === "terminal")!.z);
 });
 
 test("launching opens missing apps once and restores without resetting geometry", () => {
