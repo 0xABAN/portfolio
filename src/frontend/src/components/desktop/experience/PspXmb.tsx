@@ -116,7 +116,7 @@ function openExternal(href?: string) {
 	if (href) window.open(href, "_blank", "noopener,noreferrer");
 }
 
-export function PspXmb() {
+export function PspXmb({ ready }: { ready: boolean }) {
 	const [state, dispatch] = useReducer(reducer, undefined, initialState);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const selectedItemRef = useRef<HTMLButtonElement>(null);
@@ -128,8 +128,13 @@ export function PspXmb() {
 	}
 
 	useEffect(() => {
-		rootRef.current?.focus({ preventScroll: true });
-	}, []);
+		const root = rootRef.current;
+		const windowRoot = root?.closest<HTMLElement>(".win");
+		// Decoding can finish after the user switches away or minimizes the app.
+		if (ready && windowRoot?.dataset.active === "true" && !windowRoot.inert) {
+			root?.focus({ preventScroll: true });
+		}
+	}, [ready]);
 
 	useEffect(() => {
 		selectedItemRef.current?.scrollIntoView({ block: "nearest" });
@@ -207,6 +212,7 @@ export function PspXmb() {
 				backgroundSize: "cover",
 			} : undefined}
 			data-category={category.id}
+			data-window-focus
 			data-no-window-drag
 			tabIndex={0}
 			role="application"
