@@ -58,14 +58,15 @@
 	position: absolute;
 	inset: 0 0 var(--taskbar-height);
 	background: radial-gradient(
-		ellipse 45% 62% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
-		rgba(0, 0, 0, 0.4) 0%,
-		rgba(0, 0, 0, 0.22) 48%,
+		ellipse 52% 70% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
+		rgba(0, 0, 0, 0.7) 0%,
+		rgba(0, 0, 0, 0.42) 46%,
+		rgba(0, 0, 0, 0.1) 76%,
 		transparent 100%
 	);
 	opacity: 0;
 	pointer-events: none;
-	transition: opacity 320ms ease;
+	transition: opacity 480ms ease;
 }
 
 .desktop__psp-dimmer--active {
