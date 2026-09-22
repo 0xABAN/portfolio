@@ -19,6 +19,7 @@ type ViewState = {
 	categoryIndex: number;
 	itemIndex: number;
 	optionsOpen: boolean;
+	optionsIndex: number;
 };
 
 type ViewAction =
@@ -26,12 +27,13 @@ type ViewAction =
 	| { type: "select-category"; index: number }
 	| { type: "item"; delta: number }
 	| { type: "select-item"; index: number }
+	| { type: "option"; delta: number }
 	| { type: "toggle-options" };
 
 const EMPTY_ITEMS: readonly Project[] = [];
 
 export const CATEGORIES: readonly PspCategory[] = [
-	{ id: "jobs", label: "Jobs", icon: "jobs", items: WORK, artwork: "/photos/jobs-image.png" },
+	{ id: "jobs", label: "Work", icon: "jobs", items: WORK, artwork: "/photos/jobs-image.png" },
 	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS, artwork: "/photos/projects-image.png" },
 	{ id: "settings", label: "Settings", icon: "settings", items: EMPTY_ITEMS, disabled: true },
 	{ id: "photo", label: "Photo", icon: "photo", items: EMPTY_ITEMS, disabled: true },
@@ -46,7 +48,7 @@ const NAVIGABLE_CATEGORY_COUNT = CATEGORIES.findIndex((category) => category.dis
 const wrap = (value: number, length: number) => (value + length) % length;
 
 export function initialState(): ViewState {
-	return { categoryIndex: 0, itemIndex: 0, optionsOpen: false };
+	return { categoryIndex: 0, itemIndex: 0, optionsOpen: false, optionsIndex: 0 };
 }
 
 export function reducer(state: ViewState, action: ViewAction): ViewState {
@@ -55,22 +57,25 @@ export function reducer(state: ViewState, action: ViewAction): ViewState {
 	switch (action.type) {
 		case "category": {
 			const categoryIndex = wrap(state.categoryIndex + action.delta, NAVIGABLE_CATEGORY_COUNT);
-			return { ...state, categoryIndex, itemIndex: 0, optionsOpen: false };
+			return { ...state, categoryIndex, itemIndex: 0, optionsOpen: false, optionsIndex: 0 };
 		}
 		case "select-category":
 			return action.index < NAVIGABLE_CATEGORY_COUNT
-				? { ...state, categoryIndex: action.index, itemIndex: 0, optionsOpen: false }
+				? { ...state, categoryIndex: action.index, itemIndex: 0, optionsOpen: false, optionsIndex: 0 }
 				: state;
 		case "item":
 			return {
 				...state,
 				itemIndex: category.items.length ? wrap(state.itemIndex + action.delta, category.items.length) : 0,
 				optionsOpen: false,
+				optionsIndex: 0,
 			};
 		case "select-item":
-			return { ...state, itemIndex: action.index, optionsOpen: false };
+			return { ...state, itemIndex: action.index, optionsOpen: false, optionsIndex: 0 };
+		case "option":
+			return state.optionsOpen ? { ...state, optionsIndex: wrap(state.optionsIndex + action.delta, 2) } : state;
 		case "toggle-options":
-			return { ...state, optionsOpen: !state.optionsOpen };
+			return { ...state, optionsOpen: !state.optionsOpen, optionsIndex: 0 };
 	}
 }
 
@@ -118,6 +123,10 @@ export function PspXmb() {
 	const category = CATEGORIES[state.categoryIndex];
 	const project = category.items[state.itemIndex];
 	const screenArtwork = category.artwork;
+	function focusRoot() {
+		rootRef.current?.focus({ preventScroll: true });
+	}
+
 	useEffect(() => {
 		rootRef.current?.focus({ preventScroll: true });
 	}, []);
@@ -127,28 +136,64 @@ export function PspXmb() {
 	}, [state.categoryIndex, state.itemIndex]);
 
 	function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-		if (event.target !== event.currentTarget) return;
-		if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+		const target = event.target as HTMLElement;
+		const key = event.key.toLowerCase();
+		const categoryButton = target.closest<HTMLButtonElement>(".psp-xmb__category");
+		const itemButton = target.closest<HTMLButtonElement>(".psp-xmb__item");
+		const optionButton = target.closest<HTMLButtonElement>(".psp-xmb__options button");
+		const selectButton = target.closest<HTMLButtonElement>(".psp-xmb__select");
+
+		if (event.key === "Tab") {
 			event.preventDefault();
-			dispatch({ type: "category", delta: -1 });
-		} else if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+			focusRoot();
+			return;
+		}
+
+		if (state.optionsOpen) {
+			if (event.key === "ArrowUp" || event.key === "ArrowDown" || key === "w" || key === "s") {
+				event.preventDefault();
+				dispatch({ type: "option", delta: event.key === "ArrowUp" || key === "w" ? -1 : 1 });
+				focusRoot();
+			} else if (event.key === "Enter" || key === "x") {
+				event.preventDefault();
+				const index = optionButton ? Number(optionButton.dataset.index) : state.optionsIndex;
+				if (index === 0) openExternal(project?.href);
+				else dispatch({ type: "toggle-options" });
+				focusRoot();
+			} else if (event.key === "Escape" || event.key === "Backspace") {
+				event.preventDefault();
+				dispatch({ type: "toggle-options" });
+				focusRoot();
+			}
+			return;
+		}
+
+		if (event.key === "ArrowLeft" || key === "a" || event.key === "ArrowRight" || key === "d") {
 			event.preventDefault();
-			dispatch({ type: "category", delta: 1 });
-		} else if (event.key === "ArrowUp" || event.key.toLowerCase() === "w") {
+			dispatch({ type: "category", delta: event.key === "ArrowLeft" || key === "a" ? -1 : 1 });
+			focusRoot();
+		} else if (event.key === "ArrowUp" || key === "w" || event.key === "ArrowDown" || key === "s") {
 			event.preventDefault();
-			dispatch({ type: "item", delta: -1 });
-		} else if (event.key === "ArrowDown" || event.key.toLowerCase() === "s") {
+			dispatch({ type: "item", delta: event.key === "ArrowUp" || key === "w" ? -1 : 1 });
+			focusRoot();
+		} else if (event.key === "Enter" || key === "x") {
 			event.preventDefault();
-			dispatch({ type: "item", delta: 1 });
-		} else if (event.key === "Enter" || event.key.toLowerCase() === "x") {
-			event.preventDefault();
-			openExternal(project?.href);
+			if (categoryButton) dispatch({ type: "select-category", index: Number(categoryButton.dataset.index) });
+			else if (itemButton) {
+				const index = Number(itemButton.dataset.index);
+				if (index === state.itemIndex) openExternal(category.items[index]?.href);
+				else dispatch({ type: "select-item", index });
+			} else if (selectButton) dispatch({ type: "toggle-options" });
+			else openExternal(project?.href);
+			focusRoot();
 		} else if (event.key === "Escape" || event.key === "Backspace") {
 			event.preventDefault();
 			if (state.optionsOpen) dispatch({ type: "toggle-options" });
-		} else if (event.key.toLowerCase() === "o") {
+			focusRoot();
+		} else if (key === "o") {
 			event.preventDefault();
 			dispatch({ type: "toggle-options" });
+			focusRoot();
 		}
 	}
 
@@ -167,6 +212,7 @@ export function PspXmb() {
 			role="application"
 			aria-label="PSP project browser"
 			onPointerDown={(event) => event.stopPropagation()}
+			onClickCapture={() => focusRoot()}
 			onKeyDown={onKeyDown}
 		>
 			<div className="psp-xmb__wave" aria-hidden="true" />
@@ -181,6 +227,8 @@ export function PspXmb() {
 						aria-selected={index === state.categoryIndex}
 						aria-disabled={entry.disabled || undefined}
 						disabled={entry.disabled}
+						tabIndex={-1}
+						data-index={index}
 						onClick={() => dispatch({ type: "select-category", index })}
 					>
 						<Icon name={entry.icon} />
@@ -197,6 +245,8 @@ export function PspXmb() {
 							className={index === state.itemIndex ? "psp-xmb__item is-selected" : "psp-xmb__item"}
 							role="option"
 							aria-selected={index === state.itemIndex}
+							tabIndex={-1}
+							data-index={index}
 							ref={index === state.itemIndex ? selectedItemRef : undefined}
 							onClick={() => {
 								if (entry.href) openExternal(entry.href);
@@ -217,11 +267,11 @@ export function PspXmb() {
 			</div>
 			{state.optionsOpen ? (
 				<div className="psp-xmb__options" role="menu">
-					<button type="button" role="menuitem" onClick={() => openExternal(project?.href)}>Open link</button>
-					<button type="button" role="menuitem" onClick={() => dispatch({ type: "toggle-options" })}>Close</button>
+					<button className={state.optionsIndex === 0 ? "is-selected" : ""} type="button" role="menuitem" tabIndex={-1} data-index={0} onClick={() => openExternal(project?.href)}>Open link</button>
+					<button className={state.optionsIndex === 1 ? "is-selected" : ""} type="button" role="menuitem" tabIndex={-1} data-index={1} onClick={() => dispatch({ type: "toggle-options" })}>Close</button>
 				</div>
 			) : null}
-			<button className="psp-xmb__select" type="button" onClick={() => dispatch({ type: "toggle-options" })}>SELECT&nbsp; Options</button>
+			<button className="psp-xmb__select" type="button" tabIndex={-1} onClick={() => dispatch({ type: "toggle-options" })}>SELECT&nbsp; Options</button>
 		</div>
 	);
 }

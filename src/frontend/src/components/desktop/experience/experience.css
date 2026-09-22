@@ -354,6 +354,7 @@
 }
 
 .psp-xmb__options button:hover,
+.psp-xmb__options button.is-selected,
 .psp-xmb__options button:focus-visible {
 	background: rgba(255, 255, 255, 0.25);
 	outline: none;

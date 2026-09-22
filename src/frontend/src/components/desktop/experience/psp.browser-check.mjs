@@ -36,6 +36,10 @@ const result = browser("run-code", `async (page) => {
 	const afterScreenClick = await psp.boundingBox();
 
 	await xmb.focus();
+	const tabBefore = await page.evaluate(() => document.activeElement?.className);
+	await page.keyboard.press("Tab");
+	const tabAfter = await page.evaluate(() => document.activeElement?.className);
+	const tabFocusPreserved = tabBefore === tabAfter;
 	const categoryLabels = await psp.locator(".psp-xmb__category").allTextContents();
 	const disabledCategories = await psp.locator(".psp-xmb__category:disabled").count();
 	const initialItems = await psp.locator(".psp-xmb__item-content strong").allTextContents();
@@ -63,6 +67,10 @@ const result = browser("run-code", `async (page) => {
 	const projectEnterTitle = await openPopup(() => page.keyboard.press("Enter"));
 	const projectClickTitle = await openPopup(() => psp.locator(".psp-xmb__item.is-selected").click());
 	await xmb.focus();
+	await page.keyboard.press("o");
+	await page.keyboard.press("ArrowDown");
+	const selectedOption = await psp.locator(".psp-xmb__options .is-selected").innerText();
+	await page.keyboard.press("Enter");
 	for (let index = 0; index < 4; index += 1) await page.keyboard.press("ArrowDown");
 	await page.waitForTimeout(50);
 	const scrolledItem = await psp.locator(".psp-xmb__item.is-selected .psp-xmb__item-content strong").innerText();
@@ -77,6 +85,7 @@ const result = browser("run-code", `async (page) => {
 		initialPspVisible,
 		initialCategory,
 		initialBackground,
+		tabFocusPreserved,
 		nextCategory,
 		projectBackground,
 		categoryLabels,
@@ -89,6 +98,7 @@ const result = browser("run-code", `async (page) => {
 		jobListVisible,
 		projectEnterTitle,
 		projectClickTitle,
+		selectedOption,
 		projectItems,
 		scrolledItem,
 		listScrollTop,
@@ -103,9 +113,10 @@ const result = browser("run-code", `async (page) => {
 assert.match(result, /"initialPspVisible":0/);
 assert.match(result, /"initialCategory":"jobs"/);
 assert.match(result, /"initialBackground".*jobs-image\.png/);
+assert.match(result, /"tabFocusPreserved":true/);
 assert.match(result, /"nextCategory":"projects"/);
 assert.match(result, /"projectBackground".*projects-image\.png/);
-assert.match(result, /"categoryLabels":\["Jobs","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
+assert.match(result, /"categoryLabels":\["Work","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
 assert.match(result, /"disabledCategories":7/);
 assert.match(result, /"initialItems":\["amazon","ibm"\]/);
 assert.match(result, /"initialCardDescription":"swe intern @ amazon summer 2026"/);
@@ -115,6 +126,7 @@ assert.match(result, /"jobDetailVisible":0/);
 assert.match(result, /"jobListVisible":1/);
 assert.match(result, /"projectEnterTitle".*0xABAN\/copycat/);
 assert.match(result, /"projectClickTitle".*0xABAN\/copycat/);
+assert.match(result, /"selectedOption":"Close"/);
 assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-check","maestro","simulacra","terrar.ai"\]/);
 assert.match(result, /"scrolledItem":"simulacra"/);
 assert.match(result, /"listScrollTop":[1-9]/);
