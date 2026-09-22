@@ -58,10 +58,10 @@
 	position: absolute;
 	inset: 0 0 var(--taskbar-height);
 	background: radial-gradient(
-		ellipse 52% 70% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
-		rgba(0, 0, 0, 0.7) 0%,
-		rgba(0, 0, 0, 0.42) 46%,
-		rgba(0, 0, 0, 0.1) 76%,
+		ellipse 72% 90% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
+		rgba(0, 0, 0, 0.92) 0%,
+		rgba(0, 0, 0, 0.62) 48%,
+		rgba(0, 0, 0, 0.22) 78%,
 		transparent 100%
 	);
 	opacity: 0;
