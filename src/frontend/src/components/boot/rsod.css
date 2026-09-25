@@ -22,6 +22,16 @@
 	outline-offset: -8px;
 }
 
+/* Centered variant for the mobile incompatibility screen. */
+.rsod--centered {
+	text-align: center;
+}
+
+.rsod--centered .rsod__list li {
+	display: inline-block;
+	padding-left: 0.8em;
+}
+
 .rsod__inner {
 	max-width: 42em;
 }

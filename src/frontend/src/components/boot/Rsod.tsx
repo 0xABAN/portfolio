@@ -6,7 +6,7 @@ import "./rsod.css";
 /** A real stop screen: no button semantics or continue/restart handlers. */
 export function MobileUnsupported() {
 	return (
-		<main className="rsod" aria-label="Mobile device not supported">
+		<main className="rsod rsod--centered" aria-label="Mobile device not supported">
 			<div className="rsod__inner">
 				<span className="rsod__badge">Windows</span>
 				<p className="rsod__body">
