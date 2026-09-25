@@ -3,6 +3,25 @@
 import { useCallback, useEffect, useRef } from "react";
 import "./rsod.css";
 
+/** A real stop screen: no button semantics or continue/restart handlers. */
+export function MobileUnsupported() {
+	return (
+		<main className="rsod" aria-label="Mobile device not supported">
+			<div className="rsod__inner">
+				<span className="rsod__badge">Windows</span>
+				<p className="rsod__body">
+					A compatibility error has occurred. This website is not compatible
+					with mobile devices.
+				</p>
+				<ul className="rsod__list">
+					<li>Open this page on a desktop or laptop computer.</li>
+				</ul>
+				<p className="rsod__prompt">Session terminated.</p>
+			</div>
+		</main>
+	);
+}
+
 type Props = {
 	onContinueAction: () => void;
 };
