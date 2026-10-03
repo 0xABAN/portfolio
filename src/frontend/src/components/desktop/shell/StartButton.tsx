@@ -1,9 +1,7 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
-import { WindowsLogo } from "./WindowsLogo";
-import { useShell } from "./recycle-bin/ShellProvider";
-import type { AppId } from "./window/state";
+import type { AppId } from "../window/state";
 import "./start-menu.css";
 
 const GROUPS = [
@@ -23,6 +21,7 @@ const GROUPS = [
 type Props = {
 	onLaunchAction: (id: AppId) => void;
 	onRestoreDecorationsAction: () => void;
+	onResetAction: () => void;
 	canRestoreDecorations: boolean;
 };
 
@@ -32,8 +31,7 @@ function menuItems(scope: Element) {
 }
 
 /** Native light-dismiss owns opening/closing; only menu navigation needs JavaScript. */
-export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRestoreDecorations }: Props) {
-	const shell = useShell();
+export function StartButton({ onLaunchAction, onRestoreDecorationsAction, onResetAction, canRestoreDecorations }: Props) {
 	const menu = useRef<HTMLDivElement>(null);
 	const [open, setOpen] = useState(false);
 	const [group, setGroup] = useState<string | null>(null);
@@ -90,7 +88,8 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRes
 					items.at(event.key === "ArrowUp" ? -1 : 0)?.focus();
 				}}
 			>
-				<WindowsLogo className="start-btn__logo" />
+				{/* eslint-disable-next-line @next/next/no-img-element -- small static brand mark */}
+				<img className="start-btn__logo" src="/windows-flag.svg" alt="" width={16} height={14} draggable={false} />
 				<span className="start-btn__label">Start</span>
 			</button>
 			<div
@@ -139,7 +138,7 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, canRes
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
 					</button>
-					<button type="button" role="menuitem" onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }} onClick={() => run(shell.reset)}>
+					<button type="button" role="menuitem" onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }} onClick={() => run(onResetAction)}>
 						<span className="start-menu__arrow" aria-hidden="true" /><span>Reset portfolio</span>
 					</button>
 					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"

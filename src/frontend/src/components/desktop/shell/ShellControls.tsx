@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import "./recycle-bin.css";
+import "./controls.css";
 
 /** One selection contract for Desktop, Explorer and the Recycle Bin. */
 export function useShellSelection(ids: string[], names: string[]) {

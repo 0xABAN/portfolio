@@ -3,8 +3,9 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { binBytes, entryRoot, itemOf, nodeBytes, originalLocation, type RecycledEntry } from "./recycleBinState";
 import { formatBytes } from "./shellCatalog";
-import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "./ShellControls";
+import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
 import { useShell } from "./ShellProvider";
+import "./recycle-bin.css";
 
 const VIEWS = ["Large Icons", "Small Icons", "List", "Details"] as const;
 const COLUMNS = ["Name", "Original Location", "Date Deleted", "Type", "Size"] as const;

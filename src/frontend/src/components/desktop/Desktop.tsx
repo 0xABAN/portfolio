@@ -13,7 +13,7 @@ import { ShellProvider, useShell } from "./recycle-bin/ShellProvider";
 import { ShellDialogs } from "./recycle-bin/ShellDialogs";
 import { DesktopIcons } from "./files/DesktopIcons";
 import { Neko } from "./Neko";
-import { Taskbar } from "./Taskbar";
+import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./window/state";
@@ -280,7 +280,7 @@ function DesktopWorkspace() {
 			<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
 				audio={w.kind === "cd-player" ? audio : undefined}
 				cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
-				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
+				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} onNoticeAction={notice} folderId={explorerFolder} />
 		</Window>;
 	};
 	const pspWindow = visibleWindows.find((w) => w.kind === "experience");
@@ -327,6 +327,7 @@ function DesktopWorkspace() {
 				onActivateAction={restoreWindow}
 				onLaunchAction={launchApp}
 				onRestoreDecorationsAction={() => setWindows(restoreDecorations)}
+				onResetAction={shell.reset}
 				canRestoreDecorations={windows.some((w) => isDecoration(w) && w.minimized)}
 				revealed={revealed}
 			/>

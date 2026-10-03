@@ -22,6 +22,7 @@ type Props = {
 	onMinimize: (id: string) => void;
 	onClose: (id: string) => void;
 	onOpenShell: (id: string) => void;
+	onNoticeAction: (message: string, title?: string) => void;
 	folderId: string;
 };
 
@@ -36,6 +37,7 @@ export const WindowContent = memo(function WindowContent({
 	onMinimize,
 	onClose,
 	onOpenShell,
+	onNoticeAction,
 	folderId,
 }: Props) {
 	switch (kind) {
@@ -54,7 +56,7 @@ export const WindowContent = memo(function WindowContent({
 		case "bio":
 			return <Bio />;
 		case "word":
-			return <Word onCloseAction={() => onClose(id)} onMinimizeAction={() => onMinimize(id)} />;
+			return <Word onCloseAction={() => onClose(id)} onMinimizeAction={() => onMinimize(id)} onNoticeAction={onNoticeAction} />;
 		case "recycle-bin":
 			return <RecycleBin onCloseAction={() => onClose(id)} />;
 		case "explorer":

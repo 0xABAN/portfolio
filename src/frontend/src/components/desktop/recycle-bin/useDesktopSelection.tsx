@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
-import { ShellMenu, menuPosition, useShellSelection, type MenuCommand, type MenuPosition } from "./ShellControls";
+import { ShellMenu, menuPosition, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
 import { useShell } from "./ShellProvider";
 
 /** Desktop layout is owned by Desktop; this hook only owns shell selection/actions. */

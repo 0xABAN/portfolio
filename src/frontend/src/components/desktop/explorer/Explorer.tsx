@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { ancestorsOf, itemOf, nodeBytes } from "../recycle-bin/recycleBinState";
 import { DESKTOP_PATH, formatBytes } from "../recycle-bin/shellCatalog";
-import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../recycle-bin/ShellControls";
+import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
 import { useShell } from "../recycle-bin/ShellProvider";
 
 type Props = {

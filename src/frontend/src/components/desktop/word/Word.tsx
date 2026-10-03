@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MenuButton, menuShortcut, type MenuCommand } from "../recycle-bin/ShellControls";
-import { useShell } from "../recycle-bin/ShellProvider";
+import { MenuButton, menuShortcut, type MenuCommand } from "../shell/ShellControls";
 import { resumeToPage } from "./resumeTex";
 import "./word.css";
 
@@ -30,8 +29,13 @@ function readOnlyCommands(...labels: string[]): MenuCommand[] {
 	return labels.map((label) => ({ label, disabled: true, action: () => {} }));
 }
 
-export function Word({ onCloseAction, onMinimizeAction }: { onCloseAction: () => void; onMinimizeAction: () => void }) {
-	const shell = useShell();
+type Props = {
+	onCloseAction: () => void;
+	onMinimizeAction: () => void;
+	onNoticeAction: (message: string, title?: string) => void;
+};
+
+export function Word({ onCloseAction, onMinimizeAction, onNoticeAction }: Props) {
 	const [source, setSource] = useState("");
 	const [error, setError] = useState(false);
 	const [zoom, setZoom] = useState(100);
@@ -81,7 +85,7 @@ export function Word({ onCloseAction, onMinimizeAction }: { onCloseAction: () =>
 
 	const focusDocument = useCallback(() => document.current?.focus(), []);
 	const openSource = () => window.open("/api/resume", "_blank", "noopener,noreferrer");
-	const help = () => shell.notice("This read-only resume is loaded from its live GitHub source. Use the zoom box to change its size, Open to view the source, or Save to download the original LaTeX. Editing commands are unavailable.", "Microsoft Word");
+	const help = () => onNoticeAction("This read-only resume is loaded from its live GitHub source. Use the zoom box to change its size, Open to view the source, or Save to download the original LaTeX. Editing commands are unavailable.", "Microsoft Word");
 	const menus: Record<string, MenuCommand[]> = {
 		File: [{ label: "Open Source…", action: openSource }, { label: "Save Source As…", disabled: !source, action: saveSource }, "separator", { label: "Close", action: onCloseAction }],
 		Edit: readOnlyCommands("Undo", "Cut", "Copy", "Paste"),

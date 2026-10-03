@@ -2,10 +2,41 @@
 
 import { type ComponentProps, type ReactNode, type RefCallback, useEffect, useRef, useState } from "react";
 import { StartButton } from "./StartButton";
-import type { AppId } from "./window/state";
-import { useViewCount } from "./useViewCount";
-import type { DesktopWindow } from "./window/layout";
+import type { AppId } from "../window/state";
+import type { DesktopWindow } from "../window/layout";
 import "./taskbar.css";
+
+/** One POST per page load — survives React Strict Mode remount. */
+let viewsPromise: Promise<number | null> | null = null;
+
+function loadViews(): Promise<number | null> {
+	if (!viewsPromise) {
+		viewsPromise = fetch("/api/views", { method: "POST" })
+			.then((response) => response.json())
+			.then((data: { count?: number }) =>
+				typeof data.count === "number" ? data.count : null,
+			)
+			.catch(() => null);
+	}
+	return viewsPromise;
+}
+
+/** Site view counter; null until the response lands. */
+function useViewCount() {
+	const [views, setViews] = useState<number | null>(null);
+
+	useEffect(() => {
+		let alive = true;
+		void loadViews().then((count) => {
+			if (alive) setViews(count);
+		});
+		return () => {
+			alive = false;
+		};
+	}, []);
+
+	return views;
+}
 
 function formatClock(d: Date) {
 	return d
@@ -42,6 +73,7 @@ type Props = {
 	onActivateAction: (id: string) => void;
 	onLaunchAction: (id: AppId) => void;
 	onRestoreDecorationsAction: () => void;
+	onResetAction: () => void;
 	canRestoreDecorations: boolean;
 	/** Boot trickle — when set, chrome pieces appear only if id is in the set. */
 	revealed?: ReadonlySet<string>;
@@ -122,6 +154,7 @@ export function Taskbar({
 	onActivateAction,
 	onLaunchAction,
 	onRestoreDecorationsAction,
+	onResetAction,
 	canRestoreDecorations,
 	revealed,
 }: Props) {
@@ -140,7 +173,7 @@ export function Taskbar({
 		<footer className="taskbar" role="contentinfo" aria-label="Taskbar">
 			<div className="taskbar__left">
 				{show("tb:start") && (
-					<StartButton onLaunchAction={onLaunchAction} onRestoreDecorationsAction={onRestoreDecorationsAction} canRestoreDecorations={canRestoreDecorations} />
+					<StartButton onLaunchAction={onLaunchAction} onRestoreDecorationsAction={onRestoreDecorationsAction} onResetAction={onResetAction} canRestoreDecorations={canRestoreDecorations} />
 				)}
 				<WindowTasks tasks={tasks} activeId={activeId} onActivateAction={onActivateAction} trackLabel={trackLabel} bindElapsed={bindElapsed} />
 			</div>

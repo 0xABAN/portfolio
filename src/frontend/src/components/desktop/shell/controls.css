@@ -1,0 +1,80 @@
+.desktop:not(.desktop--busy) [data-shell-surface] :is(button, [role="option"]):not(:disabled, [aria-disabled="true"]) { cursor: var(--cursor-hand); }
+
+.shell-menubar, .shell-toolbar { display: flex; flex: none; align-items: center; gap: 2px; padding: 2px 4px; border-bottom: 1px solid var(--chrome-lo); }
+.shell-menubar > button, .shell-toolbar > button { padding: 3px 6px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; white-space: nowrap; }
+.shell-menubar > button:hover, .shell-menubar > button[aria-expanded="true"], .shell-toolbar > button:not(:disabled):hover { border-color: var(--chrome-hi) var(--chrome-lo) var(--chrome-lo) var(--chrome-hi); }
+.shell-toolbar > button:disabled, .shell-menu button:disabled { color: #808080; text-shadow: 1px 1px var(--chrome-hi); }
+
+/* Explorer and Recycle Bin share the same file-browser surface. */
+.shell-browser { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; background: var(--chrome-face); color: var(--chrome-text); font: 11px / 1.3 "Win95 UI", Tahoma, sans-serif; }
+.shell-path { min-width: 0; margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-list { flex: 1; min-height: 0; padding: 3px; overflow: auto; background: #fff; color: #000; }
+.shell-item { display: block; width: 100%; padding: 3px 5px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; text-align: left; user-select: none; }
+.shell-item[aria-selected="true"] { background: var(--desktop-bg); color: #fff; }
+.shell-item:focus { outline: 1px dotted currentColor; outline-offset: -2px; }
+.shell-item__name { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.shell-item__name img { flex: none; object-fit: contain; image-rendering: pixelated; }
+.shell-item__name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-status { display: flex; flex: none; justify-content: space-between; gap: 8px; padding: 3px 7px; border-top: 1px solid var(--chrome-hi); }
+.shell-missing { padding: 12px; }
+.shell-missing button { padding: 5px 10px; background: var(--chrome-btn); color: inherit; }
+
+/* Desktop file selection and shortcut overlays. */
+.shell-desktop-item:focus { background: transparent; border-color: transparent; }
+.shell-desktop-item[aria-selected="true"] .desk-icon__label { background: #000080; color: #fff; text-shadow: none; }
+.shell-desktop-item[aria-selected="true"] .desk-icon__img { filter: brightness(0.7) sepia(0.3) hue-rotate(160deg); }
+.shell-desktop-item:focus .desk-icon__label { outline: 1px dotted #fff; outline-offset: 1px; }
+.shell-desktop-item[data-shortcut] .desk-icon__art::after { content: "↗"; position: absolute; left: 0; bottom: 0; width: 13px; height: 13px; border: 1px solid #000; background: #fff; color: #000; font: 700 14px / 11px "Win95 UI", Tahoma, sans-serif; text-align: center; }
+.shell-desktop-item.desk-icon--drop-hot { background: #000080; border-color: #fff; }
+
+/* Popovers and dialogs live outside .win but use the same classic chrome. */
+.shell-menu, .shell-dialog {
+	--chrome-face: #c0c0c0;
+	--chrome-btn: #c0c0c0;
+	--chrome-hi: #ffffff;
+	--chrome-lo: #000000;
+	--chrome-text: #000000;
+}
+
+.shell-menu {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	min-width: 175px;
+	max-width: calc(100vw - 4px);
+	max-height: calc(100dvh - 4px);
+	padding: 2px;
+	overflow: auto;
+	background: var(--chrome-face);
+	color: var(--chrome-text);
+	box-shadow: 2px 2px #000;
+	font: 12px / 1.25 "Win95 UI", Tahoma, sans-serif;
+}
+.shell-menu button { display: flex; align-items: center; width: 100%; padding: 4px 12px 4px 2px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+.shell-menu button:not(:disabled):is(:hover, :focus) { outline: none; background: #000080; color: #fff; }
+.shell-menu__check { flex: none; width: 20px; text-align: center; }
+.shell-menu hr { margin: 3px 2px; border: 0; border-top: 1px solid var(--chrome-lo); border-bottom: 1px solid var(--chrome-hi); }
+
+.shell-dialog {
+	position: fixed;
+	inset: 0;
+	margin: auto;
+	height: fit-content;
+	width: 380px;
+	max-width: calc(100vw - 16px);
+	max-height: calc(100dvh - 24px);
+	padding: 3px;
+	overflow: auto;
+	background: var(--chrome-face);
+	color: var(--chrome-text);
+	font: 12px / 1.4 "Win95 UI", Tahoma, sans-serif;
+}
+.shell-dialog::backdrop { background: transparent; }
+.shell-dialog .win-titlebar { min-height: 22px; color: #fff; }
+.shell-dialog__message { display: flex; align-items: flex-start; gap: 14px; padding: 18px 14px 8px; }
+.shell-dialog__message p { margin: 0; overflow-wrap: anywhere; }
+.shell-dialog__symbol { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: #ffffc0; color: #000; border: 1px solid #000; font: 700 24px / 1 "Win95 UI", Tahoma, sans-serif; }
+.shell-dialog__buttons { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 8px 6px; }
+.shell-dialog__buttons button { min-width: 72px; padding: 3px 10px; background: var(--chrome-btn); color: inherit; font: inherit; }
+.shell-dialog__buttons button:disabled { color: #808080; }
+.shell-dialog button:focus-visible, .shell-menubar button:focus-visible, .shell-toolbar button:focus-visible { outline: 1px dotted currentColor; outline-offset: -4px; }
