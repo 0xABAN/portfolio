@@ -46,7 +46,7 @@ const PAINT_INNER_X = 56;
 const PAINT_INNER_Y = 18;
 const PAINT_INNER_BOTTOM = 70;
 
-const STREET_RATIO = 1360 / 768; // street.png
+const STREET_RATIO = 1360 / 768; // street.webp
 const MARGIN = 24;
 const ALT_SIDE_FRAC = 0.42;
 
@@ -186,7 +186,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		title: "Adam-paint",
 		z: 2,
 		kind: "paint" as const,
-		src: "/photos/street.png",
+		src: "/photos/street.webp",
 		icon: "/paint/icon-16.png",
 		...layoutMeWindow(vw, vh),
 	};
@@ -211,7 +211,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 			id: "new",
 			title: "beep boop",
 			z: 4,
-			src: "/photos/beep-boop.gif",
+			src: "/photos/beep-boop.webp",
 			...layoutBeepBoop(me),
 		},
 		terminal,

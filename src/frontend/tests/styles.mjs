@@ -16,7 +16,7 @@ assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
 const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
 const { chromium, devices } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const gif = await sharp(new URL('../public/photos/beep-boop.gif', import.meta.url).pathname).png().toBuffer();
+const beepBoopFrame = await sharp(new URL('../public/photos/beep-boop.webp', import.meta.url).pathname).png().toBuffer();
 const profiles = [
   { name: 'desktop', viewport: { width: 1440, height: 900 } },
   { name: 'small-desktop', viewport: { width: 960, height: 600 } },
@@ -41,7 +41,7 @@ try {
         date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
       })),
     } }));
-    await context.route('**/photos/beep-boop.gif', route => route.fulfill({ contentType: 'image/png', body: gif }));
+    await context.route('**/photos/beep-boop.webp', route => route.fulfill({ contentType: 'image/png', body: beepBoopFrame }));
     await context.route('**/api/resume', route => route.fulfill({ body: String.raw`
       \begin{document}
       \begin{center}Adam Example \\ \href{https://example.com}{Portfolio}\end{center}

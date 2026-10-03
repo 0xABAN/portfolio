@@ -75,7 +75,7 @@ export const WindowContent = memo(function WindowContent({
 			// eslint-disable-next-line @next/next/no-img-element
 			<img
 				className="win-fill-crop"
-				src="/photos/overlay.png"
+				src="/photos/overlay.webp"
 				alt=""
 				draggable={false}
 				style={cropStyle}

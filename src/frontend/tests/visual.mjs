@@ -21,7 +21,7 @@ const browser = await chromium.launch({
   channel: 'chrome', headless: true,
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const gif = await sharp(await readFile(new URL('../public/photos/beep-boop.gif', import.meta.url))).png().toBuffer();
+const beepBoopFrame = await sharp(await readFile(new URL('../public/photos/beep-boop.webp', import.meta.url))).png().toBuffer();
 await mkdir(directory, { recursive: true });
 let count = 0;
 
@@ -39,7 +39,7 @@ try {
         })),
       } });
     });
-    await context.route('**/photos/beep-boop.gif', route => route.fulfill({ contentType: 'image/png', body: gif }));
+    await context.route('**/photos/beep-boop.webp', route => route.fulfill({ contentType: 'image/png', body: beepBoopFrame }));
     await context.addInitScript(() => {
       let seed = 42;
       Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
@@ -225,7 +225,7 @@ try {
     assert.equal(contributionsRequests, 1, 'Successful requests stay cached after restore');
     if (width === 1440) {
       failContributions = true;
-      await page.route('**/photos/street.png', route => route.abort());
+      await page.route('**/photos/street.webp', route => route.abort());
       await page.reload();
       await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
       await page.locator('.rsod').click();
@@ -242,7 +242,7 @@ try {
       await remountCalendar();
       assert.equal(contributionsRequests, 3, 'Failed requests retry on remount');
 
-      await page.unroute('**/photos/street.png');
+      await page.unroute('**/photos/street.webp');
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await page.reload();
       await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));

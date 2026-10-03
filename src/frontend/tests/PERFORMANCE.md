@@ -20,6 +20,22 @@ application logic, CSS, playback, animation or timer changes.
 Paint's `street.png` remains untouched: the same encoding made it larger.
 The animated GIF and untracked alternate PSP artwork remain untouched too.
 
+## Later: lossy WebP boot images
+
+Approved over the preservation-first rule for the three images every visit
+downloads at boot. Encoded with `cwebp -q 90 -m 6` and `gif2webp -lossy -q 80 -m 6`.
+
+| Asset | Before bytes | After bytes |
+| --- | ---: | ---: |
+| photos/street.png → street.webp | 1,571,359 | 198,790 |
+| photos/overlay.png → overlay.webp | 1,408,114 | 94,086 |
+| photos/beep-boop.gif → beep-boop.webp | 627,090 | 214,550 |
+| **Total** | **3,606,563** | **507,426** |
+
+PSNR against the originals is 41.7 dB (street) and 43.8 dB (overlay). The
+animation keeps its 54 frames at 100 ms, its loop and its transparency.
+`tests/assets.mjs` now pins the WebPs' geometry rather than their pixels.
+
 ## Measurements
 
 Production Chrome, 1440×900 at DPR 1, normal motion, 6× CPU throttling,

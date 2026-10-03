@@ -16,7 +16,7 @@ assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
 const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
 const { chromium } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const gif = await sharp(new URL('../public/photos/beep-boop.gif', import.meta.url).pathname).png().toBuffer();
+const beepBoopFrame = await sharp(new URL('../public/photos/beep-boop.webp', import.meta.url).pathname).png().toBuffer();
 const reports = [];
 await mkdir(directory, { recursive: true });
 
@@ -31,7 +31,7 @@ try {
         date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
       })),
     } }));
-    await context.route('**/photos/beep-boop.gif', route => route.fulfill({ contentType: 'image/png', body: gif }));
+    await context.route('**/photos/beep-boop.webp', route => route.fulfill({ contentType: 'image/png', body: beepBoopFrame }));
     await context.addInitScript(() => {
       let seed = 42;
       Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
