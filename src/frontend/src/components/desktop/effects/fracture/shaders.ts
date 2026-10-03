@@ -90,10 +90,13 @@ void main() {
 
 /**
  * The broken screen. Measures each pixel exactly against the candidates of
- * the four cells around it, then draws black fissures with
- * chunky, toothed edges, crisp crack lines, and debris that clusters beside
- * the cracks, over red screen content with drifting horizontal streaks.
- * Debris texture is taken in glass space, so it turns with the fracture.
+ * the four cells around it, then draws black fissures with toothed edges,
+ * crisp crack lines and debris clustered beside the cracks, over red screen
+ * content with drifting horizontal streaks. Flat, axis-aligned display damage
+ * makes it glitch: misaligned blocks, rows of dashes, a red copy of the cracks
+ * slipped out of register, stuck pixel lines, and bursts that tear and
+ * reshuffle it all. Debris texture is taken in glass space, so it turns with
+ * the fracture; display damage stays aligned to the screen.
  */
 export const SCREEN_FRAGMENT = /* glsl */ `${HEADER}
 uniform vec2 uResolution; // backing-store pixels
@@ -101,19 +104,31 @@ uniform float uScale;     // backing-store pixels per CSS pixel
 uniform float uTime;      // seconds
 uniform vec2 uCenter;     // the impact
 uniform float uSway;      // radians the fracture is turned around the impact
+uniform vec3 uGlitch;     // broken (0 or 1), burst (0 or 1), burst seed
 uniform highp usampler2D uCandidates;
 out vec4 color;
 
 // Averages to the desktop's #af0000 once the streaks even out.
 const vec3 RED = vec3(0.686, 0.0, 0.0);
+const vec3 DARK = vec3(0.3, 0.0, 0.0);
+const vec3 HOT = vec3(1.0, 0.12, 0.08);
 const vec3 INK = vec3(0.03, 0.0, 0.0);
 const vec3 GLINT = vec3(1.0, 0.62, 0.58);
+// Damaged blocks sit one per tile at most, so each pixel checks only its own tile.
+const vec2 TILE = vec2(220.0, 48.0);
+// CSS px the red image has slipped against the cracks near the impact; more during bursts.
+const vec2 SLIP = vec2(3.0, -1.0);
 
 // Sine-free hash (Dave Hoskins), stable across GPU vendors.
 float hash(vec2 p) {
 	vec3 q = fract(p.xyx * 0.1031);
 	q += dot(q, q.yzx + 33.33);
 	return fract((q.x + q.y) * q.z);
+}
+
+// A fixed 0..1 number for a key and a seed.
+float pick(float key, float seed) {
+	return hash(vec2(key + 0.5, seed * 1.37 + 0.25));
 }
 
 float noise(vec2 p) {
@@ -131,31 +146,98 @@ vec3 screen(vec2 p) {
 	return RED * (1.0 + 0.08 * bands + 0.05 * bars);
 }
 
+// Display damage under the cracks: misaligned striped blocks and rows of dashes,
+// densest around the impact. 'unit' is half the screen diagonal.
+vec3 corrupt(vec3 color, vec2 p, float unit, float seed) {
+	// Each row of tiles is offset sideways, so the blocks never line up into a grid.
+	float tileRow = floor(p.y / TILE.y);
+	float column = floor((p.x + pick(tileRow, 30.0) * TILE.x) / TILE.x);
+	float key = column * 31.0 + tileRow;
+	// During a burst, some blocks jump to new places.
+	float s = pick(key, seed + 3.0) < 0.5 ? seed : 0.0;
+	vec2 origin = vec2(column * TILE.x - pick(tileRow, 30.0) * TILE.x, tileRow * TILE.y);
+	float near = exp(-length(origin + 0.5 * TILE - uCenter) / (0.35 * unit));
+	if (pick(key, s + 1.0) < 0.6 * near) {
+		vec2 size = TILE * vec2(mix(0.2, 0.9, pick(key, s + 4.0)), mix(0.2, 0.85, pick(key, s + 5.0)));
+		vec2 corner = origin + (TILE - size) * vec2(pick(key, s + 2.0), pick(key, s + 7.0));
+		vec2 inside = p - corner;
+		if (all(greaterThanEqual(inside, vec2(0.0))) && all(lessThan(inside, size))) {
+			// Stripes of uneven spacing and weight; a few blocks are solid bars instead.
+			float period = floor(mix(2.0, 9.0, pick(key, s + 8.0)));
+			float weight = mix(0.25, 0.75, pick(key, s + 9.0));
+			float stripe = pick(key, s + 10.0) < 0.25 ? 1.0 : step(weight, fract(inside.y / period));
+			color = mix(DARK, color * mix(0.8, 1.25, pick(key, s + 6.0)), stripe);
+		}
+	}
+
+	// Rows of dashes, densest level with the impact.
+	float row = floor(p.y / 5.0);
+	if (pick(row, seed + 11.0) < 0.35 * exp(-abs(p.y - uCenter.y) / (0.3 * unit))) {
+		float start = uCenter.x + (pick(row, seed + 12.0) - 0.5) * 1.6 * unit;
+		float run = mix(40.0, 480.0, pick(row, seed + 13.0) * pick(row, seed + 14.0));
+		float dash = floor((p.x - start) / mix(6.0, 24.0, pick(row, 15.0)));
+		bool on = p.x > start && p.x < start + run && mod(p.y, 5.0) < 3.0 && pick(dash, row + seed) < 0.65;
+		if (on) color = pick(row, seed + 16.0) < 0.65 ? DARK : HOT;
+	}
+	return color;
+}
+
+// Stuck pixel lines over everything: a few dead 2px columns and rows near the
+// impact, each running from a point near it to the edge of the screen.
+vec3 stuck(vec3 color, vec2 p, float unit, float seed) {
+	for (int axis = 0; axis < 2; axis++) {
+		bool vertical = axis == 0;
+		vec2 q = vertical ? p : p.yx;
+		vec2 c = vertical ? uCenter : uCenter.yx;
+		float line = floor(q.x / 2.0) + (vertical ? 0.0 : 5000.0);
+		float chance = (vertical ? 0.02 : 0.01) * exp(-abs(q.x - c.x) / (0.3 * unit));
+		// Bursts make some lines drop out for a moment.
+		if (pick(line, 60.0) >= chance || (seed > 0.0 && pick(line, seed + 50.0) < 0.4)) continue;
+		float from = c.y + (pick(line, 61.0) - 0.5) * 0.3 * unit;
+		float towards = pick(line, 62.0) < 0.5 ? -1.0 : 1.0;
+		if ((q.y - from) * towards > 0.0) color = pick(line, 63.0) < 0.6 ? HOT : INK;
+	}
+	return color;
+}
+
 void main() {
 	vec2 p = vec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y) / uScale;
 	float aa = 0.5 / uScale;
 	float dither = (hash(gl_FragCoord.xy + fract(uTime) * 97.0) - 0.5) / 255.0;
+	float unit = 0.5 * length(uResolution / uScale);
+	bool broken = uGlitch.x > 0.5;
+	float burst = uGlitch.y;
+	float seed = burst * uGlitch.z;
+
+	// Bursts tear a few bands of the screen sideways, cracks and all.
+	if (burst > 0.0) {
+		float band = floor(p.y / 12.0);
+		p.x += step(0.8, pick(band, seed + 21.0)) * (pick(band, seed + 22.0) - 0.5) * 48.0;
+	}
+	vec3 base = broken ? corrupt(screen(p), p, unit, seed) : screen(p);
 
 	// Candidates of the four cells around this pixel. Most of the screen is
 	// nowhere near a crack and stops here.
 	uvec2 cells[4];
 	bool found = false;
-	vec2 base = floor(p / CELL - 0.5);
+	vec2 cell = floor(p / CELL - 0.5);
 	for (int k = 0; k < 4; k++) {
-		vec2 index = clamp(base + vec2(k & 1, k >> 1), vec2(0.0), uGrid - 1.0);
+		vec2 index = clamp(cell + vec2(k & 1, k >> 1), vec2(0.0), uGrid - 1.0);
 		cells[k] = texelFetch(uCandidates, ivec2(index.x, uGrid.y - 1.0 - index.y), 0).rg;
 		found = found || cells[k].x != NONE || cells[k].y != NONE;
 	}
 	if (!found) {
-		color = vec4(screen(p) + dither, 1.0);
+		color = vec4((broken ? stuck(base, p, unit, seed) : base) + dither, 1.0);
 		return;
 	}
 
 	// The cracks near this pixel, measured exactly.
 	float shardEdge = FAR;
 	float shardWidth = 0.0;
+	uint shardId = NONE;
 	float lineEdge = FAR;
 	float lineWidth = 0.0;
+	uint lineId = NONE;
 	float near = FAR;
 	uint last = NONE;
 	for (int k = 0; k < 8; k++) {
@@ -167,10 +249,12 @@ void main() {
 		if (hit.shard < shardEdge) {
 			shardEdge = hit.shard;
 			shardWidth = hit.width;
+			shardId = id;
 		}
 		if (hit.line < lineEdge) {
 			lineEdge = hit.line;
 			lineWidth = hit.lineWidth;
+			lineId = id;
 		}
 		near = min(near, reach(hit));
 	}
@@ -180,15 +264,27 @@ void main() {
 
 	// Fissures: shallow chips where glass broke away, fine teeth where pixels died along the edge.
 	float shard = 0.0;
+	float roughness = 0.0;
 	if (shardEdge < 12.0) {
 		float chips = (noise(glass * 0.09) - 0.5) * min(shardWidth, 12.0) * 0.3;
 		float teeth = (noise(glass * 0.55 + 31.0) - 0.5) * 2.0;
-		shard = 1.0 - smoothstep(-aa, aa, shardEdge + chips + teeth);
+		roughness = chips + teeth;
+		shard = 1.0 - smoothstep(-aa, aa, shardEdge + roughness);
 	}
 
 	// Crack lines thinner than a pixel fade rather than break up; thin ones catch a faint glint.
 	float line = clamp(0.5 - lineEdge * uScale, 0.0, 1.0) * min(1.0, 2.0 * lineWidth * uScale);
 	float glint = (1.0 - smoothstep(0.3, 1.6, lineEdge)) * (1.0 - line) * (1.0 - smoothstep(0.7, 1.3, lineWidth));
+
+	// Near the impact the red image has slipped out of register, leaving a hot
+	// copy of the nearest crack beside it. It can only show within the slip of an edge.
+	float slipped = 0.0;
+	vec2 slip = SLIP * (1.0 + 2.0 * burst);
+	if (broken && length(p - uCenter) < 0.45 * unit) {
+		float reachOut = length(slip) + 3.0;
+		if (shardId != NONE && shardEdge < reachOut) slipped = step(measure(shardId, p - slip).shard + roughness, 0.0);
+		if (lineId != NONE && lineEdge < reachOut) slipped = max(slipped, step(measure(lineId, p - slip).line, 0.0));
+	}
 
 	// Blots and specks gather in clumps beside the cracks and thin out away from them.
 	// They start a few px out, so fissure edges stay crisp and the debris stays separate.
@@ -202,7 +298,8 @@ void main() {
 		splatter = smoothstep(-0.02 / uScale, 0.02 / uScale, field);
 	}
 
-	vec3 result = mix(screen(p), GLINT, glint * 0.12);
+	vec3 result = mix(base, GLINT, glint * 0.12);
+	result = mix(result, HOT, slipped);
 	result = mix(result, INK, max(max(shard, line), splatter));
-	color = vec4(result + dither, 1.0);
+	color = vec4((broken ? stuck(result, p, unit, seed) : result) + dither, 1.0);
 }`;

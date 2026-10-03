@@ -21,6 +21,11 @@ smashed display.
   the four cells around it, then draws fissures with chipped, toothed edges,
   crisp crack lines, and blots and specks that cluster beside the cracks, over
   red screen content with drifting horizontal streaks.
+- **Glitches** are flat, screen-aligned display damage in black and shades of
+  red: striped blocks (at most one per tile, so each pixel checks one), rows
+  of dashes, a hot copy of the nearest crack slipped out of register near the
+  impact, and stuck 2px lines running to the screen edge. All of it is denser
+  around the impact.
 
 ## Files
 
@@ -28,7 +33,8 @@ smashed display.
   `.fracture-background--ready` after the first successful frame.
 - `controller.ts`: frame loop, reduced motion, visibility, resizing and pixel
   density, context loss and the eased cursor.
-- `cracks.ts`: composition and motion, free of DOM and WebGL.
+- `cracks.ts`: composition, motion and glitch-burst timing, free of DOM and
+  WebGL.
 - `renderer.ts`: WebGL2 setup and both passes. The backing store is capped at
   1.5× density and 3 megapixels; the shaders work in CSS px regardless.
 - `shaders.ts`: GLSL sources.
@@ -40,14 +46,19 @@ smashed display.
   with its forks and a wider shard, before slowly retracting. The fracture
   sways a few degrees, debris turns with it, and outer cracks bend towards a
   fine mouse pointer. Streaks drift across the screen.
+- About every 6 s, a 0.3 s glitch burst tears bands of the screen sideways,
+  reshuffles some damaged blocks, widens the slip and makes some stuck lines
+  drop out. Between bursts the damage holds still.
 - Slow, ambient-only motion draws at 30 fps; the impact and cursor movement
   draw every frame. Hidden tabs draw nothing.
-- Reduced motion shows one settled, motionless frame.
+- Reduced motion shows one settled, motionless frame with the still damage
+  and no bursts.
 - Missing WebGL2 or a failed shader is logged and leaves the plain desktop
   colour. Lost contexts are rebuilt when the browser restores them.
 
 ## Cost
 
-GPU timer queries in Chrome on an Apple M4, 1800×1338 backing store: the
-candidate pass takes about 0.9 ms and the screen pass about 3.1 ms (p95 5.4 ms)
-per drawn frame. Not measured on low-end GPUs.
+GPU timer queries in headless Chrome on an Apple M4, 1440×900 at 1×: the
+candidate pass takes about 0.9 ms and the screen pass about 1.8 ms (p95
+3.5 ms) per drawn frame, the same as without the glitches. Not measured on
+low-end GPUs.

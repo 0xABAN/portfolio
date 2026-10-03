@@ -1,4 +1,4 @@
-import { createFracture, MAX_SEGMENTS, SEGMENT_FLOATS, swayAngle, writeSegments, type FrameInput } from "./cracks";
+import { createFracture, MAX_SEGMENTS, SEGMENT_FLOATS, swayAngle, writeGlitch, writeSegments, type FrameInput } from "./cracks";
 import { createFractureRenderer, type FractureRenderer } from "./renderer";
 
 /** Ambient motion is slow enough for half rate; the impact and the cursor get every frame. */
@@ -31,6 +31,8 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 	const pointer = new Float32Array(3);
 	const target = { x: 0, y: 0, present: false };
 	const input: FrameInput = { time: 0, struckAt: null, still: false, width: 1, height: 1, pointer };
+	/** Broken (0 or 1), burst (0 or 1) and burst seed, from writeGlitch. */
+	const glitch = new Float32Array(3);
 
 	let bounds = root.getBoundingClientRect();
 	let renderer: FractureRenderer | null = null;
@@ -47,14 +49,20 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 
 	const isAnimating = () => active && !reducedMotion.matches && !document.hidden;
 
-	function render() {
-		if (!renderer) return;
+	/** Brings the per-frame inputs up to date with the clock and the environment. */
+	function updateInput() {
 		input.time = clock;
 		input.struckAt = struckAt;
 		input.still = reducedMotion.matches;
 		input.width = bounds.width;
 		input.height = bounds.height;
-		renderer.draw(clock, swayAngle(input), segments, writeSegments(fracture, segments, input));
+		writeGlitch(input, glitch);
+	}
+
+	function render() {
+		if (!renderer) return;
+		updateInput();
+		renderer.draw(clock, swayAngle(input), glitch, segments, writeSegments(fracture, segments, input));
 	}
 
 	/** Eases towards the cursor; returns whether it is still visibly moving. */
@@ -78,7 +86,8 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 		lastTick = now;
 		clock += delta;
 
-		const busy = stepPointer(delta) || (struckAt !== null && clock - struckAt < BURST_SECONDS);
+		updateInput();
+		const busy = stepPointer(delta) || glitch[1] > 0 || (struckAt !== null && clock - struckAt < BURST_SECONDS);
 		// The slack absorbs timer jitter, so 60 Hz displays reliably draw every other frame.
 		if (!busy && now - lastDraw < AMBIENT_FRAME_MS - 4) return;
 		lastDraw = now;

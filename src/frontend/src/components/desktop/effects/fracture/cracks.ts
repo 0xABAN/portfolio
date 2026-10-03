@@ -73,6 +73,11 @@ const WANDER = (1 * Math.PI) / 180;
 const SWAY_ENTRANCE = 8;
 /** Share of a radial's growth over which a growing tip tapers to a point. */
 const TIP = 0.05;
+/** One glitch burst falls at a random moment in every slot of this many seconds. */
+const GLITCH_SLOT = 6;
+const GLITCH_BURST = 0.3;
+/** Burst frames hold this long, so the corruption jumps rather than flickers. */
+const GLITCH_STEP = 0.06;
 
 type Point = { x: number; y: number };
 
@@ -306,6 +311,26 @@ export function swayAngle({ time, struckAt, still }: FrameInput) {
 	if (struckAt === null || still) return 0;
 	const entrance = smooth(clamp((time - struckAt) / SWAY_ENTRANCE, 0, 1));
 	return entrance * (SWAY * Math.sin((time * TAU) / 70 + 1.3) + WANDER * Math.sin((time * TAU) / 23 + 4.1));
+}
+
+/**
+ * Writes the display glitch state into `out`: whether the screen is broken
+ * (0 or 1), whether a burst is running (0 or 1), and a seed that changes every
+ * few frames of a burst, so the corruption jumps around.
+ */
+export function writeGlitch({ time, struckAt, still }: FrameInput, out: Float32Array) {
+	out.fill(0);
+	if (struckAt === null) return out;
+	out[0] = 1;
+	if (still || time - struckAt < BURST) return out;
+
+	const slot = Math.floor(time / GLITCH_SLOT);
+	const into = time - slot * GLITCH_SLOT - mulberry32(slot)() * (GLITCH_SLOT - GLITCH_BURST);
+	if (into < 0 || into >= GLITCH_BURST) return out;
+	out[1] = 1;
+	// Small seeds keep the GPU hashes precise.
+	out[2] = (slot % 997) * 8 + Math.floor(into / GLITCH_STEP) + 1;
+	return out;
 }
 
 /**

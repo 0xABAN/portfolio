@@ -90,7 +90,7 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 		const candidateProgram = link(CANDIDATE_FRAGMENT);
 		const screenProgram = link(SCREEN_FRAGMENT);
 		const candidateUniforms = locate(candidateProgram, ["uGrid", "uSegments", "uCount"]);
-		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uResolution", "uScale", "uTime", "uCenter", "uSway"]);
+		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
 
 		// Both textures are read texel by texel; candidates are 16-bit segment ids.
 		configure(segmentTexture, gl.NEAREST);
@@ -118,8 +118,11 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 				}
 			},
 
-			/** `segments` holds `count` segments laid out as described by SEGMENT_FLOATS. */
-			draw(time: number, sway: number, segments: Float32Array, count: number) {
+			/**
+			 * `glitch` comes from writeGlitch; `segments` holds `count` segments laid
+			 * out as described by SEGMENT_FLOATS.
+			 */
+			draw(time: number, sway: number, glitch: Float32Array, segments: Float32Array, count: number) {
 				gl.activeTexture(gl.TEXTURE0);
 				gl.bindTexture(gl.TEXTURE_2D, segmentTexture);
 				if (count > 0) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 2, count, gl.RGBA, gl.FLOAT, segments, 0);
@@ -145,6 +148,7 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.uniform1f(screenUniforms.uTime, time);
 				gl.uniform2f(screenUniforms.uCenter, width / 2, height / 2);
 				gl.uniform1f(screenUniforms.uSway, sway);
+				gl.uniform3fv(screenUniforms.uGlitch, glitch);
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 				// Surface driver failures once instead of polling getError every frame.
