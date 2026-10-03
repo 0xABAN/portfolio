@@ -25,6 +25,8 @@
 }
 
 .gh-app .react-activity-calendar__scroll-container {
+	/* Holds the pop layer, which scrolls with the cells. */
+	position: relative;
 	max-width: 100%;
 	overflow-x: auto;
 	overflow-y: hidden;
@@ -44,14 +46,21 @@
 	background: #5a5a5a;
 }
 
-.gh-app rect[data-level] {
-	transform-origin: center;
-	transform-box: fill-box;
+/* Sized and placed over the calendar's SVG by GitHubGraph. */
+.gh-app .git-cell-pops {
+	position: absolute;
+	overflow: clip;
+	pointer-events: none;
 }
 
-.gh-app rect.git-cell-pop {
+.gh-app .git-cell-pop {
+	position: absolute;
 	animation: git-cell-pop 0.4s ease-out;
-	will-change: opacity, transform;
+}
+
+/* Its copy stands in for the cell while it pops. */
+.gh-app rect.git-cell-popping {
+	visibility: hidden;
 }
 
 @keyframes git-cell-pop {
@@ -74,7 +83,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.gh-app rect.git-cell-pop {
+	.gh-app .git-cell-pop {
 		animation: none;
 	}
 }

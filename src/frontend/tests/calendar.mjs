@@ -40,16 +40,27 @@ try {
     window.cellLayoutReads = 0;
   });
   // Repeatedly choose the first active cell, including before its 400ms pop ends.
-  await page.waitForFunction(() => document.querySelector('.gh-app rect[data-level="1"]').classList.contains('git-cell-pop'));
+  await page.waitForFunction(() => document.querySelector('.gh-app rect[data-level="1"]').classList.contains('git-cell-popping'));
   await page.evaluate(() => {
     window.popCell = document.querySelector('.gh-app rect[data-level="1"]');
-    window.popAnimation = window.popCell.getAnimations()[0];
+    window.popCopy = document.querySelector(`.gh-app .git-cell-pop[data-date="${window.popCell.dataset.date}"]`);
+    window.popAnimation = window.popCopy.getAnimations()[0];
   });
   await page.waitForTimeout(1000);
   assert.deepEqual(await page.evaluate(() => ({ queries: window.cellQueries, reads: window.cellLayoutReads })),
     { queries: 0, reads: 0 }, 'Repeated pops must not rescan cells or force geometry reads');
-  assert.equal(await page.evaluate(() => window.popCell.getAnimations()[0] === window.popAnimation), true,
+  assert.equal(await page.evaluate(() => window.popCopy.isConnected && window.popCopy.getAnimations()[0] === window.popAnimation), true,
     'An overlapping pop should restart the existing CSS animation');
+  // The SVG cell must not animate itself: Chrome repaints SVG animations on the main thread.
+  assert.equal(await page.evaluate(() => window.popCell.getAnimations().length), 0, 'The SVG cell is animated directly');
+  const offsets = await page.evaluate(() => {
+    window.popAnimation.pause();
+    window.popAnimation.currentTime = 0;
+    const cell = window.popCell.getBoundingClientRect();
+    const copy = window.popCopy.getBoundingClientRect();
+    return [copy.left - cell.left, copy.top - cell.top, copy.width - cell.width, copy.height - cell.height].map(Math.abs);
+  });
+  assert.ok(offsets.every(offset => offset < 0.01), `The popping copy does not cover its cell: ${offsets}`);
   const frames = await page.evaluate(() => {
     const animation = window.popAnimation;
     return { duration: animation.effect.getTiming().duration, frames: animation.effect.getKeyframes().map(frame => ({
@@ -66,10 +77,12 @@ try {
     Math.random = () => 0.999999; // Let this cell finish while future ticks choose another.
     window.popAnimation.finish();
   });
-  await page.waitForFunction(() => !window.popCell.classList.contains('git-cell-pop'));
+  await page.waitForFunction(() => !window.popCell.classList.contains('git-cell-popping') && !window.popCopy.isConnected);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   assert.equal(await page.locator('.gh-app').evaluate(el => el.getAnimations({ subtree: true }).length), 0);
-  console.log('PASS: cached cells, layout-free overlapping restarts, unchanged keyframes, finish cleanup and reduced motion');
+  // Cancelled pops must show their cells again.
+  await page.waitForFunction(() => document.querySelectorAll('.gh-app .git-cell-pop, .gh-app .git-cell-popping').length === 0);
+  console.log('PASS: cached cells, layout-free overlapping restarts, copies aligned with their cells, unchanged keyframes, finish cleanup and reduced motion');
 } finally {
   await browser.close();
 }
