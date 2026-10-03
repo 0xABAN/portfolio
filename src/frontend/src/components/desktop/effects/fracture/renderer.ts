@@ -1,5 +1,6 @@
 import { MAX_SEGMENTS } from "./cracks";
-import { CANDIDATE_FRAGMENT, CELL, FULLSCREEN_VERTEX, SCREEN_FRAGMENT } from "./shaders";
+import { CANDIDATE_FRAGMENT, CELL, FULLSCREEN_VERTEX, LIST_WIDTH, SCREEN_FRAGMENT, TILE_CELLS } from "./shaders";
+import { createTileBinner } from "./tiles";
 
 /** The shaders work in CSS px, so a smaller backing store only softens edges. */
 const MAX_DENSITY = 1.5;
@@ -9,7 +10,8 @@ export type FractureRenderer = Awaited<ReturnType<typeof createFractureRenderer>
 
 /**
  * Two full-screen passes: a small one finds the cracks that matter around each
- * 8px cell, then the canvas measures every pixel against only those cracks.
+ * 8px cell, checking only the segments the CPU has listed for its tile, then
+ * the canvas measures every pixel against only those cracks.
  *
  * Resolves once the shaders are linked and the GPU has drawn a 1px frame with
  * them, so the first real frame does not wait for compilation. Asking for a
@@ -34,8 +36,13 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 
 	const programs: WebGLProgram[] = [];
 	const segmentTexture = gl.createTexture();
+	const tileTexture = gl.createTexture();
+	const listTexture = gl.createTexture();
 	const candidateTexture = gl.createTexture();
 	const framebuffer = gl.createFramebuffer();
+	const binSegments = createTileBinner();
+	/** Rows the id list texture has room for. */
+	let listRows = 0;
 	let width = 1;
 	let height = 1;
 	let scale = 1;
@@ -48,6 +55,8 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		disposed = true;
 		for (const program of programs) gl.deleteProgram(program);
 		gl.deleteTexture(segmentTexture);
+		gl.deleteTexture(tileTexture);
+		gl.deleteTexture(listTexture);
 		gl.deleteTexture(candidateTexture);
 		gl.deleteFramebuffer(framebuffer);
 	}
@@ -111,7 +120,9 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 	}
 
 	try {
-		if (!segmentTexture || !candidateTexture || !framebuffer) throw new Error("Could not allocate the fracture textures");
+		if (!segmentTexture || !tileTexture || !listTexture || !candidateTexture || !framebuffer) {
+			throw new Error("Could not allocate the fracture textures");
+		}
 
 		const candidateBuild = build(CANDIDATE_FRAGMENT);
 		const screenBuild = build(SCREEN_FRAGMENT);
@@ -119,12 +130,14 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		if (parallel) await until(() => programs.every((program) => gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)));
 		const candidateProgram = check(candidateBuild);
 		const screenProgram = check(screenBuild);
-		const candidateUniforms = locate(candidateProgram, ["uGrid", "uSegments", "uCount"]);
+		const candidateUniforms = locate(candidateProgram, ["uGrid", "uSegments", "uTiles", "uList"]);
 		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
 
-		// Both textures are read texel by texel; candidates are 16-bit segment ids.
+		// Every texture is read texel by texel; segment ids are 16-bit.
 		configure(segmentTexture, gl.NEAREST);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 2, MAX_SEGMENTS, 0, gl.RGBA, gl.FLOAT, null);
+		configure(tileTexture, gl.NEAREST);
+		configure(listTexture, gl.NEAREST);
 		configure(candidateTexture, gl.NEAREST);
 
 		const renderer = {
@@ -137,6 +150,8 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				columns = Math.ceil(width / CELL);
 				rows = Math.ceil(height / CELL);
 
+				gl.bindTexture(gl.TEXTURE_2D, tileTexture);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32UI, Math.ceil(columns / TILE_CELLS), Math.ceil(rows / TILE_CELLS), 0, gl.RG_INTEGER, gl.UNSIGNED_INT, null);
 				gl.bindTexture(gl.TEXTURE_2D, candidateTexture);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16UI, columns, rows, 0, gl.RG_INTEGER, gl.UNSIGNED_SHORT, null);
 				gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -157,12 +172,28 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.bindTexture(gl.TEXTURE_2D, segmentTexture);
 				if (count > 0) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 2, count, gl.RGBA, gl.FLOAT, segments, 0);
 
+				const tiles = binSegments(segments, count, columns, rows);
+				gl.activeTexture(gl.TEXTURE2);
+				gl.bindTexture(gl.TEXTURE_2D, tileTexture);
+				gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, tiles.across, tiles.down, gl.RG_INTEGER, gl.UNSIGNED_INT, tiles.runs);
+				gl.activeTexture(gl.TEXTURE3);
+				gl.bindTexture(gl.TEXTURE_2D, listTexture);
+				const rowsNeeded = tiles.entries.length / LIST_WIDTH;
+				if (rowsNeeded !== listRows) {
+					listRows = rowsNeeded;
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16UI, LIST_WIDTH, listRows, 0, gl.RED_INTEGER, gl.UNSIGNED_SHORT, tiles.entries);
+				} else if (tiles.length > 0) {
+					const rowsUsed = Math.ceil(tiles.length / LIST_WIDTH);
+					gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, LIST_WIDTH, rowsUsed, gl.RED_INTEGER, gl.UNSIGNED_SHORT, tiles.entries);
+				}
+
 				gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 				gl.viewport(0, 0, columns, rows);
 				gl.useProgram(candidateProgram);
 				gl.uniform2f(candidateUniforms.uGrid, columns, rows);
 				gl.uniform1i(candidateUniforms.uSegments, 0);
-				gl.uniform1i(candidateUniforms.uCount, count);
+				gl.uniform1i(candidateUniforms.uTiles, 2);
+				gl.uniform1i(candidateUniforms.uList, 3);
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 				gl.bindFramebuffer(gl.FRAMEBUFFER, null);

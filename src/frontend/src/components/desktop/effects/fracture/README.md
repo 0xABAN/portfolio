@@ -16,7 +16,9 @@ smashed display.
   The first segment is the crater.
 - The **candidate pass** (`shaders.ts`) stores, for each 8px cell, the segment
   with the nearest edge and the one whose debris reaches furthest, as 16-bit
-  ids. Pixels far from any crack skip all crack work.
+  ids. Pixels far from any crack skip all crack work. Each cell checks only
+  the segments the CPU listed for its 64px tile: every segment a cell there
+  could pick, in ascending order, so the picks match checking them all.
 - The **screen pass** measures each pixel exactly against the candidates of
   the four cells around it, then draws fissures with chipped, toothed edges,
   crisp crack lines, and blots and specks that cluster beside the cracks, over
@@ -43,6 +45,9 @@ smashed display.
   KHR_parallel_shader_compile and a fence once per frame rather than
   waiting on the GPU.
 - `shaders.ts`: GLSL sources.
+- `tiles.ts`: groups each frame's segments by tile for the candidate pass.
+  `tests/fracture-tiles.test.ts` checks the picks against checking every
+  segment.
 
 ## Behaviour
 

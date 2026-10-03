@@ -2,6 +2,12 @@ import { WIDEST_SHARD } from "./cracks";
 
 /** CSS px per cell of the candidate pass. */
 export const CELL = 8;
+/** CSS px beyond which a crack cannot mark a pixel. */
+export const REACH = 48;
+/** Cells per side of a tile, the unit segments are grouped by for the candidate pass. */
+export const TILE_CELLS = 8;
+/** Segment ids per row of the candidate pass's id list. */
+export const LIST_WIDTH = 2048;
 
 /** Uniforms and helpers shared by both passes. Positions are CSS px from the top left. */
 const HEADER = /* glsl */ `#version 300 es
@@ -13,7 +19,7 @@ uniform highp sampler2D uSegments; // two texels per segment: ends, then shape
 
 const float CELL = ${CELL.toFixed(1)};
 const uint NONE = 65535u; // candidate id of an empty slot
-const float REACH = 48.0; // CSS px beyond which a crack cannot mark a pixel
+const float REACH = ${REACH.toFixed(1)}; // CSS px beyond which a crack cannot mark a pixel
 const float FAR = 1e4;
 
 struct Hit {
@@ -59,31 +65,39 @@ void main() {
 /**
  * Picks the segments that matter around each cell: the one with the nearest
  * edge, which decides what is drawn, and the one with the smallest reach,
- * which decides where debris falls.
+ * which decides where debris falls. Each cell checks only the segments listed
+ * for its tile (see tiles.ts), in ascending order, so ties go to the same
+ * segment as when checking all of them.
  */
 export const CANDIDATE_FRAGMENT = /* glsl */ `${HEADER}
-uniform int uCount;
+uniform highp usampler2D uTiles; // per tile: first entry in uList, entry count
+uniform highp usampler2D uList;  // segment ids, tile after tile, LIST_WIDTH to a row
 out uvec2 candidates;
 
 // Widest a shard can get, CSS px: segments further than this plus REACH are skipped cheaply.
 const float WIDEST = ${WIDEST_SHARD.toFixed(1)};
+const int TILE_CELLS = ${TILE_CELLS};
+const uint LIST_WIDTH = ${LIST_WIDTH}u;
 
 void main() {
-	vec2 centre = vec2(gl_FragCoord.x, uGrid.y - gl_FragCoord.y) * CELL;
+	ivec2 cell = ivec2(gl_FragCoord.x, uGrid.y - gl_FragCoord.y);
+	vec2 centre = (vec2(cell) + 0.5) * CELL;
 	// Pixels read the four cells around them, so allow a cell of slack.
 	float limit = REACH + CELL;
 	vec2 best = vec2(limit); // nearest edge, smallest reach
 	uvec2 ids = uvec2(NONE);
 
-	for (int i = 0; i < uCount; i++) {
-		vec4 ends = texelFetch(uSegments, ivec2(0, i), 0);
+	uvec2 run = texelFetch(uTiles, cell / TILE_CELLS, 0).rg;
+	for (uint entry = run.x; entry < run.x + run.y; entry++) {
+		uint i = texelFetch(uList, ivec2(entry % LIST_WIDTH, entry / LIST_WIDTH), 0).r;
+		vec4 ends = texelFetch(uSegments, ivec2(0, int(i)), 0);
 		float margin = limit + WIDEST;
 		if (any(lessThan(centre, min(ends.xy, ends.zw) - margin)) || any(greaterThan(centre, max(ends.xy, ends.zw) + margin))) continue;
-		Hit hit = measure(uint(i), centre);
+		Hit hit = measure(i, centre);
 		vec2 score = vec2(min(hit.shard, hit.line), reach(hit));
 		bvec2 better = lessThan(score, best);
 		best = mix(best, score, better);
-		ids = uvec2(better.x ? uint(i) : ids.x, better.y ? uint(i) : ids.y);
+		ids = uvec2(better.x ? i : ids.x, better.y ? i : ids.y);
 	}
 	candidates = ids;
 }`;
