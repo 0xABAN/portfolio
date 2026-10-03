@@ -31,8 +31,6 @@ type Props = {
 	maximized?: boolean;
 	frameless?: boolean;
 	onMoveAction: (id: string, x: number, y: number) => void;
-	onTrashAction?: (id: string) => void;
-	onTrashHoverAction?: (hot: boolean) => void;
 	children?: ReactNode;
 };
 

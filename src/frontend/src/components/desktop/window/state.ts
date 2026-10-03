@@ -6,11 +6,16 @@ export function isDecoration(w: DesktopWindow) {
 	return w.kind === "error" || w.id === "new";
 }
 
+/** The z-index just above every window. */
+function nextZ(windows: DesktopWindow[]) {
+	return Math.max(0, ...windows.map((w) => w.z)) + 1;
+}
+
 /** Start and desktop launchers share one create-or-activate path. */
 export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: number): DesktopWindow[] {
 	let next = windows;
 	if (!windows.some((w) => w.id === id)) {
-		const z = Math.max(0, ...windows.map((w) => w.z)) + 1;
+		const z = nextZ(windows);
 		const created = id === "recycle-bin" ? [makeRecycleBinWindow(z, vw, vh)]
 			: id === "bio" ? [makeBioWindow(z, vw, vh)]
 			: id === "word" ? [makeWordWindow(z, vw, vh)]
@@ -23,7 +28,7 @@ export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: num
 }
 
 export function restoreDecorations(windows: DesktopWindow[]): DesktopWindow[] {
-	let z = Math.max(0, ...windows.map((w) => w.z)) + 1;
+	let z = nextZ(windows);
 	return windows.map((w) => isDecoration(w) && w.minimized ? { ...w, minimized: false, launched: true, z: z++ } : w);
 }
 
@@ -48,7 +53,7 @@ export function activateWindow(windows: DesktopWindow[], id: string): DesktopWin
 	const top = Math.max(0, ...windows.filter((w) => w.id !== rootId && w.parentId !== rootId).map((w) => w.z));
 	if (family.every((w) => !w.minimized && w.z > top)) return windows;
 
-	const z = Math.max(0, ...windows.map((w) => w.z)) + 1;
+	const z = nextZ(windows);
 	const ranks = new Map(family.map((w, i) => [w.id, z + i]));
 	return windows.map((w) => ranks.has(w.id) ? { ...w, minimized: false, z: ranks.get(w.id)! } : w);
 }

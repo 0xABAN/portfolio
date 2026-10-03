@@ -1,4 +1,4 @@
-/** ponytail: supports this resume template; use a TeX renderer for arbitrary documents. */
+/** Renders only the LaTeX this resume template uses; arbitrary documents need a real TeX renderer. */
 
 function escapeHtml(text: string) {
 	return text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
@@ -32,6 +32,21 @@ function command(source: string, name: string, at: number) {
 	return after;
 }
 
+/** Formatting commands and the HTML tag for their argument. */
+const STYLE_TAGS: Record<string, string> = { textbf: "b", emph: "i", textit: "i", underline: "u" };
+
+/** Layout commands shown as their last argument, after skipping this many leading ones. */
+const SKIPPED_ARGS: Record<string, number> = { textcolor: 1, raisebox: 1, resizebox: 2 };
+
+/** The first of `names` that starts at `at`, with the index just after it. */
+function commandOf(source: string, names: Record<string, unknown>, at: number) {
+	for (const name of Object.keys(names)) {
+		const after = command(source, name, at);
+		if (after != null) return { name, after };
+	}
+	return null;
+}
+
 function skipOptional(source: string, at: number) {
 	at = skipSpace(source, at);
 	if (source[at] !== "[") return at;
@@ -55,26 +70,22 @@ export function inlineTex(source: string): string {
 			continue;
 		}
 
-		const wrapped =
-			command(source, "textbf", i) ??
-			command(source, "emph", i) ??
-			command(source, "textit", i) ??
-			command(source, "underline", i);
-		if (wrapped != null) {
-			const tag = source.startsWith("\\textbf", i) ? "b" : source.startsWith("\\underline", i) ? "u" : "i";
-			const at = skipSpace(source, wrapped);
-			const [inner, next] = takeBrace(source, at);
+		const style = commandOf(source, STYLE_TAGS, i);
+		if (style) {
+			const tag = STYLE_TAGS[style.name];
+			const [inner, next] = takeBrace(source, skipSpace(source, style.after));
 			out += `<${tag}>${inlineTex(inner)}</${tag}>`;
 			i = next;
 			continue;
 		}
 
-		const color = command(source, "textcolor", i);
-		if (color != null) {
-			let at = skipSpace(source, color);
-			[, at] = takeBrace(source, at);
-			at = skipSpace(source, at);
-			const [inner, next] = takeBrace(source, at);
+		const layout = commandOf(source, SKIPPED_ARGS, i);
+		if (layout) {
+			let at = layout.after;
+			for (let skipped = 0; skipped < SKIPPED_ARGS[layout.name]; skipped++) {
+				at = takeBrace(source, skipSpace(source, at))[1];
+			}
+			const [inner, next] = takeBrace(source, skipSpace(source, at));
 			out += inlineTex(inner);
 			i = next;
 			continue;
@@ -91,30 +102,6 @@ export function inlineTex(source: string): string {
 			out += /^(https?:\/\/|mailto:)/i.test(destination)
 				? `<a href="${escapeHtml(destination)}" target="_blank" rel="noopener noreferrer">${inlineTex(label)}</a>`
 				: inlineTex(label);
-			i = next;
-			continue;
-		}
-
-		const raise = command(source, "raisebox", i);
-		if (raise != null) {
-			let at = skipSpace(source, raise);
-			[, at] = takeBrace(source, at);
-			at = skipSpace(source, at);
-			const [inner, next] = takeBrace(source, at);
-			out += inlineTex(inner);
-			i = next;
-			continue;
-		}
-
-		const resize = command(source, "resizebox", i);
-		if (resize != null) {
-			let at = skipSpace(source, resize);
-			[, at] = takeBrace(source, at);
-			at = skipSpace(source, at);
-			[, at] = takeBrace(source, at);
-			at = skipSpace(source, at);
-			const [inner, next] = takeBrace(source, at);
-			out += inlineTex(inner);
 			i = next;
 			continue;
 		}

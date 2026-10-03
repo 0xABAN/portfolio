@@ -12,7 +12,7 @@ import {
 } from "../paintModel";
 import { bresenhamLine } from "./bresenham";
 
-export type Rgb = readonly [number, number, number];
+type Rgb = readonly [number, number, number];
 
 export type FreehandStyle =
 	| { kind: "pencil"; color: string }

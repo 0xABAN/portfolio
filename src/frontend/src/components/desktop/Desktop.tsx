@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 import { flushSync } from "react-dom";
 import { DESKTOP_REVEAL_WINDOWS } from "./effects/reveal/desktopReveal";
 import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
@@ -10,7 +10,7 @@ import { FractureBackground } from "./effects/fracture/FractureBackground";
 import { BIN_ICON } from "./files/catalog";
 import { ShellProvider, useShell } from "./files/ShellProvider";
 import { itemOf } from "./files/state";
-import { ShellDialogs } from "./apps/recycle-bin/ShellDialogs";
+import { ShellDialogs } from "./shell/ShellDialogs";
 import { DesktopIcons } from "./files/DesktopIcons";
 import { Neko } from "./effects/neko/Neko";
 import { Taskbar } from "./shell/Taskbar";
@@ -28,6 +28,35 @@ import {
 	type DesktopWindow,
 } from "./window/layout";
 import "./desktop.css";
+
+/** Apps that open a shell file; launching fails while that file is deleted. */
+const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", word: "resume", bio: "bio", experience: "experience" };
+
+/** Fake load times, like a slow 90s PC; folders open faster than programs. */
+const FOLDER_LOAD_MS = 500;
+const APP_LOAD_MS = 1500;
+
+/** Windows, the taskbar and dialogs handle their own drops. */
+function isDesktopSurface(target: EventTarget) {
+	return !(target as HTMLElement).closest(".win, .taskbar, dialog");
+}
+
+/** Moves a window to sit just above its taskbar button. */
+function placeAboveTask(id: string, setWindows: Dispatch<SetStateAction<DesktopWindow[]>>) {
+	const task = document.querySelector(`[data-task-id="${id}"]`);
+	const layer = document.querySelector(".desktop__windows");
+	if (!task || !layer) return;
+
+	task.scrollIntoView({ block: "nearest", inline: "nearest" });
+	const anchor = task.getBoundingClientRect();
+	const origin = layer.getBoundingClientRect();
+	// Account for incidental desktop scrolling while keeping the app above its task.
+	flushSync(() => setWindows((current) => current.map((w) => w.id === id ? {
+		...w,
+		x: Math.max(4, Math.min(anchor.left, window.innerWidth - w.w - 4)) - origin.left,
+		y: Math.max(0, anchor.top - w.h - 4) - origin.top,
+	} : w)));
+}
 
 export function Desktop() {
 	return <ShellProvider><DesktopWorkspace /></ShellProvider>;
@@ -141,21 +170,8 @@ function DesktopWorkspace() {
 			const root = document.getElementById(`desktop-window-${id}`);
 			// Typing or another activation can win before this scheduled focus runs.
 			if (!root || root.dataset.active !== "true" || root.hasAttribute("inert")) return;
-			if (id === "cd-player" && !cdDragged.current) {
-				const task = document.querySelector(`[data-task-id="${id}"]`);
-				const layer = document.querySelector(".desktop__windows");
-				if (task && layer) {
-					task.scrollIntoView({ block: "nearest", inline: "nearest" });
-					const anchor = task.getBoundingClientRect();
-					const origin = layer.getBoundingClientRect();
-					// Account for incidental desktop scrolling while keeping the app above its task.
-					flushSync(() => setWindows((current) => current.map((w) => w.id === id ? {
-						...w,
-						x: Math.max(4, Math.min(anchor.left, window.innerWidth - w.w - 4)) - origin.left,
-						y: Math.max(0, anchor.top - w.h - 4) - origin.top,
-					} : w)));
-				}
-			}
+			// Until the user moves it, the CD Player opens above its task button.
+			if (id === "cd-player" && !cdDragged.current) placeAboveTask(id, setWindows);
 			// Only explicit launches/restores may move keyboard focus.
 			root.focus({ preventScroll: true });
 			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
@@ -170,18 +186,21 @@ function DesktopWorkspace() {
 	/** All launchers share the wait; taskbar restores deliberately bypass it. */
 	const launchApp = useCallback((id: AppId, sourceId?: string) => {
 		if (launchTimer.current !== null) return;
-		const catalogId = id === "explorer" ? "secrets" : id === "word" ? "resume" : id === "bio" || id === "experience" ? id : undefined;
-		const required = sourceId ?? (catalogId ? getSnapshot().state.nodes.find((node) => node.catalogId === catalogId)?.id : undefined);
-		if (catalogId && !required || required && required !== "desktop" && !getSnapshot().state.nodes.some((node) => node.id === required)) {
+		const nodes = () => getSnapshot().state.nodes;
+		const catalogId = APP_FILES[id];
+		const required = sourceId ?? (catalogId ? nodes().find((node) => node.catalogId === catalogId)?.id : undefined);
+		// The desktop always exists; any other source can be deleted, even mid-launch.
+		const missing = () => required !== undefined && required !== "desktop" && !nodes().some((node) => node.id === required);
+
+		if ((catalogId && !required) || missing()) {
 			notice("The file or folder could not be found. Restore it from the Recycle Bin before opening it.", "File not found");
 			return;
 		}
 		if (id === "explorer") setExplorerFolder(required ?? "desktop");
 		setBusy(true);
-		// ponytail: fixed fake load delay — tune if it feels too snappy/slow
 		launchTimer.current = window.setTimeout(() => {
 			launchTimer.current = null;
-			if (required && required !== "desktop" && !getSnapshot().state.nodes.some((node) => node.id === required)) {
+			if (missing()) {
 				setBusy(false);
 				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "File not found");
 				return;
@@ -191,7 +210,7 @@ function DesktopWorkspace() {
 			setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
 			setBusy(false);
 			focusWindow(id);
-		}, id === "explorer" || id === "recycle-bin" ? 500 : 1500);
+		}, id === "explorer" || id === "recycle-bin" ? FOLDER_LOAD_MS : APP_LOAD_MS);
 	}, [focusWindow, getSnapshot, notice]);
 
 	const openShell = useCallback((id: string) => {
@@ -223,7 +242,7 @@ function DesktopWorkspace() {
 				);
 			}
 
-			const next = clampWindowPos(x, y, target.w);
+			const next = clampWindowPos(x, y, target.w, window.innerWidth, window.innerHeight);
 			const dx = next.x - target.x;
 			const dy = next.y - target.y;
 			if (dx === 0 && dy === 0) return prev;
@@ -289,11 +308,10 @@ function DesktopWorkspace() {
 	return (
 		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
 			onDragOver={(event) => {
-				if ((event.target as HTMLElement).closest(".win, .taskbar, dialog")) return;
-				if (shell.canDrop(event, "desktop")) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }
+				if (isDesktopSurface(event.target) && shell.canDrop(event, "desktop")) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }
 			}}
 			onDrop={(event) => {
-				if (!(event.target as HTMLElement).closest(".win, .taskbar, dialog")) shell.drop(event, "desktop");
+				if (isDesktopSurface(event.target)) shell.drop(event, "desktop");
 			}}>
 
 			<FractureBackground active={revealed.has("fracture")} />

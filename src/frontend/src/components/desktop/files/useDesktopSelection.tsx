@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
-import { ShellMenu, menuPosition, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
+import { ShellMenu, keyboardMenuPosition, menuPosition, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
 import { useShell } from "./ShellProvider";
 
 /** Desktop layout is owned by Desktop; this hook only owns shell selection/actions. */
@@ -9,12 +9,13 @@ export function useDesktopSelection(icons: { id: string; label: string }[], open
 	const shell = useShell();
 	const selection = useShellSelection(icons.map((icon) => icon.id), icons.map((icon) => icon.label));
 	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
+	const binOnly = (ids: string[]) => ids.length === 1 && ids[0] === "recycle-bin";
 	function properties(ids: string[]) {
-		if (ids.length === 1 && ids[0] === "recycle-bin") shell.properties();
+		if (binOnly(ids)) shell.properties();
 		else shell.itemProperties(ids.filter((id) => id !== "recycle-bin"));
 	}
 	function commands(ids: string[]): MenuCommand[] {
-		if (ids.length === 1 && ids[0] === "recycle-bin") return [
+		if (binOnly(ids)) return [
 			{ label: "Open", action: () => open("recycle-bin") },
 			{ label: "Empty Recycle Bin", disabled: !shell.state.entries.length, action: shell.empty }, "separator",
 			{ label: "Properties", action: shell.properties },
@@ -38,11 +39,8 @@ export function useDesktopSelection(icons: { id: string; label: string }[], open
 			if (event.altKey) properties(ids);
 			else if (ids.length === 1) open(ids[0]);
 		} else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); shell.undo(); }
-		else if (event.shiftKey && event.key === "F10") {
-			event.preventDefault();
-			const rect = (event.target as HTMLElement).getBoundingClientRect();
-			setContext({ position: { x: rect.left, y: rect.bottom }, ids });
-		} else selection.onKeyDown(event);
+		else if (event.shiftKey && event.key === "F10") setContext({ position: keyboardMenuPosition(event), ids });
+		else selection.onKeyDown(event);
 	}
 	function onContextMenu(event: MouseEvent<HTMLElement>, id?: string) {
 		event.stopPropagation();

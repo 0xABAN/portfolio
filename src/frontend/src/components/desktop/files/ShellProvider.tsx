@@ -8,7 +8,7 @@ import {
 } from "./state";
 
 export type ShellSnapshot = { state: ShellState; raw: string | null; error?: string };
-export type ShellDialog =
+type ShellDialog =
 	| { kind: "message"; title: string; message: string; accept?: () => void }
 	| { kind: "settings"; snapshot: ShellSnapshot }
 	| { kind: "items"; nodes?: string[]; entries?: number[]; state: ShellState };
@@ -45,8 +45,7 @@ function useShellController() {
 			const loaded = loadSnapshot();
 			// A damaged cross-tab update must not replace the last good desktop.
 			const next = loaded.error ? { ...loaded, state: current.current.state } : loaded;
-			current.current = next;
-			setSnapshot(next);
+			publish(next);
 			setUndoIds([]);
 			if (next.error) setDialog({ kind: "message", title: "Desktop storage", message: next.error });
 		};

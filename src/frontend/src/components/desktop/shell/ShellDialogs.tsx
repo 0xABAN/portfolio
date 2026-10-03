@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { binBytes, DRIVE_BYTES, SYSTEM_BYTES, ancestorsOf, entryRoot, itemOf, nodeBytes, originalLocation, subtree, type BinSettings } from "../../files/state";
-import { BIN_ICON, DESKTOP_PATH, formatBytes } from "../../files/catalog";
-import { ShellDialogFrame } from "../../shell/ShellControls";
-import { useShell, type ShellSnapshot } from "../../files/ShellProvider";
+import { DRIVE_BYTES, SYSTEM_BYTES, ancestorsOf, entryBytes, entryRoot, itemOf, nodeBytes, originalLocation, reservedBytes, shellPath, subtree, type BinSettings } from "../files/state";
+import { BIN_ICON, formatBytes } from "../files/catalog";
+import { useShell, type ShellSnapshot } from "../files/ShellProvider";
+import { ShellDialogFrame } from "./ShellControls";
+import "./dialogs.css";
 
 function BinProperties({ snapshot }: { snapshot: ShellSnapshot }) {
 	const shell = useShell();
@@ -43,14 +44,14 @@ function BinProperties({ snapshot }: { snapshot: ShellSnapshot }) {
 					<label><input type="radio" name="bin-mode" checked={!draft.independent} onChange={() => setDraft({ ...draft, independent: false })} /> Use one setting for all drives</label>
 				</fieldset> : <dl className="shell-details">
 					<dt>Disk space:</dt><dd>{formatBytes(DRIVE_BYTES)}</dd>
-					<dt>Free space:</dt><dd>{formatBytes(DRIVE_BYTES - SYSTEM_BYTES - nodeBytes(base.state.nodes) - binBytes(base.state))}</dd>
+					<dt>Free space:</dt><dd>{formatBytes(DRIVE_BYTES - SYSTEM_BYTES - nodeBytes(base.state.nodes) - entryBytes(base.state.entries))}</dd>
 				</dl>}
 				<fieldset disabled={!enabled} className="shell-properties__drive"><legend className="shell-sr-only">Recycle Bin settings</legend>
 					<label><input type="checkbox" checked={effective.bypass} onChange={(event) => updateDrive({ bypass: event.target.checked })} /> Do not move files to the Recycle Bin. Remove files immediately on delete.</label>
 					<label className="shell-properties__size" htmlFor="bin-size">Maximum size of Recycle Bin: {effective.percent}%</label>
 					<input id="bin-size" type="range" min={0} max={100} step={1} disabled={effective.bypass} value={effective.percent} onChange={(event) => updateDrive({ percent: Number(event.target.value) })} />
 					<div className="shell-properties__scale"><span>0%</span><span>100%</span></div>
-					<p>{formatBytes(Math.floor(DRIVE_BYTES * effective.percent / 100))} reserved on C:</p>
+					<p>{formatBytes(reservedBytes(effective.percent))} reserved on C:</p>
 				</fieldset>
 				{tab === "global" && <label><input type="checkbox" checked={draft.confirm} onChange={(event) => setDraft({ ...draft, confirm: event.target.checked })} /> Display delete confirmation dialog</label>}
 				<p className="shell-properties__note">C: is a simulated 32 MB drive. Sizes do not describe your device. Lower limits take effect when another item is recycled.</p>
@@ -83,8 +84,8 @@ export function ShellDialogs() {
 	if (!root) return null;
 	const count = entries.length || nodes.length;
 	const item = itemOf(root);
-	const bytes = entries.length ? entries.reduce((sum, entry) => sum + nodeBytes(entry.nodes), 0) : nodeBytes([...new Map(nodes.flatMap((node) => subtree(dialog.state.nodes, node.id)).map((node) => [node.id, node])).values()]);
-	const location = entries.length ? originalLocation(entries[0]) : [DESKTOP_PATH, ...ancestorsOf(dialog.state.nodes, root).map((node) => itemOf(node).name)].join("\\");
+	const bytes = entries.length ? entryBytes(entries) : nodeBytes([...new Map(nodes.flatMap((node) => subtree(dialog.state.nodes, node.id)).map((node) => [node.id, node])).values()]);
+	const location = entries.length ? originalLocation(entries[0]) : shellPath(ancestorsOf(dialog.state.nodes, root));
 	return <ShellDialogFrame title={`${count === 1 ? item.name : `${count} items`} Properties`} onClose={shell.closeDialog}>
 		<div className="shell-properties">
 			<div className="shell-tabs"><span>General</span></div>

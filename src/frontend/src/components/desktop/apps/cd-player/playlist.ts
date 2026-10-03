@@ -1,8 +1,8 @@
-/** CD Player queue — SoundCloud permalinks, plus unmapped placeholders. */
+/** CD Player queue of SoundCloud permalinks. */
 
 export type Track = {
-	/** SoundCloud permalink; null means no playable source. */
-	src: string | null;
+	/** SoundCloud permalink. */
+	src: string;
 	title: string;
 	artist: string;
 	cover: string;
@@ -125,9 +125,7 @@ export function wrapIndex(i: number): number {
 }
 
 export function trackAt(i: number): Track {
-	const t = PLAYLIST[wrapIndex(i)];
-	if (!t) throw new Error("playlist is empty");
-	return t;
+	return PLAYLIST[wrapIndex(i)];
 }
 
 export function formatElapsed(sec: number) {
@@ -136,25 +134,10 @@ export function formatElapsed(sec: number) {
 	return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 }
 
-function playableIndexes(): number[] {
-	return PLAYLIST.flatMap((track, i) => (track.src ? [i] : []));
-}
-
-/** Next mapped track, wrapping. */
-export function skipUnmapped(from: number): number {
-	const n = PLAYLIST.length;
-	for (let step = 1; step <= n; step++) {
-		const i = wrapIndex(from + step);
-		if (PLAYLIST[i]?.src) return i;
-	}
-	return wrapIndex(from);
-}
-
-/** Random mapped index; avoids immediate repeat when possible. */
+/** Random track index; avoids an immediate repeat when there is another track. */
 export function randomTrackIndex(except?: number) {
-	const playable = playableIndexes();
-	const pool = playable.filter((i) => i !== except);
-	const pick = pool.length ? pool : playable;
-	if (pick.length === 0) return 0;
-	return pick[Math.floor(Math.random() * pick.length)] ?? 0;
+	const all = [...PLAYLIST.keys()];
+	const others = all.filter((i) => i !== except);
+	const pool = others.length ? others : all;
+	return pool[Math.floor(Math.random() * pool.length)];
 }

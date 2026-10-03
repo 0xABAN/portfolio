@@ -32,6 +32,10 @@ type Stroke = {
 	style: FreehandStyle;
 };
 
+function isLoaded(img: HTMLImageElement | null): img is HTMLImageElement {
+	return Boolean(img && img.complete && img.naturalWidth > 0);
+}
+
 function canvasPoint(
 	canvas: HTMLCanvasElement,
 	clientX: number,
@@ -67,6 +71,7 @@ export function usePaintCanvas({
 	const readyRef = useRef(false);
 	const lastCoords = useRef<Coords | null>(null);
 	const rectRef = useRef<DOMRect | null>(null);
+	// Props are immutable to the React lint rules; writing the status text goes through an owned ref.
 	const coordsElRef = useRef(coordsEl);
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
@@ -109,7 +114,7 @@ export function usePaintCanvas({
 
 		function paintBase(ctx: CanvasRenderingContext2D, w: number, h: number) {
 			const img = imgRef.current;
-			if (img && img.complete && img.naturalWidth > 0) {
+			if (isLoaded(img)) {
 				ctx.drawImage(img, 0, 0, w, h);
 			} else {
 				ctx.fillStyle = "#ffffff";
@@ -122,7 +127,7 @@ export function usePaintCanvas({
 			rectRef.current = canvas.getBoundingClientRect();
 			const w = Math.max(1, Math.round(wrap.clientWidth));
 			const h = Math.max(1, Math.round(wrap.clientHeight));
-			// ponytail: keep initial resolution; use a document-sized bitmap if zoom quality matters.
+			// Keep the first bitmap: resizing it would erase the drawing and its undo history.
 			if (readyRef.current && canvas.width > 1 && canvas.height > 1) {
 				return;
 			}
@@ -137,8 +142,7 @@ export function usePaintCanvas({
 			strokeRef.current = null;
 			lastCoords.current = null;
 
-			const img = imgRef.current;
-			if (img && img.complete && img.naturalWidth > 0) {
+			if (isLoaded(imgRef.current)) {
 				paintBase(ctx, w, h);
 				readyRef.current = true;
 			} else {
@@ -171,7 +175,7 @@ export function usePaintCanvas({
 			finishLoad();
 		};
 		img.src = src;
-		if (img.complete && img.naturalWidth > 0) {
+		if (isLoaded(img)) {
 			finishLoad();
 		} else {
 			syncSize();

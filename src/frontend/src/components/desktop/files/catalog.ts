@@ -1,10 +1,12 @@
 import type { AppId } from "../window/state";
-import { GITHUB_URL } from "../window/layout";
+
+export const GITHUB_USER = "0xABAN";
+export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
 
 const DOCUMENTS = [
-	{ id: "bio", name: "bio.txt", icon: "/icons/notepad.svg", action: "bio" },
-	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", action: "word" },
-	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", action: "experience" },
+	{ id: "bio", name: "bio.txt", icon: "/icons/notepad.svg", open: "bio", type: "Text Document", bytes: 4096 },
+	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", open: "word", type: "Microsoft Word Document", bytes: 768 * 1024 },
+	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application", bytes: 512 * 1024 },
 ] as const;
 
 export type DeskIcon = {
@@ -47,19 +49,17 @@ export type ShellItem = {
 
 /** Logical sizes belong to the simulated C: drive, not network asset sizes. */
 export const SHELL_ITEMS: readonly ShellItem[] = [
-	...DESK_ICONS.map((icon): ShellItem => ({
-		id: icon.id, name: icon.label, icon: icon.src,
-		kind: icon.id === "secrets" ? "folder" : "shortcut",
-		type: icon.id === "secrets" ? "File Folder" : "Shortcut",
-		bytes: icon.id === "secrets" ? 0 : 1024,
-		open: icon.open, href: icon.href,
-	})),
-	...DOCUMENTS.map((file): ShellItem => ({
-		id: file.id, name: file.name, icon: file.icon, kind: "file",
-		type: file.id === "bio" ? "Text Document" : file.id === "resume" ? "Microsoft Word Document" : "Application",
-		bytes: file.id === "bio" ? 4096 : file.id === "resume" ? 768 * 1024 : 512 * 1024,
-		open: file.action,
-	})),
+	...DESK_ICONS.map((icon): ShellItem => {
+		const folder = icon.id === "secrets";
+		return {
+			id: icon.id, name: icon.label, icon: icon.src,
+			kind: folder ? "folder" : "shortcut",
+			type: folder ? "File Folder" : "Shortcut",
+			bytes: folder ? 0 : 1024,
+			open: icon.open, href: icon.href,
+		};
+	}),
+	...DOCUMENTS.map((file): ShellItem => ({ ...file, kind: "file" })),
 ];
 
 export const ITEM_BY_ID = new Map(SHELL_ITEMS.map((item) => [item.id, item]));

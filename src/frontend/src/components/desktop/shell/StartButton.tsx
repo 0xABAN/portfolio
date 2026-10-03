@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { AppId } from "../window/state";
 import "./start-menu.css";
 
@@ -63,6 +63,11 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, onRese
 		} else if (event.key === "Tab") {
 			menu.current?.hidePopover();
 		}
+	}
+
+	/** Hovering a plain item closes any open submenu, as in Win95. */
+	function closeGroupOnHover(event: PointerEvent<HTMLElement>) {
+		if (event.pointerType === "mouse") setGroup(null);
 	}
 
 	function run(action: () => void) {
@@ -134,15 +139,15 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, onRese
 					))}
 					<hr />
 					<button type="button" role="menuitem" aria-label="Restore desktop decorations" disabled={!canRestoreDecorations}
-						onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }} onClick={() => run(onRestoreDecorationsAction)}>
+						onPointerMove={closeGroupOnHover} onClick={() => run(onRestoreDecorationsAction)}>
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
 					</button>
-					<button type="button" role="menuitem" onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }} onClick={() => run(onResetAction)}>
+					<button type="button" role="menuitem" onPointerMove={closeGroupOnHover} onClick={() => run(onResetAction)}>
 						<span className="start-menu__arrow" aria-hidden="true" /><span>Reset portfolio</span>
 					</button>
 					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"
-						onPointerMove={(event) => { if (event.pointerType === "mouse") setGroup(null); }}
+						onPointerMove={closeGroupOnHover}
 						onClick={() => menu.current?.hidePopover()}>
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/notepad.svg" alt="" width={32} height={32} /><span>Font credits</span>

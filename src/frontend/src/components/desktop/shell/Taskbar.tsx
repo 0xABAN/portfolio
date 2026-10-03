@@ -75,8 +75,8 @@ type Props = {
 	onRestoreDecorationsAction: () => void;
 	onResetAction: () => void;
 	canRestoreDecorations: boolean;
-	/** Boot trickle — when set, chrome pieces appear only if id is in the set. */
-	revealed?: ReadonlySet<string>;
+	/** Boot trickle: chrome pieces appear once their id is in the set. */
+	revealed: ReadonlySet<string>;
 };
 
 /** Only the task strip scrolls; Start and the tray remain reachable. */
@@ -158,7 +158,7 @@ export function Taskbar({
 	canRestoreDecorations,
 	revealed,
 }: Props) {
-	const show = (id: string) => !revealed || revealed.has(id);
+	const show = (id: string) => revealed.has(id);
 	const [clock, setClock] = useState(() => formatClock(new Date()));
 	const views = useViewCount();
 

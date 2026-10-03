@@ -1,3 +1,20 @@
+/* Recreated MS Sans Serif by lou, CC BY-SA 3.0; see /fonts/win95-ui-LICENSE.txt. */
+@font-face {
+	font-family: "Win95 UI";
+	src: url("/fonts/win95-ui.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Win95 UI";
+	src: url("/fonts/win95-ui-bold.woff2") format("woff2");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
 @font-face {
 	font-family: "Rose Tinted";
 	src: url("/fonts/rose-tinted-bolditalic.woff2") format("woff2");

@@ -13,6 +13,9 @@ const ICONS = [
 ] as const;
 type Icon = typeof ICONS[number];
 const MENUS = ["File", "Edit", "View", "Insert", "Format", "Tools", "Table", "Window", "Help"] as const;
+const ZOOM_LEVELS = [50, 75, 100, 125, 150, 200];
+/** Letter paper is 11in tall, at 96 CSS px per inch. */
+const PAGE_PX = 11 * 96;
 
 function WordIcon({ name }: { name: Icon }) {
 	return <span className="word__glyph" aria-hidden="true" style={{ backgroundPositionX: -16 * ICONS.indexOf(name) }} />;
@@ -41,7 +44,7 @@ export function Word({ onCloseAction, onMinimizeAction, onNoticeAction }: Props)
 	const [zoom, setZoom] = useState(100);
 	const [status, setStatus] = useState({ page: 1, total: 1 });
 	const scroll = useRef<HTMLDivElement>(null);
-	const document = useRef<HTMLElement>(null);
+	const page = useRef<HTMLElement>(null);
 	const html = useMemo(() => resumeToPage(source), [source]);
 
 	useEffect(() => {
@@ -60,14 +63,14 @@ export function Word({ onCloseAction, onMinimizeAction, onNoticeAction }: Props)
 	}, []);
 
 	const updateStatus = useCallback(() => {
-		if (!scroll.current || !document.current) return;
-		const total = Math.max(1, Math.ceil(document.current.scrollHeight / 1056));
-		const page = Math.min(total, 1 + Math.floor(scroll.current.scrollTop / (1056 * zoom / 100)));
-		setStatus((old) => old.page === page && old.total === total ? old : { page, total });
+		if (!scroll.current || !page.current) return;
+		const total = Math.max(1, Math.ceil(page.current.scrollHeight / PAGE_PX));
+		const current = Math.min(total, 1 + Math.floor(scroll.current.scrollTop / (PAGE_PX * zoom / 100)));
+		setStatus((old) => old.page === current && old.total === total ? old : { page: current, total });
 	}, [zoom]);
 
 	useEffect(() => {
-		const element = document.current;
+		const element = page.current;
 		if (!element) return;
 		const observer = new ResizeObserver(updateStatus);
 		observer.observe(element);
@@ -76,20 +79,20 @@ export function Word({ onCloseAction, onMinimizeAction, onNoticeAction }: Props)
 
 	function saveSource() {
 		const url = URL.createObjectURL(new Blob([source], { type: "text/plain;charset=utf-8" }));
-		const link = window.document.createElement("a");
+		const link = document.createElement("a");
 		link.href = url;
 		link.download = "Adam_Torres_Encarnacion_Resume.tex";
 		link.click();
 		setTimeout(() => URL.revokeObjectURL(url), 1000);
 	}
 
-	const focusDocument = useCallback(() => document.current?.focus(), []);
+	const focusDocument = useCallback(() => page.current?.focus(), []);
 	const openSource = () => window.open("/api/resume", "_blank", "noopener,noreferrer");
 	const help = () => onNoticeAction("This read-only resume is loaded from its live GitHub source. Use the zoom box to change its size, Open to view the source, or Save to download the original LaTeX. Editing commands are unavailable.", "Microsoft Word");
 	const menus: Record<string, MenuCommand[]> = {
 		File: [{ label: "Open Source…", action: openSource }, { label: "Save Source As…", disabled: !source, action: saveSource }, "separator", { label: "Close", action: onCloseAction }],
 		Edit: readOnlyCommands("Undo", "Cut", "Copy", "Paste"),
-		View: [50, 75, 100, 125, 150, 200].map((value) => ({ label: `${value}%`, checked: zoom === value, radio: true, action: () => setZoom(value) })),
+		View: ZOOM_LEVELS.map((value) => ({ label: `${value}%`, checked: zoom === value, radio: true, action: () => setZoom(value) })),
 		Insert: readOnlyCommands("Break…", "Page Numbers…", "Picture…"),
 		Format: readOnlyCommands("Font…", "Paragraph…", "Style…"),
 		Tools: readOnlyCommands("Spelling…", "Thesaurus…"),
@@ -120,7 +123,7 @@ export function Word({ onCloseAction, onMinimizeAction, onNoticeAction }: Props)
 			<Tool icon="autotext" label="AutoText" /><Tool icon="book" label="AutoFormat" /><Tool icon="table" label="Insert Table" /><Tool icon="draw-table" label="Spreadsheet" />
 			<Tool icon="columns" label="Columns" /><Tool icon="drawing" label="Drawing" /><Tool icon="paragraph" label="Show Paragraph Marks" />
 			<select className="word__zoom" aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
-				{[50, 75, 100, 125, 150, 200].map((value) => <option key={value} value={value}>{value}%</option>)}
+				{ZOOM_LEVELS.map((value) => <option key={value} value={value}>{value}%</option>)}
 			</select>
 			<Tool icon="tip" label="Tip of the Day" onClick={help} /><Tool icon="help" label="Help" onClick={help} />
 		</div>
@@ -139,7 +142,7 @@ export function Word({ onCloseAction, onMinimizeAction, onNoticeAction }: Props)
 			<div className="word__ruler"><span className="word__indent word__indent--left" />{[1, 2, 3, 4, 5, 6, 7].map((inch) => <span className="word__inch" key={inch} style={{ left: `${inch * 96}px` }}>{inch}</span>)}<span className="word__indent word__indent--right" /></div>
 		</div>
 		<div ref={scroll} className="word__scroll" onScroll={updateStatus} aria-busy={!source && !error}>
-			<article ref={document} className="word__page" aria-label="Resume document" data-window-focus="" tabIndex={0} style={{ zoom: zoom / 100 }}>
+			<article ref={page} className="word__page" aria-label="Resume document" data-window-focus="" tabIndex={0} style={{ zoom: zoom / 100 }}>
 				{source ? <div dangerouslySetInnerHTML={{ __html: html }} /> : <p className="word__contact" role="status">{error ? "Could not load resume from GitHub. Close and reopen this window to retry." : "Opening resume.doc…"}</p>}
 			</article>
 		</div>

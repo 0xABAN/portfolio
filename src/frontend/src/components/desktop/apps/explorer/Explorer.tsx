@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { ancestorsOf, itemOf, nodeBytes } from "../../files/state";
-import { DESKTOP_PATH, formatBytes } from "../../files/catalog";
-import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
+import { ancestorsOf, itemOf, nodeBytes, shellPath } from "../../files/state";
+import { formatBytes } from "../../files/catalog";
+import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
 import { useShell } from "../../files/ShellProvider";
 
 type Props = {
@@ -18,7 +18,7 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 	const files = missing ? [] : shell.state.nodes.filter((node) => node.parentId === folderId);
 	const selection = useShellSelection(files.map((node) => node.id), files.map((node) => itemOf(node).name));
 	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
-	const path = folder ? [DESKTOP_PATH, ...ancestorsOf(shell.state.nodes, folder).map((node) => itemOf(node).name), itemOf(folder).name].join("\\") : DESKTOP_PATH;
+	const path = shellPath(folder ? [...ancestorsOf(shell.state.nodes, folder), folder] : []);
 	const selected = selection.selected;
 	const up = () => onOpenAction(folder?.parentId ?? "desktop");
 
@@ -39,11 +39,8 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 			else if (selected.length === 1) onOpenAction(selected[0]);
 		} else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); shell.undo(); }
 		else if (event.key === "Backspace") { event.preventDefault(); up(); }
-		else if (event.shiftKey && event.key === "F10") {
-			event.preventDefault();
-			const rect = (event.target as HTMLElement).getBoundingClientRect();
-			setContext({ position: { x: rect.left, y: rect.bottom }, ids: selected });
-		} else selection.onKeyDown(event);
+		else if (event.shiftKey && event.key === "F10") setContext({ position: keyboardMenuPosition(event), ids: selected });
+		else selection.onKeyDown(event);
 	}
 
 	return <div className="shell-browser" aria-label="File explorer" data-shell-surface="" onKeyDown={onKey}>

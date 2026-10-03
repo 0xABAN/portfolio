@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-	formatElapsed,
-	randomTrackIndex,
-	skipUnmapped,
-	trackAt,
-	wrapIndex,
-} from "./playlist";
+import { formatElapsed, randomTrackIndex, trackAt, wrapIndex } from "./playlist";
 
 /**
  * Shared transport survives minimization and Strict Mode; only Quit unloads it.
@@ -177,11 +171,11 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 				wantPlaying = false;
 				return;
 			}
-			loadTrack(skipUnmapped(sharedTrackIdx), true);
+			loadTrack(sharedTrackIdx + 1);
 		}
 	});
 	widget.bind(events.FINISH, () => {
-		if (mediaStarted) loadTrack(randomTrackIndex(sharedTrackIdx), true);
+		if (mediaStarted) loadTrack(randomTrackIndex(sharedTrackIdx));
 	});
 	widget.bind(events.PLAY_PROGRESS, (data) => {
 		const sec = Math.floor((data?.currentPosition ?? 0) / 1000);
@@ -191,7 +185,7 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 	});
 	if (events.ERROR) {
 		widget.bind(events.ERROR, () => {
-			if (mediaStarted) loadTrack(skipUnmapped(sharedTrackIdx), true);
+			if (mediaStarted) loadTrack(sharedTrackIdx + 1);
 		});
 	}
 }
@@ -203,9 +197,9 @@ function ensureWidget(): Promise<ScWidget> {
 		const api = await loadApi();
 		const iframe = document.createElement("iframe");
 		hideIframe(iframe);
-		const first = trackAt(sharedTrackIdx).src;
 		// Widget() reads iframe.src; a blank frame throws. Tests stub SC without api.js.
-		if (first && livePlayer()) {
+		if (livePlayer()) {
+			const first = trackAt(sharedTrackIdx).src;
 			iframe.src = widgetSrc(first);
 			transport.src = first;
 			transport.readyState = 2;
@@ -226,14 +220,10 @@ function ensureWidget(): Promise<ScWidget> {
 async function startPlayback(): Promise<void> {
 	const gen = loadGen;
 	const track = trackAt(sharedTrackIdx);
-	if (!track.src) {
-		loadTrack(skipUnmapped(sharedTrackIdx), true);
-		return;
-	}
 	await ensureWidget();
 	if (gen !== loadGen) return;
 	if (transport.src !== track.src) {
-		loadTrack(sharedTrackIdx, true);
+		loadTrack(sharedTrackIdx);
 		return;
 	}
 	await whenWidgetReady();
@@ -264,13 +254,14 @@ function writeElapsed(sec: number) {
 function bindElapsed(node: HTMLElement | null) {
 	if (!node) return undefined;
 	elapsedNodes.add(node);
-	node.textContent = formatElapsed(Math.floor(transport.currentTime || 0));
+	node.textContent = formatElapsed(transport.currentTime);
 	return () => {
 		elapsedNodes.delete(node);
 	};
 }
 
-function loadTrack(idx: number, play: boolean) {
+/** Switches to a track and plays it once the widget has loaded it. */
+function loadTrack(idx: number) {
 	const next = wrapIndex(idx);
 	const track = trackAt(next);
 	const gen = ++loadGen;
@@ -280,30 +271,19 @@ function loadTrack(idx: number, play: boolean) {
 	lastElapsedSec = -1;
 	writeElapsed(0);
 	transport.currentTime = 0;
-	transport.src = track.src ?? "";
-	transport.readyState = track.src ? 2 : 0;
-
-	if (!track.src) {
-		sharedWidget?.pause();
-		transport.paused = true;
-		setPlayingBridge?.(false);
-		if (play) {
-			const mapped = skipUnmapped(next);
-			if (mapped !== next) loadTrack(mapped, true);
-		}
-		return;
-	}
+	transport.src = track.src;
+	transport.readyState = 2;
 
 	void ensureWidget().then((widget) => {
 		if (gen !== loadGen) return;
 		widgetReady = false;
-		widget.load(track.src!, {
+		widget.load(track.src, {
 			auto_play: false,
 			callback() {
 				if (gen !== loadGen) return;
 				transport.readyState = 4;
 				markReady();
-				if (play) void startPlayback();
+				void startPlayback();
 			},
 		});
 	});
@@ -320,7 +300,7 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 		setTrackIdxBridge = setTrackIdx;
 		setPlayingBridge = setPlaying;
 		void ensureWidget();
-		if (mediaStarted) writeElapsed(Math.floor(transport.currentTime || 0));
+		if (mediaStarted) writeElapsed(transport.currentTime);
 
 		const retryPlayback = () => {
 			if (autoplayBlocked && !transport.muted) void startPlayback();
@@ -384,10 +364,6 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 				setPlaying(false);
 				return;
 			}
-			if (!trackAt(trackIdx).src) {
-				loadTrack(skipUnmapped(trackIdx), true);
-				return;
-			}
 			transport.muted = false;
 			setMuted(false);
 			applyVolume();
@@ -447,8 +423,8 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 			bindElapsed,
 			toggleMute,
 			togglePlay,
-			playPrev: () => loadTrack(trackIdx - 1, Boolean(trackAt(trackIdx - 1).src)),
-			playNext: () => loadTrack(trackIdx + 1, Boolean(trackAt(trackIdx + 1).src)),
+			playPrev: () => loadTrack(trackIdx - 1),
+			playNext: () => loadTrack(trackIdx + 1),
 			stop,
 			quit,
 			setVolume,

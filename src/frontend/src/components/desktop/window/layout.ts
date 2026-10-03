@@ -1,6 +1,3 @@
-export const GITHUB_USER = "0xABAN";
-export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
-
 export type DesktopWindow = {
 	id: string;
 	title: string;
@@ -61,41 +58,22 @@ const ALT_FACE_IN_BOX_Y = 0.7;
 
 type Rect = Pick<DesktopWindow, "x" | "y" | "w" | "h">;
 
-function viewport(vw?: number, vh?: number) {
-	if (vw != null && vh != null) return { vw, vh };
-	if (typeof window !== "undefined") {
-		return { vw: window.innerWidth, vh: window.innerHeight };
-	}
-	return { vw: 1440, vh: 900 };
-}
-
-function layoutCentered(w: number, h: number, vw?: number, vh?: number): Rect {
-	const { vw: W, vh: H } = viewport(vw, vh);
+function layoutCentered(w: number, h: number, vw: number, vh: number): Rect {
 	return {
 		w,
 		h,
-		x: Math.round((W - w) / 2),
-		y: Math.round((H - TASKBAR_H - h) / 2),
-	};
-}
-
-function paintCanvasSize(parent: Pick<DesktopWindow, "w" | "h">) {
-	return {
-		w: parent.w - CHROME_X - PAINT_INNER_X,
-		h: parent.h - CHROME_Y - PAINT_INNER_Y - PAINT_INNER_BOTTOM,
-		insetX: PAINT_INNER_X,
-		insetY: PAINT_INNER_Y,
+		x: Math.round((vw - w) / 2),
+		y: Math.round((vh - TASKBAR_H - h) / 2),
 	};
 }
 
 /** Desktop-space rect of the Paint image (canvas), not the whole adam window. */
-export function paintImageBounds(parent: Rect): Rect {
-	const { w, h, insetX, insetY } = paintCanvasSize(parent);
+function paintImageBounds(parent: Rect): Rect {
 	return {
-		x: parent.x + FRAME_X + insetX,
-		y: parent.y + FRAME_Y + insetY,
-		w,
-		h,
+		x: parent.x + FRAME_X + PAINT_INNER_X,
+		y: parent.y + FRAME_Y + PAINT_INNER_Y,
+		w: parent.w - CHROME_X - PAINT_INNER_X,
+		h: parent.h - CHROME_Y - PAINT_INNER_Y - PAINT_INNER_BOTTOM,
 	};
 }
 
@@ -178,7 +156,7 @@ const ERR_COUNT = 5;
 const ERR_STEP_X = 24;
 const ERR_WAVE_Y = 36;
 /** Gap past Paint’s right edge before the leftmost error dialog. */
-const ERR_PAINT_GAP = 72; // +50px right
+const ERR_PAINT_GAP = 72;
 
 /** Error snake right→left with a vertical ︶⁔︶ wave. */
 function layoutErrorStack(paint: Rect): DesktopWindow[] {
@@ -304,69 +282,59 @@ export function reflowDesktop(
 	});
 }
 
-export const EXPERIENCE_WINDOW_ID = "experience";
-
 /** Work + projects browser (Figma-style shell). */
-export function makeExperienceWindow(
-	baseZ: number,
-	vw?: number,
-	vh?: number,
-): DesktopWindow {
-	const { vw: W, vh: H } = viewport(vw, vh);
+export function makeExperienceWindow(baseZ: number, vw: number, vh: number): DesktopWindow {
 	const ratio = 1839 / 855;
-	const maxW = Math.max(0, Math.min(1350, W - 16));
-	const maxH = Math.max(0, H - TASKBAR_H - 16);
+	const maxW = Math.max(0, Math.min(1350, vw - 16));
+	const maxH = Math.max(0, vh - TASKBAR_H - 16);
 	const w = Math.max(1, Math.min(maxW, Math.floor(maxH * ratio)));
 	const h = Math.max(1, Math.round(w / ratio));
 	return {
-		id: EXPERIENCE_WINDOW_ID,
+		id: "experience",
 		title: "experience",
 		kind: "experience",
 		icon: "/icons/playstation.svg",
-		...layoutCentered(w, h, W, H),
+		...layoutCentered(w, h, vw, vh),
 		z: baseZ,
 	};
 }
 
-export function makeCdPlayerWindow(z: number, vw?: number, vh?: number): DesktopWindow {
-	const { vw: width, vh: height } = viewport(vw, vh);
+function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
 	return {
 		id: "cd-player",
 		title: "CD Player",
 		kind: "cd-player",
 		icon: "/icons/cd.png",
 		z,
-		w: Math.min(360, width - 16),
+		w: Math.min(360, vw - 16),
 		h: 188,
 		// Desktop aligns this to the actual task button when the app is restored.
 		x: 8,
-		y: Math.max(0, height - TASKBAR_H - 188 - 4),
+		y: Math.max(0, vh - TASKBAR_H - 188 - 4),
 	};
 }
 
 /** A shell folder window, independent of the items stored inside it. */
-export function makeRecycleBinWindow(z: number, vw?: number, vh?: number): DesktopWindow {
-	const { vw: width, vh: height } = viewport(vw, vh);
-	const w = Math.min(760, Math.max(240, width - 24));
-	const h = Math.min(400, Math.max(200, height - TASKBAR_H - 48));
+export function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
+	const w = Math.min(760, Math.max(240, vw - 24));
+	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
 	return {
 		id: "recycle-bin", title: "Recycle Bin", kind: "recycle-bin",
 		icon: "/icons/recycle-bin-empty.png", z,
-		...layoutCentered(w, h, width, height),
+		...layoutCentered(w, h, vw, vh),
 	};
 }
 
-export function makeWordWindow(z: number, vw?: number, vh?: number): DesktopWindow {
-	const { vw: width, vh: height } = viewport(vw, vh);
-	const w = Math.min(880, Math.max(260, width - 24));
-	const h = Math.min(700, Math.max(240, height - TASKBAR_H - 48));
+export function makeWordWindow(z: number, vw: number, vh: number): DesktopWindow {
+	const w = Math.min(880, Math.max(260, vw - 24));
+	const h = Math.min(700, Math.max(240, vh - TASKBAR_H - 48));
 	return {
 		id: "word",
 		title: "Microsoft Word - resume.doc",
 		kind: "word",
 		icon: "/icons/word/app.png",
 		z,
-		...layoutCentered(w, h, width, height),
+		...layoutCentered(w, h, vw, vh),
 	};
 }
 
@@ -374,7 +342,7 @@ const BIO_W = 572;
 const BIO_H = 420;
 
 /** Centered bio.txt window (opened from desk icon, not on load). */
-export function makeBioWindow(z: number, vw?: number, vh?: number): DesktopWindow {
+export function makeBioWindow(z: number, vw: number, vh: number): DesktopWindow {
 	return {
 		id: "bio",
 		title: "bio.txt",
@@ -390,13 +358,12 @@ const EXPLORER_H = 360;
 const EXPLORER_MIN_W = 320;
 const EXPLORER_LEFT_GAP = 35;
 
-export function makeExplorerWindow(z: number, anchor?: Rect, vw?: number, vh?: number): DesktopWindow {
-	const { vw: W, vh: H } = viewport(vw, vh);
+export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: number, vh: number): DesktopWindow {
 	const leftSpace = anchor ? anchor.x - EXPLORER_LEFT_GAP - MARGIN : 0;
 	const fitsLeft = leftSpace >= EXPLORER_MIN_W;
-	const w = Math.min(EXPLORER_W, Math.max(1, W - MARGIN * 2), fitsLeft ? leftSpace : EXPLORER_W);
-	const h = Math.min(EXPLORER_H, Math.max(1, H - TASKBAR_H - MARGIN * 2));
-	const centered = layoutCentered(w, h, W, H);
+	const w = Math.min(EXPLORER_W, Math.max(1, vw - MARGIN * 2), fitsLeft ? leftSpace : EXPLORER_W);
+	const h = Math.min(EXPLORER_H, Math.max(1, vh - TASKBAR_H - MARGIN * 2));
+	const centered = layoutCentered(w, h, vw, vh);
 	const x = anchor && fitsLeft ? anchor.x - w - EXPLORER_LEFT_GAP : centered.x;
 	const y = anchor ? anchor.y + anchor.h - h : centered.y;
 	return {
@@ -407,8 +374,8 @@ export function makeExplorerWindow(z: number, anchor?: Rect, vw?: number, vh?: n
 		z,
 		w,
 		h,
-		x: Math.max(MARGIN, Math.min(x, W - MARGIN - w)),
-		y: Math.max(MARGIN, Math.min(y, H - TASKBAR_H - MARGIN - h)),
+		x: Math.max(MARGIN, Math.min(x, vw - MARGIN - w)),
+		y: Math.max(MARGIN, Math.min(y, vh - TASKBAR_H - MARGIN - h)),
 	};
 }
 
@@ -441,7 +408,7 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 	return {
 		w,
 		h,
-		x: Math.round(anchor.x + anchor.w - w - 12 - 20) + 50,
+		x: Math.round(anchor.x + anchor.w - w + 18),
 		y: Math.round(anchor.y - h * 0.35),
 	};
 }
@@ -464,14 +431,12 @@ export function clampWindowPos(
 	x: number,
 	y: number,
 	w: number,
-	vw?: number,
-	vh?: number,
+	vw: number,
+	vh: number,
 ): { x: number; y: number } {
-	if ((vw == null || vh == null) && typeof window === "undefined") return { x, y };
-	const { vw: width, vh: height } = viewport(vw, vh);
 	const minX = 48 - w;
-	const maxX = width - 48;
-	const maxY = height - TASKBAR_H - TITLE_H;
+	const maxX = vw - 48;
+	const maxY = vh - TASKBAR_H - TITLE_H;
 	return {
 		x: Math.min(maxX, Math.max(minX, x)),
 		y: Math.min(maxY, Math.max(0, y)),

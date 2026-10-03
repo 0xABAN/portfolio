@@ -192,8 +192,8 @@ export function PspXmb({ ready }: { ready: boolean }) {
 			else openExternal(project?.href);
 			focusRoot();
 		} else if (event.key === "Escape" || event.key === "Backspace") {
+			// Nothing to back out of outside the options menu; just keep focus.
 			event.preventDefault();
-			if (state.optionsOpen) dispatch({ type: "toggle-options" });
 			focusRoot();
 		} else if (key === "o") {
 			event.preventDefault();

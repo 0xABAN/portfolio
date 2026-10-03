@@ -87,6 +87,13 @@ export function menuPosition(event: MouseEvent<HTMLElement>): MenuPosition {
 	return { x: event.clientX || rect.left, y: event.clientY || rect.bottom };
 }
 
+/** Shift+F10 opens the context menu below the focused item. */
+export function keyboardMenuPosition(event: KeyboardEvent<HTMLElement>): MenuPosition {
+	event.preventDefault();
+	const rect = (event.target as HTMLElement).getBoundingClientRect();
+	return { x: rect.left, y: rect.bottom };
+}
+
 export function ShellMenu({ label, commands, position, onClose }: { label: string; commands: MenuCommand[]; position: MenuPosition; onClose: () => void }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const close = useRef(onClose);

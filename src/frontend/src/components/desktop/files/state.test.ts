@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-	binBytes, capacity, deleteNodes, DRIVE_BYTES, initialShellState, moveNodes,
+	capacity, entryBytes, deleteNodes, DRIVE_BYTES, initialShellState, moveNodes,
 	nodeBytes, originalLocation, oversizedRoots, parseShellState, purgeEntries,
 	restoreEntries, RestoreConflict, saveShellState, STORAGE_KEY,
 } from "./state";
@@ -14,7 +14,7 @@ test("delete, hydrate, restore and permanent delete retain exact item identity",
 	assert.ok(initial.nodes.some((node) => node.id === "bio"));
 	assert.ok(!deleted.nodes.some((node) => node.id === "bio"));
 	assert.equal(originalLocation(deleted.entries[0]), "C:\\Windows\\Desktop\\secrets");
-	assert.equal(binBytes(deleted), 4096);
+	assert.equal(entryBytes(deleted.entries), 4096);
 	const restored = restoreEntries(parseShellState(JSON.stringify(deleted)), [1]);
 	assert.deepEqual(restored.nodes.find((node) => node.id === "bio"), initial.nodes.find((node) => node.id === "bio"));
 	assert.equal(restored.entries.length, 0);
@@ -69,9 +69,9 @@ test("permanent deletion, bypass and emptying do not resurrect or free space on 
 	let state = initialShellState();
 	const used = nodeBytes(state.nodes);
 	state = remove(state);
-	assert.equal(nodeBytes(state.nodes) + binBytes(state), used);
+	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used);
 	state = purgeEntries(state, [1]);
-	assert.equal(nodeBytes(state.nodes) + binBytes(state), used - 4096);
+	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used - 4096);
 	state.settings.global.bypass = true;
 	assert.equal(remove(state, ["resume"]).entries.length, 0);
 	assert.equal(deleteNodes(initialShellState(), ["secrets"], 1000, true).state.entries.length, 0);

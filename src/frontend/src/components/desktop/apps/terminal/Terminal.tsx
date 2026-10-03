@@ -42,13 +42,13 @@ function prefersReducedMotion() {
 	);
 }
 
-/** ms between chars; spaces use spaceMs when provided. Batches React ticks. */
+/** ms between chars, and after spaces. Batches React ticks. */
 async function typewrite(
 	text: string,
 	onTick: (full: string) => void,
 	alive: () => boolean,
 	charMs: number,
-	spaceMs?: number,
+	spaceMs: number,
 ) {
 	const instant = prefersReducedMotion();
 	if (instant) {
@@ -56,7 +56,6 @@ async function typewrite(
 		return;
 	}
 	let out = "";
-	const gapSpace = spaceMs ?? charMs;
 	// Commit ~every 2–3 chars instead of every keystroke
 	const BATCH = 3;
 	let sinceFlush = 0;
@@ -68,7 +67,7 @@ async function typewrite(
 			onTick(out);
 			sinceFlush = 0;
 		}
-		await sleep(ch === " " ? gapSpace : charMs);
+		await sleep(ch === " " ? spaceMs : charMs);
 	}
 	if (sinceFlush) onTick(out);
 }
@@ -163,8 +162,11 @@ export function Terminal() {
 		setLines((prev) => prev.map((l) => (l.id === id ? { ...l, text } : l)));
 	}, []);
 
+	/** Adds a line and returns its id, so typewriters can keep updating it. */
 	const append = useCallback((text: string) => {
-		setLines((prev) => [...prev, { id: nextId(), text }]);
+		const id = nextId();
+		setLines((prev) => [...prev, { id, text }]);
+		return id;
 	}, []);
 
 	const playBoot = useCallback(async () => {
@@ -197,8 +199,7 @@ export function Terminal() {
 		// The two shell commands are a demonstration, not messages sent to Adam.
 		async function typeCommand(command: string) {
 			if (!alive()) return;
-			const id = nextId();
-			setLines((prev) => [...prev, { id, text: SHELL }]);
+			const id = append(SHELL);
 			await pause(450);
 			await typewrite(command, (full) => {
 				if (alive()) setLineText(id, SHELL + full);
@@ -226,8 +227,7 @@ export function Terminal() {
 		await pause(420);
 
 		// adam starts talking
-		const greetId = nextId();
-		setLines((prev) => [...prev, { id: greetId, text: BOT }]);
+		const greetId = append(BOT);
 		await pause(190);
 		await typewrite(
 			GREETING,
@@ -306,8 +306,7 @@ export function Terminal() {
 		setBusy(true);
 
 		let assistant = "";
-		const assistId = nextId();
-		setLines((prev) => [...prev, { id: assistId, text: BOT + "..." }]);
+		const assistId = append(BOT + "...");
 
 		try {
 			await streamChat(nextHistory, (tok) => {

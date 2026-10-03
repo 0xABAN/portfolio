@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
-import { binBytes, entryRoot, itemOf, nodeBytes, originalLocation, type RecycledEntry } from "../../files/state";
+import { entryBytes, entryRoot, itemOf, nodeBytes, originalLocation, type RecycledEntry } from "../../files/state";
 import { formatBytes } from "../../files/catalog";
-import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
+import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
 import { useShell } from "../../files/ShellProvider";
 import "./recycle-bin.css";
 
@@ -37,7 +37,7 @@ export function RecycleBin({ onCloseAction }: { onCloseAction: () => void }) {
 	});
 	const selection = useShellSelection(entries.map((entry) => String(entry.id)), entries.map((entry) => itemOf(entryRoot(entry)).name));
 	const selected = selection.selected.map(Number);
-	const selectedBytes = entries.filter((entry) => selected.includes(entry.id)).reduce((sum, entry) => sum + nodeBytes(entry.nodes), 0);
+	const selectedBytes = entryBytes(entries.filter((entry) => selected.includes(entry.id)));
 
 	function itemCommands(ids: number[]): MenuCommand[] {
 		return [
@@ -60,11 +60,8 @@ export function RecycleBin({ onCloseAction }: { onCloseAction: () => void }) {
 		if (event.key === "Delete") { event.preventDefault(); shell.purge(selected); }
 		else if (event.key === "Enter" && (event.target as HTMLElement).dataset.shellItem) { event.preventDefault(); shell.itemProperties(undefined, selected); }
 		else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); shell.undo(); }
-		else if (event.shiftKey && event.key === "F10") {
-			event.preventDefault();
-			const rect = (event.target as HTMLElement).getBoundingClientRect();
-			setContext({ position: { x: rect.left, y: rect.bottom }, ids: selected });
-		} else selection.onKeyDown(event);
+		else if (event.shiftKey && event.key === "F10") setContext({ position: keyboardMenuPosition(event), ids: selected });
+		else selection.onKeyDown(event);
 	}
 
 	return <div className="shell-browser recycle-bin" data-shell-surface="" onKeyDown={onKey}>
@@ -112,7 +109,7 @@ export function RecycleBin({ onCloseAction }: { onCloseAction: () => void }) {
 				</button>;
 			})}
 		</div>
-		{status && <div className="shell-status" aria-live="polite"><span>{selected.length ? `${selected.length} object(s) selected` : `${entries.length} object(s)`}</span><span>{formatBytes(selected.length ? selectedBytes : binBytes(shell.state))}</span></div>}
+		{status && <div className="shell-status" aria-live="polite"><span>{selected.length ? `${selected.length} object(s) selected` : `${entries.length} object(s)`}</span><span>{formatBytes(selected.length ? selectedBytes : entryBytes(shell.state.entries))}</span></div>}
 		{context && <ShellMenu label="Recycle Bin context menu" position={context.position} commands={context.ids.length ? itemCommands(context.ids) : [
 			{ label: "Empty Recycle Bin", disabled: !entries.length, action: shell.empty }, "separator", ...viewCommands, "separator", { label: "Properties", action: shell.properties },
 		]} onClose={() => setContext(null)} />}

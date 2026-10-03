@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { test } from "node:test";
-import { PLAYLIST, randomTrackIndex, skipUnmapped, trackAt, wrapIndex } from "./playlist";
+import { PLAYLIST, randomTrackIndex, trackAt } from "./playlist";
 
 test("all 17 soundtrack entries have playable sources, artwork and wrapping navigation", () => {
 	assert.equal(PLAYLIST.length, 17);
@@ -17,7 +17,6 @@ test("all 17 soundtrack entries have playable sources, artwork and wrapping navi
 			assert.equal(new URL(track.cover).protocol, "https:");
 		}
 
-		assert.equal(skipUnmapped(index), wrapIndex(index + 1));
 		const shuffled = randomTrackIndex(index);
 		assert.ok(shuffled >= 0 && shuffled < PLAYLIST.length && shuffled !== index);
 	}

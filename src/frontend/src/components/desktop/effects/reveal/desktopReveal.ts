@@ -1,3 +1,5 @@
+import { DESK_ICONS } from "../../files/catalog";
+
 /** Desktop trickle-in after restart. Last item must land at DESKTOP_REVEAL_MS. */
 export const DESKTOP_REVEAL_MS = 2100;
 
@@ -53,24 +55,7 @@ export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 export const DESKTOP_REVEAL_WINDOWS: ReadonlySet<string> = new Set(WINDOW_IDS);
 
 if (process.env.NODE_ENV !== "production") {
-	const required = [
-		"hollow-knight",
-		"silksong",
-		"terraria",
-		"roblox",
-		"persona-3-reload",
-		"persona-5-royal",
-		"undertale",
-		"cd-player-icon",
-		"secrets",
-		"social-github",
-		"social-linkedin",
-		"social-twitter",
-		"recycle-bin",
-		...WINDOW_IDS,
-		"neko",
-		"fracture",
-	];
+	const required = [...DESK_ICONS.map((icon) => icon.id), "recycle-bin", ...WINDOW_IDS, "neko", "fracture"];
 	const seen = new Set<string>();
 	let max = 0;
 	for (const { id, at } of DESKTOP_REVEAL_SCHEDULE) {

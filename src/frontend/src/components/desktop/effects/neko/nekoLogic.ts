@@ -74,12 +74,9 @@ const SCRATCH = new Set([
 
 type IdleState = { time: number; anim: string | null; frame: number };
 
-const IDLE_CELL: readonly [number, number] = [-3, -3];
-
-function cell(name: string, frame: number): readonly [number, number] {
-	const set = SPRITES[name] ?? SPRITES.idle;
-	if (!set || set.length === 0) return IDLE_CELL;
-	return set[frame % set.length] ?? set[0] ?? IDLE_CELL;
+function cell(name: string, frame: number) {
+	const frames = SPRITES[name];
+	return frames[frame % frames.length];
 }
 
 function moveDir(dx: number, dy: number, dist: number) {
@@ -96,7 +93,7 @@ function pickIdleAnim(x: number, y: number, vw: number, vh: number) {
 	if (y < 32) opts.push("scratchWallN");
 	if (x > vw - 32) opts.push("scratchWallE");
 	if (y > vh - 32) opts.push("scratchWallS");
-	return opts[Math.floor(Math.random() * opts.length)] ?? "sleeping";
+	return opts[Math.floor(Math.random() * opts.length)];
 }
 
 function stepIdle(
@@ -166,8 +163,8 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		const dy = nekoY - mouseY;
 		const dist = Math.hypot(dx, dy);
 
-		if (dist < SPEED || dist < 48) {
-			// Sleeping is long idle — skip most paint work while static idle sprite
+		if (dist < 48) {
+			// Close enough to the cursor: idle animations play in place.
 			const [name, frame] = stepIdle(idle, nekoX, nekoY, vw, vh);
 			paint(name, frame);
 			return;
