@@ -94,8 +94,8 @@ LAUNCH_TEST_URL=http://127.0.0.1:3187 node tests/launch.browser-check.mjs
 the timing benchmark, because it disables HTTP caching.
 
 Asset readiness includes Paint's detached source image, not just `document.images`.
-Boot reveal is observed when the final scheduled layer mounts, not when fracture
-sprites finish decoding. The steady-state wait is excluded from startup timings.
+Boot reveal is observed when the final scheduled layer mounts, not when the fracture
+renderer reports ready. The steady-state wait is excluded from startup timings.
 CDP transfer counts cover the page target, not every live iframe. Completed
 iframe request sizes are retained separately and may include cached bodies.
 rAF gaps measure scheduling, not rendered FPS; CPU throttling does not emulate

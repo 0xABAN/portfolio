@@ -6,7 +6,7 @@ import { DESKTOP_REVEAL_WINDOWS } from "./effects/reveal/desktopReveal";
 import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
 import { DesktopSparks } from "./effects/sparks/DesktopSparks";
-import { FractureBackground } from "./FractureBackground";
+import { FractureBackground } from "./effects/fracture/FractureBackground";
 import { BIN_ICON } from "./files/catalog";
 import { ShellProvider, useShell } from "./files/ShellProvider";
 import { itemOf } from "./files/state";
