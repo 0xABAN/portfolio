@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
-import { GITHUB_USER } from "./windows";
+import { GITHUB_USER } from "./window/layout";
 import "./github-graph.css";
 
 const API = "https://github-contributions-api.jogruber.de/v4/";

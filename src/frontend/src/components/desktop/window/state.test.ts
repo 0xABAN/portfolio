@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { layoutDesktop, makeExperienceWindow, reflowDesktop, TASKBAR_H } from "./windows";
-import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./windowState";
+import { layoutDesktop, makeExperienceWindow, reflowDesktop, TASKBAR_H } from "./layout";
+import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./state";
 
 test("task order survives switching, minimizing and restoring", () => {
 	let windows = layoutDesktop(1440, 900);

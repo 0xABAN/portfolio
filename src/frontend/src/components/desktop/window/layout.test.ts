@@ -8,7 +8,7 @@ import {
 	reflowDesktop,
 	TASKBAR_H,
 	type DesktopWindow,
-} from "./windows";
+} from "./layout";
 
 test("secrets opens left of the current adam window with aligned bottom borders", () => {
 	for (const [width, height] of [[1920, 1080], [1440, 900]]) {

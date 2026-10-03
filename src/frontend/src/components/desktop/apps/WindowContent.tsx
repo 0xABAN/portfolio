@@ -10,7 +10,7 @@ import { Experience } from "../experience/Experience";
 import { SystemMessage } from "../SystemMessage";
 import { Terminal } from "../Terminal";
 import { Word } from "../word/Word";
-import type { DesktopWindow } from "../windows";
+import type { DesktopWindow } from "../window/layout";
 
 type Props = {
 	id: string;

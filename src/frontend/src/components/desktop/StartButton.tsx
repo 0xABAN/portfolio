@@ -3,7 +3,7 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { WindowsLogo } from "./WindowsLogo";
 import { useShell } from "./recycle-bin/ShellProvider";
-import type { AppId } from "./windowState";
+import type { AppId } from "./window/state";
 import "./start-menu.css";
 
 const GROUPS = [

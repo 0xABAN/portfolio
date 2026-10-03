@@ -1,6 +1,6 @@
 import { EXPLORER_FILES } from "../explorer/explorerData";
-import type { AppId } from "../windowState";
-import { GITHUB_URL } from "../windows";
+import type { AppId } from "../window/state";
+import { GITHUB_URL } from "../window/layout";
 
 export type DeskIcon = {
 	id: string;

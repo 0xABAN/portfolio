@@ -1,4 +1,4 @@
-import { TASKBAR_H, layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, makeWordWindow, type DesktopWindow } from "./windows";
+import { TASKBAR_H, layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, makeWordWindow, type DesktopWindow } from "./layout";
 
 export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience" | "cd-player" | "recycle-bin" | "word";
 

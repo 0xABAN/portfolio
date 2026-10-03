@@ -16,7 +16,7 @@ import { Neko } from "./Neko";
 import { Taskbar } from "./Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";
-import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./windowState";
+import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./window/state";
 import {
 	TASKBAR_H,
 	altCropStyle,
@@ -26,7 +26,7 @@ import {
 	layoutDesktop,
 	reflowDesktop,
 	type DesktopWindow,
-} from "./windows";
+} from "./window/layout";
 import "./desktop.css";
 
 export function Desktop() {

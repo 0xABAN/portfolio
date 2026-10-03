@@ -1,4 +1,4 @@
-import { GITHUB_URL } from "../windows";
+import { GITHUB_URL } from "../window/layout";
 
 export type Project = {
 	id: string;
