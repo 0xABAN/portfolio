@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DRAWABLE_TOOLS, PALETTE, TOOLS } from "../paintModel";
-import { resolveStrokeStyle } from "./freehand";
+import { DRAWABLE_TOOLS, PALETTE, TOOLS } from "@/components/desktop/apps/paint/paintModel";
+import { resolveStrokeStyle } from "@/components/desktop/apps/paint/tools/freehand";
 
 test("stroke resolution rejects unsupported tools without a caller-side guard", () => {
 	for (const { id } of TOOLS) {

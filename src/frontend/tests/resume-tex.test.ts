@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { inlineTex, resumeToPage } from "./resumeTex";
+import { inlineTex, resumeToPage } from "@/components/desktop/apps/word/resumeTex";
 
 test("resumeToPage renders jake-template commands", () => {
 	const tex = String.raw`

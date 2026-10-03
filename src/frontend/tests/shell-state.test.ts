@@ -4,7 +4,7 @@ import {
 	capacity, entryBytes, deleteNodes, DRIVE_BYTES, initialShellState, moveNodes,
 	nodeBytes, originalLocation, oversizedRoots, parseShellState, purgeEntries,
 	restoreEntries, RestoreConflict, saveShellState, STORAGE_KEY,
-} from "./state";
+} from "@/components/desktop/files/state";
 
 const remove = (state = initialShellState(), ids = ["bio"], now = 1000) => deleteNodes(state, ids, now).state;
 

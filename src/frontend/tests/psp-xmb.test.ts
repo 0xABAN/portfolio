@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CATEGORIES, initialState, reducer } from "./PspXmb";
+import { CATEGORIES, initialState, reducer } from "@/components/desktop/apps/experience/PspXmb";
 
 test("XMB navigates the jobs and projects lists while PSP categories stay visual-only", () => {
 	let state = initialState();

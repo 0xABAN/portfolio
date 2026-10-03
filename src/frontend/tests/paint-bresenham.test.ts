@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { bresenhamLine } from "./bresenham";
+import { bresenhamLine } from "@/components/desktop/apps/paint/tools/bresenham";
 
 // Captured from the two original iterators before consolidation. Covers 625
 // lines per mode: all octants, reversed/zero-length lines and fractional inputs.

@@ -1,5 +1,5 @@
 /** Focused browser check; start the dev server, then run from src/frontend:
- * node src/components/desktop/apps/terminal/terminal.browser-check.mjs
+ * node tests/terminal.browser-check.mjs
  * Uses the existing playwright-cli tool. Clipboard and chat are mocked.
  */
 import assert from "node:assert/strict";
