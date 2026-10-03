@@ -27,7 +27,10 @@ smashed display.
   red: striped blocks (at most one per tile, so each pixel checks one), rows
   of dashes, a hot copy of the nearest crack slipped out of register near the
   impact, and stuck 2px lines running to the screen edge. All of it is denser
-  around the impact.
+  around the impact. Blocks, dashes and stuck lines hold still between
+  bursts, so the **damage pass** draws them into a texture only when the burst
+  or the size changes, and the screen pass reads one texel per pixel. A
+  block's brightness is stored in 204ths, within one level of 255.
 
 ## Files
 
@@ -72,7 +75,9 @@ smashed display.
 
 ## Cost
 
-GPU timer queries in headless Chrome on an Apple M4, 1440×900 at 1×: the
-candidate pass takes about 0.9 ms and the screen pass about 1.8 ms (p95
-3.5 ms) per drawn frame, the same as without the glitches. Not measured on
-low-end GPUs.
+GPU timer queries in headless Chrome on an Apple M4, 1440×900 at 2× (a
+2160×1302 backing store): the candidate pass takes about 0.6 ms and the
+screen pass about 3 ms per drawn frame, down from 2.2 ms and 6 ms before
+tiles and the damage pass. The damage pass takes about 1 ms each time it
+runs. Apple GPUs change clock under load, so single runs vary by about 30%.
+Not measured on low-end GPUs.

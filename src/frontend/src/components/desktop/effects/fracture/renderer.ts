@@ -1,5 +1,5 @@
 import { MAX_SEGMENTS } from "./cracks";
-import { CANDIDATE_FRAGMENT, CELL, FULLSCREEN_VERTEX, LIST_WIDTH, SCREEN_FRAGMENT, TILE_CELLS } from "./shaders";
+import { CANDIDATE_FRAGMENT, CELL, DAMAGE_FRAGMENT, FULLSCREEN_VERTEX, LIST_WIDTH, SCREEN_FRAGMENT, TILE_CELLS } from "./shaders";
 import { createTileBinner } from "./tiles";
 
 /** The shaders work in CSS px, so a smaller backing store only softens edges. */
@@ -9,9 +9,11 @@ const MAX_PIXELS = 3_000_000;
 export type FractureRenderer = Awaited<ReturnType<typeof createFractureRenderer>>;
 
 /**
- * Two full-screen passes: a small one finds the cracks that matter around each
- * 8px cell, checking only the segments the CPU has listed for its tile, then
- * the canvas measures every pixel against only those cracks.
+ * Each frame takes two full-screen passes: a small one finds the cracks that
+ * matter around each 8px cell, checking only the segments the CPU has listed
+ * for its tile, then the canvas measures every pixel against only those
+ * cracks. Display damage, which holds still between glitch bursts, is drawn
+ * into a texture of its own only when the burst or the size changes.
  *
  * Resolves once the shaders are linked and the GPU has drawn a 1px frame with
  * them, so the first real frame does not wait for compilation. Asking for a
@@ -39,8 +41,12 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 	const tileTexture = gl.createTexture();
 	const listTexture = gl.createTexture();
 	const candidateTexture = gl.createTexture();
-	const framebuffer = gl.createFramebuffer();
+	const candidateFramebuffer = gl.createFramebuffer();
+	const damageTexture = gl.createTexture();
+	const damageFramebuffer = gl.createFramebuffer();
 	const binSegments = createTileBinner();
+	/** Burst and seed the damage texture shows; NaN until it is drawn for the current size. */
+	const damageGlitch = new Float32Array([NaN, NaN]);
 	/** Rows the id list texture has room for. */
 	let listRows = 0;
 	let width = 1;
@@ -58,7 +64,9 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		gl.deleteTexture(tileTexture);
 		gl.deleteTexture(listTexture);
 		gl.deleteTexture(candidateTexture);
-		gl.deleteFramebuffer(framebuffer);
+		gl.deleteFramebuffer(candidateFramebuffer);
+		gl.deleteTexture(damageTexture);
+		gl.deleteFramebuffer(damageFramebuffer);
 	}
 
 	/** Starts compiling and linking; `check` reads the outcome once the GPU is done. */
@@ -111,6 +119,17 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		return Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(program, name)])) as Record<Name, WebGLUniformLocation | null>;
 	}
 
+	/** Makes `texture` what `framebuffer` draws to; throws if the GPU cannot draw to it. */
+	function attach(framebuffer: WebGLFramebuffer, texture: WebGLTexture, name: string) {
+		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+		const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		if (status !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
+			throw new Error(`Fracture ${name} target is incomplete: 0x${status.toString(16)}`);
+		}
+	}
+
 	function configure(texture: WebGLTexture, filter: GLenum) {
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
@@ -120,18 +139,21 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 	}
 
 	try {
-		if (!segmentTexture || !tileTexture || !listTexture || !candidateTexture || !framebuffer) {
+		if (!segmentTexture || !tileTexture || !listTexture || !candidateTexture || !candidateFramebuffer || !damageTexture || !damageFramebuffer) {
 			throw new Error("Could not allocate the fracture textures");
 		}
 
 		const candidateBuild = build(CANDIDATE_FRAGMENT);
+		const damageBuild = build(DAMAGE_FRAGMENT);
 		const screenBuild = build(SCREEN_FRAGMENT);
 		const parallel = gl.getExtension("KHR_parallel_shader_compile");
 		if (parallel) await until(() => programs.every((program) => gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)));
 		const candidateProgram = check(candidateBuild);
+		const damageProgram = check(damageBuild);
 		const screenProgram = check(screenBuild);
 		const candidateUniforms = locate(candidateProgram, ["uGrid", "uSegments", "uTiles", "uList"]);
-		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
+		const damageUniforms = locate(damageProgram, ["uResolution", "uScale", "uCenter", "uGlitch"]);
+		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uDamage", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
 
 		// Every texture is read texel by texel; segment ids are 16-bit.
 		configure(segmentTexture, gl.NEAREST);
@@ -139,6 +161,7 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		configure(tileTexture, gl.NEAREST);
 		configure(listTexture, gl.NEAREST);
 		configure(candidateTexture, gl.NEAREST);
+		configure(damageTexture, gl.NEAREST);
 
 		const renderer = {
 			resize(cssWidth: number, cssHeight: number, dpr: number) {
@@ -154,13 +177,11 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32UI, Math.ceil(columns / TILE_CELLS), Math.ceil(rows / TILE_CELLS), 0, gl.RG_INTEGER, gl.UNSIGNED_INT, null);
 				gl.bindTexture(gl.TEXTURE_2D, candidateTexture);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16UI, columns, rows, 0, gl.RG_INTEGER, gl.UNSIGNED_SHORT, null);
-				gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-				gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, candidateTexture, 0);
-				const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-				if (status !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
-					throw new Error(`Fracture candidate target is incomplete: 0x${status.toString(16)}`);
-				}
+				attach(candidateFramebuffer, candidateTexture, "candidate");
+				gl.bindTexture(gl.TEXTURE_2D, damageTexture);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8UI, canvas.width, canvas.height, 0, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, null);
+				attach(damageFramebuffer, damageTexture, "damage");
+				damageGlitch.fill(NaN);
 			},
 
 			/**
@@ -187,7 +208,19 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 					gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, LIST_WIDTH, rowsUsed, gl.RED_INTEGER, gl.UNSIGNED_SHORT, tiles.entries);
 				}
 
-				gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+				if (glitch[0] !== damageGlitch[0] || glitch[1] !== damageGlitch[1]) {
+					gl.bindFramebuffer(gl.FRAMEBUFFER, damageFramebuffer);
+					gl.viewport(0, 0, canvas.width, canvas.height);
+					gl.useProgram(damageProgram);
+					gl.uniform2f(damageUniforms.uResolution, canvas.width, canvas.height);
+					gl.uniform1f(damageUniforms.uScale, scale);
+					gl.uniform2f(damageUniforms.uCenter, width / 2, height / 2);
+					gl.uniform2fv(damageUniforms.uGlitch, glitch);
+					gl.drawArrays(gl.TRIANGLES, 0, 3);
+					damageGlitch.set(glitch);
+				}
+
+				gl.bindFramebuffer(gl.FRAMEBUFFER, candidateFramebuffer);
 				gl.viewport(0, 0, columns, rows);
 				gl.useProgram(candidateProgram);
 				gl.uniform2f(candidateUniforms.uGrid, columns, rows);
@@ -200,10 +233,13 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.viewport(0, 0, canvas.width, canvas.height);
 				gl.activeTexture(gl.TEXTURE1);
 				gl.bindTexture(gl.TEXTURE_2D, candidateTexture);
+				gl.activeTexture(gl.TEXTURE4);
+				gl.bindTexture(gl.TEXTURE_2D, damageTexture);
 				gl.useProgram(screenProgram);
 				gl.uniform2f(screenUniforms.uGrid, columns, rows);
 				gl.uniform1i(screenUniforms.uSegments, 0);
 				gl.uniform1i(screenUniforms.uCandidates, 1);
+				gl.uniform1i(screenUniforms.uDamage, 4);
 				gl.uniform2f(screenUniforms.uResolution, canvas.width, canvas.height);
 				gl.uniform1f(screenUniforms.uScale, scale);
 				gl.uniform1f(screenUniforms.uTime, time);
