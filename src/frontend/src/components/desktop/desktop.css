@@ -63,6 +63,16 @@
 	outline: none;
 }
 
+/*
+ * A window being dragged gets a layer of its own, so moving it does not repaint
+ * the shared window layer every frame. Nested windows move with their parent,
+ * so dragging any of them lifts the whole family.
+ */
+.desktop__windows > .win[data-dragging],
+.desktop__windows:has(> .win[data-dragging][data-live-move]) > .win[data-live-move] {
+	will-change: transform;
+}
+
 .desktop__psp-dimmer {
 	position: absolute;
 	inset: 0 0 var(--taskbar-height);

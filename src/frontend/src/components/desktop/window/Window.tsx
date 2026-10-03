@@ -110,6 +110,8 @@ function WindowInner({
 		const el = rootRef.current;
 		const originX = el?.offsetLeft ?? x;
 		const originY = el?.offsetTop ?? y;
+		// Gives the window a layer of its own while it moves (desktop.css).
+		el?.toggleAttribute("data-dragging", true);
 		drag.current = {
 			pointerX: e.clientX,
 			pointerY: e.clientY,
@@ -153,6 +155,7 @@ function WindowInner({
 			d.raf = 0;
 		}
 		drag.current = null;
+		rootRef.current?.removeAttribute("data-dragging");
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
@@ -173,6 +176,7 @@ function WindowInner({
 			data-active={active}
 			data-minimized={minimized}
 			data-maximized={maximized}
+			data-live-move={liveMove || undefined}
 			inert={minimized}
 			aria-hidden={minimized || undefined}
 			tabIndex={-1}
