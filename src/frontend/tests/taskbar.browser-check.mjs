@@ -212,6 +212,7 @@ async function checkTaskbar(page) {
 	await secretsIcon.dragTo(cdIcon);
 	check(await bubble.count() === 0, "Dragging Secrets did not dismiss its speech bubble");
 	await secretsIcon.dragTo(cdIcon);
+	await page.locator(".fracture-background--ready").waitFor();
 	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
 		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);

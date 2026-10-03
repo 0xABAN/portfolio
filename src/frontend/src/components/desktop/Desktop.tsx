@@ -77,6 +77,8 @@ function DesktopWorkspace() {
 	const [secretsOpened, setSecretsOpened] = useState(false);
 	const cdDragged = useRef(false);
 	const revealed = useDesktopReveal();
+	// Sparks fly from the impact, so they wait for the fracture's first frame.
+	const [fractured, setFractured] = useState(false);
 	const cdWindow = windows.find((w) => w.id === "cd-player");
 	const audio = useCdPlayerAudio(revealed.has("boot-complete"), Boolean(cdWindow));
 
@@ -314,7 +316,7 @@ function DesktopWorkspace() {
 				if (isDesktopSurface(event.target)) shell.drop(event, "desktop");
 			}}>
 
-			<FractureBackground />
+			<FractureBackground onReadyAction={setFractured} />
 			<DesktopIcons
 				onOpenAction={openShell}
 				onSecretsOpenedAction={() => setSecretsOpened(true)}
@@ -334,7 +336,7 @@ function DesktopWorkspace() {
 				/>
 				{visibleWindows.map(renderWindow)}
 			</div>
-			<DesktopSparks />
+			{fractured ? <DesktopSparks /> : null}
 			<Taskbar
 				muted={audio.muted}
 				onToggleMuteAction={audio.toggleMute}

@@ -30,7 +30,8 @@ smashed display.
 ## Files
 
 - `FractureBackground.tsx`, `fracture.css`: canvas markup. The root gets
-  `.fracture-background--ready` after the first successful frame.
+  `.fracture-background--ready` after the first successful frame, and
+  `onReadyAction` reports it, so the desktop can start the sparks.
 - `controller.ts`: frame loop, reduced motion, visibility, resizing and pixel
   density, context loss and the eased cursor.
 - `cracks.ts`: composition, motion and glitch-burst timing, free of DOM and

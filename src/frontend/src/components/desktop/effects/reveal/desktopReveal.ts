@@ -19,7 +19,8 @@ const WINDOW_IDS = [
 
 /**
  * Ids match Desktop / Taskbar reveal gates. The wallpaper and its effects are
- * not gated: they show as soon as the desktop mounts.
+ * not gated: the fracture starts as soon as the desktop mounts, and the sparks
+ * follow its first frame.
  */
 export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "tb:start", at: 40 },
