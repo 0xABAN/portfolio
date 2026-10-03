@@ -7,7 +7,7 @@ import { RecycleBin } from "./recycle-bin/RecycleBin";
 import { GitHubGraph } from "./github/GitHubGraph";
 import { Paint } from "./paint/Paint";
 import { Experience } from "./experience/Experience";
-import { SystemMessage } from "../SystemMessage";
+import { SystemMessage } from "../window/SystemMessage";
 import { Terminal } from "./terminal/Terminal";
 import { Word } from "./word/Word";
 import type { DesktopWindow } from "../window/layout";
