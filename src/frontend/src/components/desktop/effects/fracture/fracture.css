@@ -1,0 +1,30 @@
+/* One opaque WebGL surface behind the desktop, clipped above the taskbar. */
+.fracture-viewport {
+	position: absolute;
+	inset: 0 0 var(--taskbar-height);
+	overflow: hidden;
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.fracture-background {
+	position: absolute;
+	inset: 0;
+	/* Explicit, so stacking checks can compare it with the sparks and windows. */
+	z-index: 0;
+	contain: strict;
+	background: var(--desktop-bg);
+}
+
+/* Hidden until the first frame draws, so a failed start shows the plain desktop colour. */
+.fracture-canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	visibility: hidden;
+}
+
+.fracture-background--ready .fracture-canvas {
+	visibility: visible;
+}
