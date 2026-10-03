@@ -17,7 +17,10 @@ const WINDOW_IDS = [
 	"sysmsg-4",
 ] as const;
 
-/** Ids match Desktop / Taskbar reveal gates. */
+/**
+ * Ids match Desktop / Taskbar reveal gates. The wallpaper and its effects are
+ * not gated: they show as soon as the desktop mounts.
+ */
 export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "tb:start", at: 40 },
 	{ id: "cd-player", at: 230 },
@@ -48,14 +51,15 @@ export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "sysmsg-3", at: 2020 },
 	{ id: "sysmsg-4", at: 2060 },
 	{ id: "neko", at: DESKTOP_REVEAL_MS },
-	{ id: "fracture", at: DESKTOP_REVEAL_MS },
+	// Starts the CD Player's autoplay once everything has landed.
+	{ id: "boot-complete", at: DESKTOP_REVEAL_MS },
 ];
 
 /** Initial-layout windows gated by the schedule. User-opened windows skip this. */
 export const DESKTOP_REVEAL_WINDOWS: ReadonlySet<string> = new Set(WINDOW_IDS);
 
 if (process.env.NODE_ENV !== "production") {
-	const required = [...DESK_ICONS.map((icon) => icon.id), "recycle-bin", ...WINDOW_IDS, "neko", "fracture"];
+	const required = [...DESK_ICONS.map((icon) => icon.id), "recycle-bin", ...WINDOW_IDS, "neko", "boot-complete"];
 	const seen = new Set<string>();
 	let max = 0;
 	for (const { id, at } of DESKTOP_REVEAL_SCHEDULE) {

@@ -11,15 +11,14 @@ const MAX_STEP = 0.1;
 const POINTER_EASE = 0.12;
 
 export type FractureController = {
-	/** Breaks the screen when the desktop reveal finishes; false restores it. */
-	setActive(active: boolean): void;
 	destroy(): void;
 };
 
 /**
  * Owns the canvas: the frame loop, reduced motion, visibility, resizing,
- * context loss and the cursor. Failures leave the plain desktop colour behind
- * and are reported, never replaced by another renderer.
+ * context loss and the cursor. The screen breaks as soon as it starts.
+ * Failures leave the plain desktop colour behind and are reported, never
+ * replaced by another renderer.
  */
 export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onReady: (ready: boolean) => void): FractureController {
 	const desktop = root.closest<HTMLElement>(".desktop") ?? root;
@@ -30,29 +29,26 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 	/** Eased cursor x, y and presence (0..1), in CSS px of the wallpaper. */
 	const pointer = new Float32Array(3);
 	const target = { x: 0, y: 0, present: false };
-	const input: FrameInput = { time: 0, struckAt: null, still: false, width: 1, height: 1, pointer };
-	/** Broken (0 or 1), burst (0 or 1) and burst seed, from writeGlitch. */
-	const glitch = new Float32Array(3);
+	const input: FrameInput = { time: 0, still: false, width: 1, height: 1, pointer };
+	/** Burst (0 or 1) and burst seed, from writeGlitch. */
+	const glitch = new Float32Array(2);
 
 	let bounds = root.getBoundingClientRect();
 	let renderer: FractureRenderer | null = null;
 	let sizeKey = "";
 	let density: MediaQueryList | null = null;
+	/** Animated seconds since the impact; it only advances while animating, so a hidden tab sees the impact later. */
 	let clock = 0;
-	/** Clock time of the impact; null while the screen is intact. */
-	let struckAt: number | null = null;
-	let active = false;
 	let frame = 0;
 	let lastTick = 0;
 	let lastDraw = 0;
 	let destroyed = false;
 
-	const isAnimating = () => active && !reducedMotion.matches && !document.hidden;
+	const isAnimating = () => !reducedMotion.matches && !document.hidden;
 
 	/** Brings the per-frame inputs up to date with the clock and the environment. */
 	function updateInput() {
 		input.time = clock;
-		input.struckAt = struckAt;
 		input.still = reducedMotion.matches;
 		input.width = bounds.width;
 		input.height = bounds.height;
@@ -87,7 +83,7 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 		clock += delta;
 
 		updateInput();
-		const busy = stepPointer(delta) || glitch[1] > 0 || (struckAt !== null && clock - struckAt < BURST_SECONDS);
+		const busy = stepPointer(delta) || glitch[0] > 0 || clock < BURST_SECONDS;
 		// The slack absorbs timer jitter, so 60 Hz displays reliably draw every other frame.
 		if (!busy && now - lastDraw < AMBIENT_FRAME_MS - 4) return;
 		lastDraw = now;
@@ -104,9 +100,6 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 	function sync() {
 		stop();
 		if (destroyed || !renderer) return;
-
-		if (!active) struckAt = null;
-		else struckAt ??= clock;
 
 		if (isAnimating()) {
 			frame = requestAnimationFrame(tick);
@@ -198,12 +191,6 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 	start();
 
 	return {
-		setActive(value) {
-			if (destroyed) return;
-			active = value;
-			sync();
-		},
-
 		destroy() {
 			if (destroyed) return;
 			destroyed = true;

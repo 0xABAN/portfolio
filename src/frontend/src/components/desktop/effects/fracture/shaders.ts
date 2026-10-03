@@ -104,7 +104,7 @@ uniform float uScale;     // backing-store pixels per CSS pixel
 uniform float uTime;      // seconds
 uniform vec2 uCenter;     // the impact
 uniform float uSway;      // radians the fracture is turned around the impact
-uniform vec3 uGlitch;     // broken (0 or 1), burst (0 or 1), burst seed
+uniform vec2 uGlitch;     // burst (0 or 1), burst seed
 uniform highp usampler2D uCandidates;
 out vec4 color;
 
@@ -205,16 +205,15 @@ void main() {
 	float aa = 0.5 / uScale;
 	float dither = (hash(gl_FragCoord.xy + fract(uTime) * 97.0) - 0.5) / 255.0;
 	float unit = 0.5 * length(uResolution / uScale);
-	bool broken = uGlitch.x > 0.5;
-	float burst = uGlitch.y;
-	float seed = burst * uGlitch.z;
+	float burst = uGlitch.x;
+	float seed = burst * uGlitch.y;
 
 	// Bursts tear a few bands of the screen sideways, cracks and all.
 	if (burst > 0.0) {
 		float band = floor(p.y / 12.0);
 		p.x += step(0.8, pick(band, seed + 21.0)) * (pick(band, seed + 22.0) - 0.5) * 48.0;
 	}
-	vec3 base = broken ? corrupt(screen(p), p, unit, seed) : screen(p);
+	vec3 base = corrupt(screen(p), p, unit, seed);
 
 	// Candidates of the four cells around this pixel. Most of the screen is
 	// nowhere near a crack and stops here.
@@ -227,7 +226,7 @@ void main() {
 		found = found || cells[k].x != NONE || cells[k].y != NONE;
 	}
 	if (!found) {
-		color = vec4((broken ? stuck(base, p, unit, seed) : base) + dither, 1.0);
+		color = vec4(stuck(base, p, unit, seed) + dither, 1.0);
 		return;
 	}
 
@@ -280,7 +279,7 @@ void main() {
 	// copy of the nearest crack beside it. It can only show within the slip of an edge.
 	float slipped = 0.0;
 	vec2 slip = SLIP * (1.0 + 2.0 * burst);
-	if (broken && length(p - uCenter) < 0.45 * unit) {
+	if (length(p - uCenter) < 0.45 * unit) {
 		float reachOut = length(slip) + 3.0;
 		if (shardId != NONE && shardEdge < reachOut) slipped = step(measure(shardId, p - slip).shard + roughness, 0.0);
 		if (lineId != NONE && lineEdge < reachOut) slipped = max(slipped, step(measure(lineId, p - slip).line, 0.0));
@@ -301,5 +300,5 @@ void main() {
 	vec3 result = mix(base, GLINT, glint * 0.12);
 	result = mix(result, HOT, slipped);
 	result = mix(result, INK, max(max(shard, line), splatter));
-	color = vec4((broken ? stuck(result, p, unit, seed) : result) + dither, 1.0);
+	color = vec4(stuck(result, p, unit, seed) + dither, 1.0);
 }`;

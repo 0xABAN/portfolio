@@ -148,7 +148,7 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.uniform1f(screenUniforms.uTime, time);
 				gl.uniform2f(screenUniforms.uCenter, width / 2, height / 2);
 				gl.uniform1f(screenUniforms.uSway, sway);
-				gl.uniform3fv(screenUniforms.uGlitch, glitch);
+				gl.uniform2fv(screenUniforms.uGlitch, glitch);
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 				// Surface driver failures once instead of polling getError every frame.

@@ -1,21 +1,14 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
-import { runFracture, type FractureController } from "./controller";
+import { runFracture } from "./controller";
 import "./fracture.css";
 
-/** Procedural WebGL wallpaper; `active` breaks the screen once the desktop has revealed. */
-export const FractureBackground = memo(function FractureBackground({ active }: { active: boolean }) {
+/** Procedural WebGL wallpaper; the screen breaks as soon as it mounts. */
+export const FractureBackground = memo(function FractureBackground() {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const controllerRef = useRef<FractureController | null>(null);
-	const activeRef = useRef(active);
 	const [ready, setReady] = useState(false);
-
-	useEffect(() => {
-		activeRef.current = active;
-		controllerRef.current?.setActive(active);
-	}, [active]);
 
 	useEffect(() => {
 		const root = rootRef.current;
@@ -23,12 +16,7 @@ export const FractureBackground = memo(function FractureBackground({ active }: {
 		if (!root || !canvas) return;
 
 		const controller = runFracture(root, canvas, setReady);
-		controller.setActive(activeRef.current);
-		controllerRef.current = controller;
-		return () => {
-			controller.destroy();
-			controllerRef.current = null;
-		};
+		return () => controller.destroy();
 	}, []);
 
 	return (

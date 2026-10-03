@@ -1,7 +1,7 @@
 # Fracture wallpaper
 
 A procedural WebGL2 wallpaper without image assets: the red screen shatters
-from its centre when the desktop reveal finishes. Purely 2D, modelled on a
+from its centre as soon as the wallpaper mounts. Purely 2D, modelled on a
 smashed display.
 
 ## How it works
@@ -41,7 +41,8 @@ smashed display.
 
 ## Behaviour
 
-- The screen stays intact until `active`; then cracks shoot out of the impact.
+- Cracks shoot out of the impact as soon as the wallpaper mounts, without
+  waiting for the desktop reveal.
 - Each radial rests at part of its length and now and then grows out further,
   with its forks and a wider shard, before slowly retracting. The fracture
   sways a few degrees, debris turns with it, and outer cracks bend towards a

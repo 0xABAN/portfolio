@@ -78,7 +78,7 @@ function DesktopWorkspace() {
 	const cdDragged = useRef(false);
 	const revealed = useDesktopReveal();
 	const cdWindow = windows.find((w) => w.id === "cd-player");
-	const audio = useCdPlayerAudio(revealed.has("fracture"), Boolean(cdWindow));
+	const audio = useCdPlayerAudio(revealed.has("boot-complete"), Boolean(cdWindow));
 
 	useEffect(() => () => {
 		if (launchTimer.current !== null) window.clearTimeout(launchTimer.current);
@@ -314,7 +314,7 @@ function DesktopWorkspace() {
 				if (isDesktopSurface(event.target)) shell.drop(event, "desktop");
 			}}>
 
-			<FractureBackground active={revealed.has("fracture")} />
+			<FractureBackground />
 			<DesktopIcons
 				onOpenAction={openShell}
 				onSecretsOpenedAction={() => setSecretsOpened(true)}
@@ -334,7 +334,7 @@ function DesktopWorkspace() {
 				/>
 				{visibleWindows.map(renderWindow)}
 			</div>
-			{revealed.has("fracture") ? <DesktopSparks /> : null}
+			<DesktopSparks />
 			<Taskbar
 				muted={audio.muted}
 				onToggleMuteAction={audio.toggleMute}

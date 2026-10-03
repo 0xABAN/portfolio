@@ -59,7 +59,7 @@ try {
           if (event.target.closest?.('.rsod')) window.benchmark.boot.continueAt = performance.now();
         }, true);
         const observer = new MutationObserver(() => {
-          for (const [name, selector] of [['desktopAt', '.desktop'], ['revealAt', '.desktop-sparks'], ['fractureReadyAt', '.fracture-background--ready']]) {
+          for (const [name, selector] of [['desktopAt', '.desktop'], ['revealAt', '.neko'], ['fractureReadyAt', '.fracture-background--ready']]) {
             if (!window.benchmark.boot[name] && document.querySelector(selector)) window.benchmark.boot[name] = performance.now();
           }
         });
