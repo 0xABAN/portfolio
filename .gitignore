@@ -4,9 +4,9 @@
 node_modules/
 
 # frontend dependencies
-src/frontend/node_modules/
+src/frontend/node_modules
 src/frontend/.pnp
-src/frontend/.pnp.*
+src/frontend/**/.pnp.*
 src/frontend/.yarn/*
 !src/frontend/.yarn/patches
 !src/frontend/.yarn/plugins
@@ -14,24 +14,24 @@ src/frontend/.yarn/*
 !src/frontend/.yarn/versions
 
 # frontend testing
-src/frontend/coverage/
+src/frontend/coverage
 
 # next.js
 src/frontend/.next/
 src/frontend/out/
 
 # frontend production
-src/frontend/build/
+src/frontend/build
 
 # frontend typescript
-src/frontend/*.tsbuildinfo
-src/frontend/next-env.d.ts
+src/frontend/**/*.tsbuildinfo
+src/frontend/**/next-env.d.ts
 
 # frontend debug
-src/frontend/npm-debug.log*
-src/frontend/yarn-debug.log*
-src/frontend/yarn-error.log*
-src/frontend/.pnpm-debug.log*
+src/frontend/**/npm-debug.log*
+src/frontend/**/yarn-debug.log*
+src/frontend/**/yarn-error.log*
+src/frontend/**/.pnpm-debug.log*
 
 # backend
 src/backend/**/.venv/
