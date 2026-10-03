@@ -56,7 +56,7 @@ smashed display.
   reshuffles some damaged blocks, widens the slip and makes some stuck lines
   drop out. Between bursts the damage holds still.
 - Slow, ambient-only motion draws at 30 fps; the impact and cursor movement
-  draw every frame. Hidden tabs draw nothing.
+  draw at up to 60 fps, even on faster displays. Hidden tabs draw nothing.
 - Reduced motion shows one settled, motionless frame with the still damage
   and no bursts.
 - The boot screen calls `prepareFracture`, so the shaders compile while it is

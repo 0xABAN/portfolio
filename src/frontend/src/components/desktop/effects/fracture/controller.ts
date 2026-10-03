@@ -1,8 +1,15 @@
 import { createFracture, MAX_SEGMENTS, SEGMENT_FLOATS, swayAngle, writeGlitch, writeSegments, type FrameInput } from "./cracks";
 import { createFractureRenderer, type FractureRenderer } from "./renderer";
 
-/** Ambient motion is slow enough for half rate; the impact and the cursor get every frame. */
+/** Ambient motion is slow enough for 30 fps. */
 const AMBIENT_FRAME_MS = 1000 / 30;
+/**
+ * The impact and the cursor draw at up to 60 fps. Following a 120 Hz display
+ * would double the GPU cost of the wallpaper for no visible gain.
+ */
+const BUSY_FRAME_MS = 1000 / 60;
+/** Absorbs timer jitter, so a 60 Hz display reliably draws every frame when busy and every other frame otherwise. */
+const FRAME_SLACK_MS = 4;
 /** Seconds after the impact that draw at full rate. */
 const BURST_SECONDS = 2;
 /** Longest clock step after a stalled frame, in seconds. */
@@ -113,9 +120,12 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 
 		updateInput();
 		const busy = stepPointer(delta) || glitch[0] > 0 || clock < BURST_SECONDS;
-		// The slack absorbs timer jitter, so 60 Hz displays reliably draw every other frame.
-		if (!busy && now - lastDraw < AMBIENT_FRAME_MS - 4) return;
-		lastDraw = now;
+		const interval = busy ? BUSY_FRAME_MS : AMBIENT_FRAME_MS;
+		if (now - lastDraw < interval - FRAME_SLACK_MS) return;
+		// Step the schedule by whole intervals rather than jumping to now, so the
+		// slack cannot add up to a higher rate on faster displays. After a stall,
+		// start over from now.
+		lastDraw = Math.max(lastDraw + interval, now - FRAME_SLACK_MS);
 		render();
 	}
 
