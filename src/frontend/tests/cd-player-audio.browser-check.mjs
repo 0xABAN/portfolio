@@ -28,6 +28,12 @@ async function checkAudio(page) {
 		const emit = (event, data) => {
 			for (const listener of listeners[event] || []) listener(data);
 		};
+		const sounds = [
+			{ id: 1, title: "Test Track One", user: { username: "Test Artist" }, artwork_url: null },
+			{ id: 2, title: "Test Track Two", user: { username: "Test Artist" }, artwork_url: null },
+			{ id: 3, title: "Test Track Three", user: { username: "Test Artist" }, artwork_url: null },
+		];
+		let current = 0;
 		function Widget() {
 			return {
 				bind(event, listener) {
@@ -43,15 +49,15 @@ async function checkAudio(page) {
 					window.audioStarted = result.then(() => true, () => false);
 					return result;
 				},
+				skip(index) {
+					current = index;
+					return this.play();
+				},
 				pause() { emit(Events.PAUSE); },
 				seekTo(milliseconds) { window.widgetPosition = milliseconds; },
 				setVolume() {},
-				load(_url, options) {
-					queueMicrotask(() => {
-						emit(Events.READY);
-						options?.callback?.();
-					});
-				},
+				getSounds(callback) { callback(sounds); },
+				getCurrentSound(callback) { callback(sounds[current]); },
 			};
 		}
 		Widget.Events = Events;

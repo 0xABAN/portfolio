@@ -5,6 +5,11 @@ export function mockSoundCloud() {
   const emit = (event, data) => {
     for (const listener of listeners[event] ?? []) listener(data);
   };
+  const sounds = [
+    { id: 1, title: 'Test Track One', user: { username: 'Test Artist' }, artwork_url: null },
+    { id: 2, title: 'Test Track Two', user: { username: 'Test Artist' }, artwork_url: null },
+  ];
+  let current = 0;
 
   function Widget() {
     return {
@@ -18,9 +23,14 @@ export function mockSoundCloud() {
         return Promise.resolve().then(() => emit(Events.PLAY));
       },
       pause() { emit(Events.PAUSE); },
+      skip(index) {
+        current = index;
+        return this.play();
+      },
       seekTo(milliseconds) { emit(Events.PLAY_PROGRESS, { currentPosition: milliseconds }); },
       setVolume() {},
-      load(_url, options) { queueMicrotask(() => options?.callback?.()); },
+      getSounds(callback) { callback(sounds); },
+      getCurrentSound(callback) { callback(sounds[current]); },
     };
   }
 

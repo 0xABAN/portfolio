@@ -31,6 +31,11 @@ async function checkTaskbar(page) {
 		};
 		let progress;
 		let position = 0;
+		const sounds = [
+			{ id: 1, title: "Test Track One", user: { username: "Test Artist" }, artwork_url: null },
+			{ id: 2, title: "Test Track Two", user: { username: "Test Artist" }, artwork_url: null },
+		];
+		let current = 0;
 		function Widget() {
 			return {
 				bind(event, listener) {
@@ -54,16 +59,16 @@ async function checkTaskbar(page) {
 					progress = undefined;
 					emit(Events.PAUSE);
 				},
+				skip(index) {
+					window.audioActions.push("skip");
+					current = index;
+					position = 0;
+					this.play();
+				},
 				seekTo(milliseconds) { position = milliseconds; },
 				setVolume() {},
-				load(_url, options) {
-					window.audioActions.push("load");
-					position = 0;
-					queueMicrotask(() => {
-						emit(Events.READY);
-						options?.callback?.();
-					});
-				},
+				getSounds(callback) { callback(sounds); },
+				getCurrentSound(callback) { callback(sounds[current]); },
 				getPosition(callback) { callback(position); },
 			};
 		}
@@ -174,7 +179,10 @@ async function checkTaskbar(page) {
 		}
 	}), "Hand cursor overrides the busy hourglass");
 
+	// Sparks mount after the fracture's first frame; wait so the reduced-motion check is not vacuous.
+	await page.locator(".fracture-background--ready").waitFor();
 	const sparks = page.locator(".desktop-sparks");
+	await sparks.waitFor({ state: "attached" });
 	check(!(await sparks.isVisible()), "Sparks ignore reduced motion");
 	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Hidden sparks still animate");
 	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
@@ -204,7 +212,6 @@ async function checkTaskbar(page) {
 	await secretsIcon.dragTo(cdIcon);
 	check(await bubble.count() === 0, "Dragging Secrets did not dismiss its speech bubble");
 	await secretsIcon.dragTo(cdIcon);
-	await page.locator(".fracture-background--ready").waitFor();
 	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
 		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);

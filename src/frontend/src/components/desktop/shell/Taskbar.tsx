@@ -111,15 +111,17 @@ function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapse
 			<div ref={strip} id="task-strip" className="taskbar__tasks" role="group" aria-label="Open applications"
 				onFocusCapture={(event) => (event.target as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" })}>
 				{tasks.map((w) => {
-					const isMusic = w.id === "cd-player";
-					const label = isMusic ? trackLabel : w.title || w.id;
+					const isCdPlayer = w.id === "cd-player";
+					// The CD Player's task names the track once SoundCloud has described it.
+					const naming = isCdPlayer && trackLabel !== "";
+					const label = naming ? trackLabel : w.title || w.id;
 					return (
 						<TaskButton
 							key={w.id}
 							icon={w.icon}
 							title={label}
-							aria-label={isMusic ? `CD Player: ${label}` : undefined}
-							progress={isMusic ? <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span> : undefined}
+							aria-label={naming ? `CD Player: ${label}` : undefined}
+							progress={isCdPlayer ? <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span> : undefined}
 							data-task-id={w.id}
 							aria-controls={`desktop-window-${w.id}`}
 							aria-pressed={w.id === activeId}

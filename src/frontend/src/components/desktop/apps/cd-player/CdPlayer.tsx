@@ -66,14 +66,15 @@ export function CdPlayer({
 	return (
 		<div className="cd-player__body">
 			<div className="cd-player__row">
+				{/* Empty while SoundCloud describes the track, or when the upload has no artwork. */}
 				<div className="cd-player__art chrome-sunken" aria-hidden>
 					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img src={track.cover} alt="" draggable={false} />
+					{track?.cover && <img src={track.cover} alt="" draggable={false} />}
 				</div>
 
 				<div className="cd-player__fields">
-					<Field label="Artist:" value={track.artist} onPrev={playPrev} onNext={playNext} />
-					<Field label="Track:" value={track.title} onPrev={playPrev} onNext={playNext} />
+					<Field label="Artist:" value={track?.artist ?? ""} onPrev={playPrev} onNext={playNext} />
+					<Field label="Track:" value={track?.title ?? ""} onPrev={playPrev} onNext={playNext} />
 
 					<div className="cd-player__transport" role="toolbar" aria-label="Playback">
 						{transport.map(([label, onClick, glyph], i) => (

@@ -1,143 +1,57 @@
-/** CD Player queue of SoundCloud permalinks. */
+/**
+ * The CD Player plays this SoundCloud playlist. Its tracks, order, titles and
+ * artwork all come from SoundCloud: edit the playlist there to change the music.
+ */
+export const PLAYLIST_URL = "https://soundcloud.com/0x-aban/sets/portfolio";
 
-export type Track = {
-	/** SoundCloud permalink. */
-	src: string;
-	title: string;
-	artist: string;
-	cover: string;
+/** The fields the player reads from a SoundCloud Widget sound object. */
+export type ScSound = {
+	id: number;
+	/** Missing until SoundCloud has described the sound; see `getCurrentSound`. */
+	title?: string;
+	user?: { username?: string };
+	artwork_url?: string | null;
 };
 
-const UNDERTALE_COVER = "/music/covers/fallen-down.jpg";
-const P3R_COVER = "/music/covers/full-moon-full-life.jpg";
-const P4_COVER = "/music/covers/heartbeat-heartbreak.jpg";
+/** What the CD Player shows for a track, as SoundCloud names it. */
+export type Track = {
+	title: string;
+	/** The uploader's name. */
+	artist: string;
+	/** Null when the upload has no artwork. */
+	cover: string | null;
+};
 
-/** Spotify playlist 0GYdCEARGMLwJ2LD1oTv6Z order. */
-export const PLAYLIST: readonly Track[] = [
-	{
-		src: "https://soundcloud.com/tman2bard/under-night-in-birth-ost-gathers-under-nightcharacter-select-theme",
-		title: "Gathers Under Night...",
-		artist: "Raito",
-		cover: "/music/covers/gathers-under-night.jpg",
-	},
-	{
-		src: "https://soundcloud.com/fawfulhasfury/the-grand-finale-mario-luigi-bowsers-inside-story",
-		title: "The Grand Finale",
-		artist: "Yoko Shimomura",
-		cover: "/music/covers/grand-finale.jpg",
-	},
-	{
-		src: "https://soundcloud.com/chrischristodouloumusic/con-lentitud-poderosa",
-		title: "…con lentitud poderosa",
-		artist: "Chris Christodoulou",
-		cover: "https://i.scdn.co/image/ab67616d000048516697f4b4355ca2590ad808be",
-	},
-	{
-		src: "https://soundcloud.com/toby-radiation-fox/004-fallen-down",
-		title: "Fallen Down",
-		artist: "Toby Fox",
-		cover: UNDERTALE_COVER,
-	},
-	{
-		src: "https://soundcloud.com/toby-radiation-fox/077-asgore",
-		title: "ASGORE",
-		artist: "Toby Fox",
-		cover: "/music/covers/asgore.jpg",
-	},
-	{
-		src: "https://soundcloud.com/browain1/beneath-the-mask",
-		title: "Beneath the Mask",
-		artist: "Lyn",
-		cover: "/music/covers/beneath-the-mask.jpg",
-	},
-	{
-		src: "https://soundcloud.com/paola-anahi-garcia/persona-4-heartbeat-heartbreak",
-		title: "Heartbeat, Heartbreak",
-		artist: "Shihoko Hirata",
-		cover: P4_COVER,
-	},
-	{
-		src: "https://soundcloud.com/persona3ost/color-your-night-persona-3-reload-ost",
-		title: "Color Your Night",
-		artist: "Lotus Juice × Azumi Takahashi",
-		cover: "/music/covers/color-your-night.jpg",
-	},
-	{
-		src: "https://soundcloud.com/persona3ost/full-moon-full-life-persona-3-reload-ost",
-		title: "Full Moon Full Life",
-		artist: "Azumi Takahashi × Lotus Juice",
-		cover: P3R_COVER,
-	},
-	{
-		src: "https://soundcloud.com/persona3ost/its-going-down-now-persona-3-reload-ost",
-		title: "It's Going Down Now",
-		artist: "Lotus Juice × Azumi Takahashi",
-		cover: "/music/covers/its-going-down-now.jpg",
-	},
-	{
-		src: "https://soundcloud.com/dm-dokuro/universal-collapse-ingame-version",
-		title: "Universal Collapse",
-		artist: "DM DOKURO",
-		cover: "/music/covers/universal-collapse.jpg",
-	},
-	{
-		src: "https://soundcloud.com/persona3ost/memories-of-you-kimi-no-kioku-reload-persona-3-reload-ost",
-		title: "Memories of You -Reload-",
-		artist: "Azumi Takahashi",
-		cover: P3R_COVER,
-	},
-	{
-		src: "https://soundcloud.com/toby-radiation-fox/017-snowy",
-		title: "Snowy",
-		artist: "Toby Fox",
-		cover: UNDERTALE_COVER,
-	},
-	{
-		src: "https://soundcloud.com/toby-radiation-fox/097-but-the-earth-refused-to",
-		title: "But The Earth Refused To Die",
-		artist: "Toby Fox",
-		cover: UNDERTALE_COVER,
-	},
-	{
-		src: "https://soundcloud.com/toby-radiation-fox/081-an-ending",
-		title: "An Ending",
-		artist: "Toby Fox",
-		cover: UNDERTALE_COVER,
-	},
-	{
-		src: "https://soundcloud.com/p3dancinginmoonlight/a-way-of-life-deep-inside-my",
-		title: "A way of Life - Deep inside my mind Remix",
-		artist: "藤田真由美",
-		cover: P3R_COVER,
-	},
-	{
-		src: "https://soundcloud.com/user-22127002/persona-4-ost-42-heaven",
-		title: "Heaven",
-		artist: "Shihoko Hirata",
-		cover: P4_COVER,
-	},
-];
-
-export function wrapIndex(i: number): number {
-	const n = PLAYLIST.length;
-	if (n === 0) throw new Error("playlist is empty");
-	return ((i % n) + n) % n;
+export function toTrack(sound: ScSound & { title: string }): Track {
+	return {
+		title: sound.title,
+		artist: sound.user?.username ?? "",
+		cover: sound.artwork_url ? coverUrl(sound.artwork_url) : null,
+	};
 }
 
-export function trackAt(i: number): Track {
-	return PLAYLIST[wrapIndex(i)];
+/** The widget reports 100px "large" artwork; SoundCloud serves the same image at 500px. */
+export function coverUrl(artworkUrl: string) {
+	return artworkUrl.replace(/-large(\.\w+)$/, "-t500x500$1");
+}
+
+export function wrapIndex(i: number, count: number): number {
+	if (count <= 0) throw new Error("playlist is empty");
+	return ((i % count) + count) % count;
+}
+
+/** A random track, other than `except` when the playlist has another one. */
+export function randomTrackIndex(count: number, except?: number) {
+	if (count <= 0) throw new Error("playlist is empty");
+	if (count === 1 || except === undefined) return Math.floor(Math.random() * count);
+
+	// Pick among the others, then step over `except`.
+	const pick = Math.floor(Math.random() * (count - 1));
+	return pick >= except ? pick + 1 : pick;
 }
 
 export function formatElapsed(sec: number) {
 	if (!Number.isFinite(sec) || sec < 0) sec = 0;
 	const s = Math.floor(sec);
 	return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-}
-
-/** Random track index; avoids an immediate repeat when there is another track. */
-export function randomTrackIndex(except?: number) {
-	const all = [...PLAYLIST.keys()];
-	const others = all.filter((i) => i !== except);
-	const pool = others.length ? others : all;
-	return pool[Math.floor(Math.random() * pool.length)];
 }
