@@ -86,7 +86,7 @@ DPR=3 node tests/performance.mjs record http://127.0.0.1:3188 /tmp/png-visual-dp
 DPR=3 node tests/performance.mjs compare http://127.0.0.1:3187 /tmp/png-visual-dpr3
 PSP_TEST_URL=http://127.0.0.1:3187 node src/components/desktop/apps/experience/psp.browser-check.mjs
 AUDIO_TEST_URL=http://127.0.0.1:3187 node src/components/desktop/apps/cd-player/audio.browser-check.mjs
-LAUNCH_TEST_URL=http://127.0.0.1:3187 node src/components/desktop/launch.browser-check.mjs
+LAUNCH_TEST_URL=http://127.0.0.1:3187 node tests/launch.browser-check.mjs
 ```
 
 `RUNS=1 LIVE=1` runs the benchmark against real integrations. `WIDTH`, `HEIGHT`,
