@@ -222,16 +222,21 @@ async function checkTaskbar(page) {
 	}), "Sparks are not between the wallpaper and desktop windows");
 	check(await sparks.locator("span").evaluateAll((nodes) => nodes.length === 24 && nodes.every((el) => {
 		const style = getComputedStyle(el);
-		return style.backgroundColor === "rgb(0, 0, 0)" && style.opacity === "1" && style.filter === "none"
+		return decodeURIComponent(style.backgroundImage).includes('fill="black"') && style.opacity === "1" && style.filter === "none"
 			&& style.boxShadow === "none" && style.pointerEvents === "none" && el.tabIndex === -1
 			&& parseFloat(style.width) >= 5 && parseFloat(style.height) >= 4;
 	})), "Sparks lost their bounded, chunky, solid-black, noninteractive appearance");
 	check(await sparks.locator("span").evaluateAll((nodes) => {
-		const styles = nodes.map((el) => getComputedStyle(el));
-		const x = styles.map((style) => parseFloat(style.getPropertyValue("--spark-x")));
-		const y = styles.map((style) => parseFloat(style.getPropertyValue("--spark-y")));
-		return new Set(styles.map((style) => style.clipPath)).size >= 5
-			&& new Set(styles.map((style) => style.getPropertyValue("--spark-angle"))).size >= 12
+		// Where each spark's flight ends, from its last keyframe.
+		const ends = nodes.map((el) => {
+			const transform = el.getAnimations()[0].effect.getKeyframes().at(-1).transform;
+			const [, x, y, angle] = transform.match(/translate3d\(([-\d.]+)px, ([-\d.]+)px, [^)]*\) rotate\(([-\d.]+)deg\)/).map(Number);
+			return { x, y, angle };
+		});
+		const x = ends.map((end) => end.x);
+		const y = ends.map((end) => end.y);
+		return new Set(nodes.map((el) => getComputedStyle(el).backgroundImage)).size >= 5
+			&& new Set(ends.map((end) => end.angle)).size >= 12
 			&& x.some((value) => value < 0) && x.some((value) => value > 0)
 			&& y.some((value) => value < 0) && y.some((value) => value > 0);
 	}), "Sparks need varied shapes, angles and travel directions");
