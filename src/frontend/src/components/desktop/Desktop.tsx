@@ -1,29 +1,20 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
-import { DESKTOP_REVEAL_MS, DESKTOP_REVEAL_WINDOWS } from "./desktopReveal";
+import { DESKTOP_REVEAL_WINDOWS } from "./desktopReveal";
 import { useDesktopReveal } from "./useDesktopReveal";
-import { Bio } from "./Bio";
-import { CdPlayer } from "./CdPlayer";
 import { useCdPlayerAudio } from "./useCdPlayerAudio";
 import { DesktopSparks } from "./DesktopSparks";
 import { FractureBackground } from "./FractureBackground";
-import { Explorer } from "./explorer/Explorer";
-import { RecycleBin } from "./recycle-bin/RecycleBin";
-import { BIN_ICON, DESK_ICONS as FILE_ICONS, type DeskIcon as CatalogIcon } from "./recycle-bin/shellCatalog";
-import { itemOf, type ShellNode } from "./recycle-bin/recycleBinState";
+import { BIN_ICON } from "./recycle-bin/shellCatalog";
+import { itemOf } from "./recycle-bin/recycleBinState";
 import { ShellProvider, useShell } from "./recycle-bin/ShellProvider";
 import { ShellDialogs } from "./recycle-bin/ShellDialogs";
-import { useDesktopSelection } from "./recycle-bin/useDesktopSelection";
-import { GitHubGraph } from "./GitHubGraph";
+import { DesktopIcons } from "./files/DesktopIcons";
 import { Neko } from "./Neko";
-import { Paint } from "./paint/Paint";
-import { Experience } from "./experience/Experience";
-import { SystemMessage } from "./SystemMessage";
 import { Taskbar } from "./Taskbar";
-import { Terminal } from "./Terminal";
-import { Word } from "./word/Word";
+import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./windowState";
 import {
@@ -38,170 +29,6 @@ import {
 } from "./windows";
 import "./desktop.css";
 
-type DeskIcon = CatalogIcon & { recycle?: boolean; catalogId?: string };
-
-const RECYCLE_BIN: DeskIcon = {
-	id: "recycle-bin",
-	label: "Recycle Bin",
-	src: "/icons/recycle-bin-empty.png",
-	recycle: true,
-};
-
-const DESK_ICONS: DeskIcon[] = [...FILE_ICONS, RECYCLE_BIN];
-
-function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
-	const order = (node: ShellNode) => {
-		const index = FILE_ICONS.findIndex((icon) => icon.id === node.catalogId);
-		return index < 0 ? FILE_ICONS.length : index;
-	};
-	return [...nodes.filter((node) => node.parentId === "desktop").sort((a, b) => order(a) - order(b)).map((node) => {
-		const item = itemOf(node);
-		return { id: node.id, catalogId: node.catalogId, label: item.name, src: item.icon, open: item.open, href: item.href };
-	}), RECYCLE_BIN];
-}
-
-const DESK_ICON_CELL_W = 96;
-const DESK_ICON_CELL_H = 112;
-const DESK_ICON_GAP_X = 8;
-const DESK_ICON_GAP_Y = 8;
-const DESK_ICON_STEP_X = DESK_ICON_CELL_W + DESK_ICON_GAP_X;
-const DESK_ICON_STEP_Y = DESK_ICON_CELL_H + DESK_ICON_GAP_Y;
-
-type DeskIconPosition = { col: number; row: number };
-type DeskIconPositions = Record<string, DeskIconPosition>;
-
-function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
-	const width = Math.max(DESK_ICON_CELL_W, vw - 10);
-	const height = Math.max(DESK_ICON_CELL_H, vh - TASKBAR_H - 28);
-	const cols = Math.max(1, Math.floor((width - DESK_ICON_CELL_W) / DESK_ICON_STEP_X) + 1);
-	const rows = Math.max(
-		Math.max(1, Math.floor((height - DESK_ICON_CELL_H) / DESK_ICON_STEP_Y) + 1),
-		Math.ceil(count / cols),
-	);
-	return { cols, rows };
-}
-
-function defaultDeskIconPositions(vw: number, vh: number): DeskIconPositions {
-	const { rows } = gridBounds(vw, vh);
-	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, {
-		col: Math.floor(index / rows),
-		row: index % rows,
-	}])) as DeskIconPositions;
-}
-
-function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: number, icons = DESK_ICONS): DeskIconPositions {
-	const { cols, rows } = gridBounds(vw, vh, icons.length);
-	const used = new Set<string>();
-	const next: DeskIconPositions = {};
-	const total = cols * rows;
-
-	for (const [index, icon] of icons.entries()) {
-		const fallback = { col: Math.floor(index / rows), row: index % rows };
-		const source = current[icon.id] ?? current[icon.catalogId ?? icon.id] ?? fallback;
-		const startCol = Math.min(Math.max(source.col, 0), cols - 1);
-		const startRow = Math.min(Math.max(source.row, 0), rows - 1);
-		let cell = startRow * cols + startCol;
-		while (used.has(`${cell % cols}:${Math.floor(cell / cols)}`)) cell = (cell + 1) % total;
-		const position = { col: cell % cols, row: Math.floor(cell / cols) };
-		next[icon.id] = position;
-		used.add(`${position.col}:${position.row}`);
-	}
-	return next;
-}
-
-/** Soft bounce after boot to pull the eye. */
-const ATTENTION_DELAY_MS = 1000;
-
-function DeskIconGlyph({ src, label, notification = false }: { src: string; label: string; notification?: boolean }) {
-	return (
-		<>
-			<span className="desk-icon__art">
-				{/* eslint-disable-next-line @next/next/no-img-element */}
-				<img
-					className="desk-icon__img"
-					src={src}
-					alt=""
-					width={64}
-					height={64}
-					draggable={false}
-				/>
-				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
-				{notification && (
-					<span className="desk-icon__bubble" aria-hidden="true">
-						<span className="desk-icon__bubble-x">
-							<span className="desk-icon__bubble-y">
-								<span className="desk-icon__bubble-body">
-									<span className="desk-icon__bubble-text">don&apos;t click me!</span>
-								</span>
-							</span>
-						</span>
-					</span>
-				)}
-			</span>
-			<span className="desk-icon__label">{label}</span>
-		</>
-	);
-}
-
-/** Content does not depend on window position, except for the magnifier crop. */
-const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onClose, onOpenShell, folderId }: {
-	id: string;
-	kind: DesktopWindow["kind"];
-	src?: string;
-	active: boolean;
-	cropStyle?: CSSProperties;
-	audio?: ReturnType<typeof useCdPlayerAudio>;
-	onMinimize: (id: string) => void;
-	onClose: (id: string) => void;
-	onOpenShell: (id: string) => void;
-	folderId: string;
-}) {
-	switch (kind) {
-		case "cd-player":
-			return audio ? <CdPlayer {...audio} /> : null;
-		case "error":
-			return <SystemMessage onOkAction={() => onMinimize(id)} />;
-		case "paint":
-			return src ? <Paint src={src} active={active} /> : null;
-		case "github":
-			return <GitHubGraph />;
-		case "experience":
-			return <Experience onClose={() => onClose(id)} />;
-		case "terminal":
-			return <Terminal />;
-		case "bio":
-			return <Bio />;
-		case "word":
-			return <Word onCloseAction={() => onClose(id)} onMinimizeAction={() => onMinimize(id)} />;
-		case "recycle-bin":
-			return <RecycleBin onCloseAction={() => onClose(id)} />;
-		case "explorer":
-			return <Explorer folderId={folderId} onOpenAction={onOpenShell} />;
-	}
-
-	if (src) {
-		return (
-			// eslint-disable-next-line @next/next/no-img-element
-			<img className="win-fill" src={src} alt="" draggable={false} />
-		);
-	}
-
-	if (cropStyle) {
-		return (
-			// eslint-disable-next-line @next/next/no-img-element
-			<img
-				className="win-fill-crop"
-				src="/photos/overlay.png"
-				alt=""
-				draggable={false}
-				style={cropStyle}
-			/>
-		);
-	}
-
-	return null;
-});
-
 export function Desktop() {
 	return <ShellProvider><DesktopWorkspace /></ShellProvider>;
 }
@@ -214,16 +41,10 @@ function DesktopWorkspace() {
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
 		layoutDesktop(window.innerWidth, window.innerHeight),
 	);
-	const [deskIconPositions, setDeskIconPositions] = useState(() =>
-		defaultDeskIconPositions(window.innerWidth, window.innerHeight),
-	);
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
 	const binFull = shell.state.entries.length > 0;
-	const [binHot, setBinHot] = useState(false);
-	const [draggingId, setDraggingId] = useState<string | null>(null);
-	const [attention, setAttention] = useState(false);
 	const [secretsOpened, setSecretsOpened] = useState(false);
 	const cdDragged = useRef(false);
 	const revealed = useDesktopReveal();
@@ -242,16 +63,9 @@ function DesktopWorkspace() {
 			const next = layoutDesktop(width, height);
 			layoutRef.current = next;
 			setWindows((current) => reflowDesktop(current, previous, next, width, height));
-			setDeskIconPositions((current) => ({ ...current, ...normalizeDeskIconPositions(current, width, height, shellDeskIcons(getSnapshot().state.nodes)) }));
 		};
 		window.addEventListener("resize", resize);
 		return () => window.removeEventListener("resize", resize);
-	}, [getSnapshot]);
-
-	useEffect(() => {
-		const startAt = DESKTOP_REVEAL_MS + ATTENTION_DELAY_MS;
-		const start = window.setTimeout(() => setAttention(true), startAt);
-		return () => window.clearTimeout(start);
 	}, []);
 
 	useEffect(() => {
@@ -289,59 +103,6 @@ function DesktopWorkspace() {
 		window.addEventListener("keydown", onTyping);
 		return () => window.removeEventListener("keydown", onTyping);
 	}, []);
-
-	function hasNotification(id: string) {
-		return shell.state.nodes.find((node) => node.id === id)?.catalogId === "secrets" && !secretsOpened;
-	}
-
-	const bounceSecrets = attention && !secretsOpened && !windows.some((w) => w.id === "explorer");
-
-	function markDeskIconInteraction(icon: DeskIcon) {
-		if ((icon.catalogId ?? icon.id) === "secrets") setSecretsOpened(true);
-	}
-
-	function swapDeskIcons(sourceId: string, targetId: string) {
-		if (!sourceId || sourceId === targetId) return;
-		setDeskIconPositions((current) => {
-			const source = current[sourceId] ?? positions[sourceId];
-			const target = current[targetId] ?? positions[targetId];
-			if (!source || !target) return current;
-
-			return {
-				...current,
-				[sourceId]: target,
-				[targetId]: source,
-			};
-		});
-	}
-
-	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
-		const { cols, rows } = gridBounds(window.innerWidth, window.innerHeight, deskIcons.length);
-		const cell = {
-			col: Math.min(Math.max(col, 0), cols - 1),
-			row: Math.min(Math.max(row, 0), rows - 1),
-		};
-		setDeskIconPositions((current) => {
-			const source = current[sourceId] ?? positions[sourceId];
-			if (!source) return current;
-			const target = visibleDeskIcons.find((icon) => icon.id !== sourceId
-				&& (current[icon.id] ?? positions[icon.id])?.col === cell.col
-				&& (current[icon.id] ?? positions[icon.id])?.row === cell.row);
-			if (target?.id === RECYCLE_BIN.id) return current;
-
-			const next = { ...current, [sourceId]: cell };
-			if (target) next[target.id] = source;
-			return next;
-		});
-	}
-
-	function moveDeskIconAtPoint(sourceId: string, clientX: number, clientY: number, bounds: DOMRect) {
-		moveDeskIconToCell(
-			sourceId,
-			Math.round((clientX - bounds.left - DESK_ICON_CELL_W / 2) / DESK_ICON_STEP_X),
-			Math.round((clientY - bounds.top - DESK_ICON_CELL_H / 2) / DESK_ICON_STEP_Y),
-		);
-	}
 
 	const closeWindow = useCallback((id: string) => {
 		if (id === "cd-player") {
@@ -488,11 +249,6 @@ function DesktopWorkspace() {
 		return w;
 	});
 	const activeId = activeWindowId(visibleWindows);
-	const deskIcons = shellDeskIcons(shell.state.nodes);
-	const visibleDeskIcons = deskIcons.filter((icon) => !DESK_ICONS.some((original) => original.id === (icon.catalogId ?? icon.id)) || revealed.has(icon.catalogId ?? icon.id));
-	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
-	const desktopSelection = useDesktopSelection(visibleDeskIcons, openShell);
-
 	const renderWindow = (w: DesktopWindow) => {
 		const parent = windows.find((p) => p.id === w.parentId);
 		return <Window
@@ -541,118 +297,13 @@ function DesktopWorkspace() {
 			}}>
 
 			<FractureBackground active={revealed.has("fracture")} />
-			<ul
-				className="desktop__icons"
-				aria-label="Desktop"
-				role="listbox"
-				aria-multiselectable="true"
-				data-shell-surface=""
-				onKeyDown={desktopSelection.onKeyDown}
-				onContextMenu={(e) => { if (e.target === e.currentTarget) desktopSelection.onContextMenu(e); }}
-				onPointerDown={(e) => { if (e.target === e.currentTarget) desktopSelection.clear(); }}
-				onDragOver={(e) => {
-					if (!draggingId && !shell.canDrop(e, "desktop")) return;
-					e.preventDefault();
-					e.dataTransfer.dropEffect = "move";
-				}}
-				onDrop={(e) => {
-					if (!draggingId) { shell.drop(e, "desktop"); return; }
-					e.preventDefault();
-					moveDeskIconAtPoint(draggingId, e.clientX, e.clientY, e.currentTarget.getBoundingClientRect());
-					shell.endDrag();
-					setDraggingId(null);
-				}}
-			>
-				{visibleDeskIcons.map((icon, index) => (
-					<li
-						key={icon.id}
-						role="presentation"
-						style={{
-							left: `${positions[icon.id].col * DESK_ICON_STEP_X}px`,
-							top: `${positions[icon.id].row * DESK_ICON_STEP_Y}px`,
-						}}
-					>
-						<button
-							type="button"
-							className={
-								[
-									"desk-icon shell-desktop-item",
-									(icon.catalogId ?? icon.id) === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
-									icon.recycle && binHot ? "desk-icon--drop-hot" : "",
-									draggingId === icon.id ? "desk-icon--dragging" : "",
-								]
-									.filter(Boolean)
-									.join(" ")
-							}
-							title={icon.label}
-							data-app-id={icon.open}
-							data-icon-id={icon.id}
-							data-shell-item={icon.id}
-							data-shortcut={icon.href || icon.open === "cd-player" ? "" : undefined}
-							role="option"
-							aria-selected={desktopSelection.selected.includes(icon.id)}
-							tabIndex={index === 0 ? 0 : -1}
-							data-recycle-bin={icon.recycle ? "" : undefined}
-							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : icon.label}
-							draggable
-							onPointerDown={() => markDeskIconInteraction(icon)}
-							onFocus={() => markDeskIconInteraction(icon)}
-							onDragOver={(e) => {
-								markDeskIconInteraction(icon);
-								if (icon.recycle) {
-									if (!shell.canDrop(e, "bin")) return;
-									e.preventDefault();
-									e.dataTransfer.dropEffect = "move";
-									setBinHot(true);
-									return;
-								}
-								if ((!draggingId && !(icon.open === "explorer" && shell.canDrop(e, icon.id))) || draggingId === icon.id) return;
-								e.preventDefault();
-								e.dataTransfer.dropEffect = "move";
-							}}
-							onDragLeave={() => {
-								if (icon.recycle) setBinHot(false);
-							}}
-							onDrop={(e) => {
-								markDeskIconInteraction(icon);
-								e.preventDefault();
-								e.stopPropagation();
-								if (icon.recycle) shell.drop(e, "bin");
-								else if (icon.open === "explorer" && draggingId !== RECYCLE_BIN.id) shell.drop(e, icon.id);
-								else if (draggingId) swapDeskIcons(draggingId, icon.id);
-								shell.endDrag();
-								setBinHot(false);
-								setDraggingId(null);
-							}}
-							onDragStart={(e) => {
-								markDeskIconInteraction(icon);
-								if (icon.recycle) {
-									e.dataTransfer.setData("text/plain", icon.id);
-									e.dataTransfer.effectAllowed = "move";
-								} else shell.startDrag(e, { kind: "nodes", ids: desktopSelection.forItem(icon.id).filter((id) => id !== RECYCLE_BIN.id) });
-								setDraggingId(icon.id);
-							}}
-							onDragEnd={() => {
-								shell.endDrag();
-								setDraggingId(null);
-								setBinHot(false);
-							}}
-							onClick={(e) => {
-								markDeskIconInteraction(icon);
-								desktopSelection.select(icon.id, e);
-							}}
-							onDoubleClick={() => openShell(icon.id)}
-							onContextMenu={(e) => desktopSelection.onContextMenu(e, icon.id)}
-						>
-							<DeskIconGlyph
-								src={icon.recycle ? (binFull ? "/icons/recycle-bin-full.png" : "/icons/recycle-bin-empty.png") : icon.src}
-								label={icon.label}
-								notification={hasNotification(icon.id)}
-							/>
-						</button>
-					</li>
-				))}
-			</ul>
+			<DesktopIcons
+				onOpenAction={openShell}
+				onSecretsOpenedAction={() => setSecretsOpened(true)}
+				revealed={revealed}
+				secretsOpened={secretsOpened}
+				explorerOpen={windows.some((w) => w.id === "explorer")}
+			/>
 			<div className="desktop__windows">
 				<div
 					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
@@ -681,7 +332,6 @@ function DesktopWorkspace() {
 			/>
 			{revealed.has("neko") ? <Neko /> : null}
 			<ShellDialogs />
-			{desktopSelection.menu}
 		</div>
 	);
 }
