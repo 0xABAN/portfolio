@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { flushSync } from "react-dom";
 import { DESKTOP_REVEAL_WINDOWS } from "./desktopReveal";
 import { useDesktopReveal } from "./useDesktopReveal";
-import { useCdPlayerAudio } from "./useCdPlayerAudio";
+import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
 import { DesktopSparks } from "./DesktopSparks";
 import { FractureBackground } from "./FractureBackground";
 import { BIN_ICON } from "./files/catalog";
 import { ShellProvider, useShell } from "./files/ShellProvider";
 import { itemOf } from "./files/state";
-import { ShellDialogs } from "./recycle-bin/ShellDialogs";
+import { ShellDialogs } from "./apps/recycle-bin/ShellDialogs";
 import { DesktopIcons } from "./files/DesktopIcons";
 import { Neko } from "./Neko";
 import { Taskbar } from "./shell/Taskbar";

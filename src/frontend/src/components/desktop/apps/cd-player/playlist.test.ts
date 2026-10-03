@@ -12,7 +12,7 @@ test("all 17 soundtrack entries have playable sources, artwork and wrapping navi
 		assert.ok(track.src, `${track.title} has no source`);
 		assert.equal(new URL(track.src).origin, "https://soundcloud.com");
 		if (track.cover.startsWith("/")) {
-			assert.ok(existsSync(new URL(`../../../public${track.cover}`, import.meta.url)), `${track.title} artwork is missing`);
+			assert.ok(existsSync(new URL(`../../../../../public${track.cover}`, import.meta.url)), `${track.title} artwork is missing`);
 		} else {
 			assert.equal(new URL(track.cover).protocol, "https:");
 		}

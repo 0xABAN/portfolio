@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
-import { binBytes, entryRoot, itemOf, nodeBytes, originalLocation, type RecycledEntry } from "../files/state";
-import { formatBytes } from "../files/catalog";
-import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
-import { useShell } from "../files/ShellProvider";
+import { binBytes, entryRoot, itemOf, nodeBytes, originalLocation, type RecycledEntry } from "../../files/state";
+import { formatBytes } from "../../files/catalog";
+import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
+import { useShell } from "../../files/ShellProvider";
 import "./recycle-bin.css";
 
 const VIEWS = ["Large Icons", "Small Icons", "List", "Details"] as const;

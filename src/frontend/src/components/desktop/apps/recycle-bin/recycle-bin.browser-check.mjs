@@ -1,4 +1,4 @@
-/** Run from src/frontend against the dev server: node src/components/desktop/recycle-bin/recycle-bin.browser-check.mjs */
+/** Run from src/frontend against the dev server: node src/components/desktop/apps/recycle-bin/recycle-bin.browser-check.mjs */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 

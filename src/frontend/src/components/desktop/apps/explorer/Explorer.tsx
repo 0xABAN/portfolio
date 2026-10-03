@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { ancestorsOf, itemOf, nodeBytes } from "../files/state";
-import { DESKTOP_PATH, formatBytes } from "../files/catalog";
-import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
-import { useShell } from "../files/ShellProvider";
+import { ancestorsOf, itemOf, nodeBytes } from "../../files/state";
+import { DESKTOP_PATH, formatBytes } from "../../files/catalog";
+import { MenuButton, ShellMenu, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
+import { useShell } from "../../files/ShellProvider";
 
 type Props = {
 	folderId: string;

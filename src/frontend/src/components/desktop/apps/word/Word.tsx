@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MenuButton, menuShortcut, type MenuCommand } from "../shell/ShellControls";
+import { MenuButton, menuShortcut, type MenuCommand } from "../../shell/ShellControls";
 import { resumeToPage } from "./resumeTex";
 import "./word.css";
 

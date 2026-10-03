@@ -1,15 +1,15 @@
 import { memo, type CSSProperties } from "react";
-import { Bio } from "../Bio";
-import { CdPlayer } from "../CdPlayer";
-import type { useCdPlayerAudio } from "../useCdPlayerAudio";
-import { Explorer } from "../explorer/Explorer";
-import { RecycleBin } from "../recycle-bin/RecycleBin";
-import { GitHubGraph } from "../GitHubGraph";
-import { Paint } from "../paint/Paint";
-import { Experience } from "../experience/Experience";
+import { Bio } from "./bio/Bio";
+import { CdPlayer } from "./cd-player/CdPlayer";
+import type { useCdPlayerAudio } from "./cd-player/useCdPlayerAudio";
+import { Explorer } from "./explorer/Explorer";
+import { RecycleBin } from "./recycle-bin/RecycleBin";
+import { GitHubGraph } from "./github/GitHubGraph";
+import { Paint } from "./paint/Paint";
+import { Experience } from "./experience/Experience";
 import { SystemMessage } from "../SystemMessage";
-import { Terminal } from "../Terminal";
-import { Word } from "../word/Word";
+import { Terminal } from "./terminal/Terminal";
+import { Word } from "./word/Word";
 import type { DesktopWindow } from "../window/layout";
 
 type Props = {
