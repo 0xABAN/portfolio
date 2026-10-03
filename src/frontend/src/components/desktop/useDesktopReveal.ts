@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BOOT_SCHEDULE } from "./bootReveal";
+import { DESKTOP_REVEAL_SCHEDULE } from "./desktopReveal";
 
-/** Grows a Set of reveal ids over the boot schedule. */
-export function useBootReveal(): ReadonlySet<string> {
+/** Reveals desktop items according to the staggered desktop schedule. */
+export function useDesktopReveal(): ReadonlySet<string> {
 	const [revealed, setRevealed] = useState<ReadonlySet<string>>(() => new Set());
 
 	useEffect(() => {
-		const timers = BOOT_SCHEDULE.map(({ id, at }) =>
+		const timers = DESKTOP_REVEAL_SCHEDULE.map(({ id, at }) =>
 			window.setTimeout(() => {
 				setRevealed((prev) => {
 					if (prev.has(id)) return prev;

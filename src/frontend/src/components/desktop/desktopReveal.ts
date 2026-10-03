@@ -1,5 +1,5 @@
-/** Desktop trickle-in after restart. Last item must land at BOOT_MS. */
-export const BOOT_MS = 2100;
+/** Desktop trickle-in after restart. Last item must land at DESKTOP_REVEAL_MS. */
+export const DESKTOP_REVEAL_MS = 2100;
 
 const WINDOW_IDS = [
 	"me",
@@ -16,7 +16,7 @@ const WINDOW_IDS = [
 ] as const;
 
 /** Ids match Desktop / Taskbar reveal gates. */
-export const BOOT_SCHEDULE: readonly { id: string; at: number }[] = [
+export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "tb:start", at: 40 },
 	{ id: "cd-player", at: 230 },
 	{ id: "tb:tray", at: 290 },
@@ -45,12 +45,12 @@ export const BOOT_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "sysmsg-2", at: 1960 },
 	{ id: "sysmsg-3", at: 2020 },
 	{ id: "sysmsg-4", at: 2060 },
-	{ id: "neko", at: BOOT_MS },
-	{ id: "fracture", at: BOOT_MS },
+	{ id: "neko", at: DESKTOP_REVEAL_MS },
+	{ id: "fracture", at: DESKTOP_REVEAL_MS },
 ];
 
 /** Initial-layout windows gated by the schedule. User-opened windows skip this. */
-export const BOOT_WINDOWS: ReadonlySet<string> = new Set(WINDOW_IDS);
+export const DESKTOP_REVEAL_WINDOWS: ReadonlySet<string> = new Set(WINDOW_IDS);
 
 if (process.env.NODE_ENV !== "production") {
 	const required = [
@@ -73,18 +73,18 @@ if (process.env.NODE_ENV !== "production") {
 	];
 	const seen = new Set<string>();
 	let max = 0;
-	for (const { id, at } of BOOT_SCHEDULE) {
-		if (seen.has(id)) throw new Error(`bootReveal: duplicate id ${id}`);
+	for (const { id, at } of DESKTOP_REVEAL_SCHEDULE) {
+		if (seen.has(id)) throw new Error(`desktopReveal: duplicate id ${id}`);
 		seen.add(id);
-		if (at < 0 || at > BOOT_MS) {
-			throw new Error(`bootReveal: ${id} at ${at} outside 0..${BOOT_MS}`);
+		if (at < 0 || at > DESKTOP_REVEAL_MS) {
+			throw new Error(`desktopReveal: ${id} at ${at} outside 0..${DESKTOP_REVEAL_MS}`);
 		}
 		max = Math.max(max, at);
 	}
 	for (const id of required) {
-		if (!seen.has(id)) throw new Error(`bootReveal: missing ${id}`);
+		if (!seen.has(id)) throw new Error(`desktopReveal: missing ${id}`);
 	}
-	if (max !== BOOT_MS) {
-		throw new Error(`bootReveal: last reveal at ${max}, expected ${BOOT_MS}`);
+	if (max !== DESKTOP_REVEAL_MS) {
+		throw new Error(`desktopReveal: last reveal at ${max}, expected ${DESKTOP_REVEAL_MS}`);
 	}
 }

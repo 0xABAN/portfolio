@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
-import { BOOT_MS, BOOT_WINDOWS } from "../boot/bootReveal";
-import { useBootReveal } from "../boot/useBootReveal";
+import { DESKTOP_REVEAL_MS, DESKTOP_REVEAL_WINDOWS } from "./desktopReveal";
+import { useDesktopReveal } from "./useDesktopReveal";
 import { Bio } from "./Bio";
 import { CdPlayer } from "./CdPlayer";
 import { useCdPlayerAudio } from "./useCdPlayerAudio";
@@ -226,7 +226,7 @@ function DesktopWorkspace() {
 	const [attention, setAttention] = useState(false);
 	const [secretsOpened, setSecretsOpened] = useState(false);
 	const cdDragged = useRef(false);
-	const revealed = useBootReveal();
+	const revealed = useDesktopReveal();
 	const cdWindow = windows.find((w) => w.id === "cd-player");
 	const audio = useCdPlayerAudio(revealed.has("fracture"), Boolean(cdWindow));
 
@@ -249,7 +249,7 @@ function DesktopWorkspace() {
 	}, [getSnapshot]);
 
 	useEffect(() => {
-		const startAt = BOOT_MS + ATTENTION_DELAY_MS;
+		const startAt = DESKTOP_REVEAL_MS + ATTENTION_DELAY_MS;
 		const start = window.setTimeout(() => setAttention(true), startAt);
 		return () => window.clearTimeout(start);
 	}, []);
@@ -359,7 +359,7 @@ function DesktopWorkspace() {
 	}, [audio]);
 
 	function isBootVisible(w: DesktopWindow) {
-		return w.launched || !BOOT_WINDOWS.has(w.id) || revealed.has(w.id);
+		return w.launched || !DESKTOP_REVEAL_WINDOWS.has(w.id) || revealed.has(w.id);
 	}
 
 	const activate = useCallback((id: string) => {
