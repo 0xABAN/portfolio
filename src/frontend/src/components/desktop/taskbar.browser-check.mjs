@@ -152,7 +152,7 @@ async function checkTaskbar(page) {
 		const cursor = new Image();
 		cursor.src = "/cursors/hand.svg";
 		await cursor.decode();
-		return cursor.naturalWidth === 20 && cursor.naturalHeight === 20;
+		return cursor.naturalWidth === 20 && cursor.naturalHeight === 24;
 	}), "Retro hand cursor failed to load");
 	const clickable = '.desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"])';
 	check(await page.locator(clickable).evaluateAll((nodes) => nodes.filter((el) => !el.closest("[data-shell-surface]")).length > 0 && nodes
