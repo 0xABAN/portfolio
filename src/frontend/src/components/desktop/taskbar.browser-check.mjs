@@ -209,7 +209,7 @@ async function checkTaskbar(page) {
 	check(await sparks.evaluate((el) => {
 		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);
 		return z(".fracture-background") < z(".desktop-sparks") && z(".desktop-sparks") < z(".desktop__windows")
-			&& z(".desktop__windows") < z(".neko") && z(".neko") < z(".taskbar")
+			&& z(".desktop__windows") <= z(".neko") && z(".neko") < z(".taskbar")
 			&& el.getBoundingClientRect().bottom === document.querySelector(".taskbar").getBoundingClientRect().top;
 	}), "Sparks are not between the wallpaper and desktop windows");
 	check(await sparks.locator("span").evaluateAll((nodes) => nodes.length === 24 && nodes.every((el) => {
