@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Desktop } from "../desktop/Desktop";
+import { prepareFracture } from "../desktop/effects/fracture/controller";
 import { Restarting } from "./Restarting";
 import { MobileUnsupported, Rsod } from "./Rsod";
 
@@ -22,6 +23,11 @@ export function Boot() {
 			|| (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);
 		return mobile ? "unsupported" : "rsod";
 	});
+
+	// Compile the wallpaper's shaders while the stop screen is up, so the desktop does not wait for them.
+	useEffect(() => {
+		if (phase === "rsod") prepareFracture();
+	}, [phase]);
 
 	useEffect(() => {
 		window.addEventListener("keydown", blockTabNavigation, true);

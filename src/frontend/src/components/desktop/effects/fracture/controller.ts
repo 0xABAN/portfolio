@@ -14,13 +14,40 @@ export type FractureController = {
 	destroy(): void;
 };
 
+/** A canvas whose renderer is being built before the wallpaper mounts. */
+type Prepared = { canvas: HTMLCanvasElement; renderer: Promise<FractureRenderer> };
+
+let prepared: Prepared | null = null;
+
+function prepare(): Prepared {
+	const canvas = document.createElement("canvas");
+	canvas.className = "fracture-canvas";
+	const renderer = createFractureRenderer(canvas);
+	// The runFracture that adopts this reports failures; until then, keep them from counting as unhandled.
+	renderer.catch(() => {});
+	return { canvas, renderer };
+}
+
+/**
+ * Starts compiling the wallpaper's shaders ahead of time, so its first frame
+ * does not wait for them. Call it while something else is on screen, such as
+ * the boot screen; the next runFracture adopts the result.
+ */
+export function prepareFracture() {
+	prepared ??= prepare();
+}
+
 /**
  * Owns the canvas: the frame loop, reduced motion, visibility, resizing,
- * context loss and the cursor. The screen breaks as soon as it starts.
- * Failures leave the plain desktop colour behind and are reported, never
- * replaced by another renderer.
+ * context loss and the cursor. The canvas is appended to `root`, and the
+ * screen breaks as soon as its renderer is ready. Failures leave the plain
+ * desktop colour behind and are reported, never replaced by another renderer.
  */
-export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onReady: (ready: boolean) => void): FractureController {
+export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void): FractureController {
+	const { canvas, renderer: preparing } = prepared ?? prepare();
+	prepared = null;
+	root.append(canvas);
+
 	const desktop = root.closest<HTMLElement>(".desktop") ?? root;
 	const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 	const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
@@ -43,6 +70,8 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 	let lastTick = 0;
 	let lastDraw = 0;
 	let destroyed = false;
+	/** Bumped whenever a renderer still being built should be discarded. */
+	let generation = 0;
 
 	const isAnimating = () => !reducedMotion.matches && !document.hidden;
 
@@ -137,19 +166,37 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 		}
 	}
 
-	function start() {
-		attempt(() => {
-			renderer = createFractureRenderer(canvas);
-			sizeKey = "";
-			resize();
-			onReady(true);
-			sync();
-		});
+	/** Shows the fracture once `building` resolves, unless it has been superseded by then. */
+	function start(building: Promise<FractureRenderer>) {
+		const current = ++generation;
+		building.then(
+			(built) => {
+				if (destroyed || current !== generation) {
+					built.dispose();
+					return;
+				}
+				renderer = built;
+				attempt(() => {
+					sizeKey = "";
+					resize();
+					onReady(true);
+					sync();
+				});
+			},
+			(error) => {
+				if (!destroyed && current === generation) fail(error);
+			},
+		);
+	}
+
+	function onContextRestored() {
+		start(createFractureRenderer(canvas));
 	}
 
 	function onContextLost(event: Event) {
 		// Without preventDefault the browser never offers to restore the context.
 		event.preventDefault();
+		generation++;
 		stop();
 		renderer?.dispose();
 		renderer = null;
@@ -185,10 +232,10 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 	desktop.addEventListener("pointerleave", onPointerLeave);
 	window.addEventListener("blur", onPointerLeave);
 	canvas.addEventListener("webglcontextlost", onContextLost);
-	canvas.addEventListener("webglcontextrestored", start);
+	canvas.addEventListener("webglcontextrestored", onContextRestored);
 	document.addEventListener("visibilitychange", sync);
 	reducedMotion.addEventListener("change", sync);
-	start();
+	start(preparing);
 
 	return {
 		destroy() {
@@ -201,11 +248,12 @@ export function runFracture(root: HTMLElement, canvas: HTMLCanvasElement, onRead
 			desktop.removeEventListener("pointerleave", onPointerLeave);
 			window.removeEventListener("blur", onPointerLeave);
 			canvas.removeEventListener("webglcontextlost", onContextLost);
-			canvas.removeEventListener("webglcontextrestored", start);
+			canvas.removeEventListener("webglcontextrestored", onContextRestored);
 			document.removeEventListener("visibilitychange", sync);
 			reducedMotion.removeEventListener("change", sync);
 			renderer?.dispose();
 			renderer = null;
+			canvas.remove();
 		},
 	};
 }

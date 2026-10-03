@@ -5,13 +5,20 @@ import { CANDIDATE_FRAGMENT, CELL, FULLSCREEN_VERTEX, SCREEN_FRAGMENT } from "./
 const MAX_DENSITY = 1.5;
 const MAX_PIXELS = 3_000_000;
 
-export type FractureRenderer = ReturnType<typeof createFractureRenderer>;
+export type FractureRenderer = Awaited<ReturnType<typeof createFractureRenderer>>;
 
 /**
  * Two full-screen passes: a small one finds the cracks that matter around each
  * 8px cell, then the canvas measures every pixel against only those cracks.
+ *
+ * Resolves once the shaders are linked and the GPU has drawn a 1px frame with
+ * them, so the first real frame does not wait for compilation. Asking for a
+ * result early would stall the main thread until the GPU caught up, so it
+ * polls once per animation frame instead: KHR_parallel_shader_compile for the
+ * programs, a fence for the frame. Browsers without that extension block on
+ * the link check.
  */
-export function createFractureRenderer(canvas: HTMLCanvasElement) {
+export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 	const context = canvas.getContext("webgl2", {
 		alpha: false,
 		antialias: false,
@@ -22,7 +29,7 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 	if (!context) throw new Error("WebGL2 is unavailable");
 	// A non-null binding that the helpers below can rely on.
 	const gl: WebGL2RenderingContext = context;
-	// Clear any flag left by a lost context, so the first-frame check only sees our own errors.
+	// Clear any flag left by a lost context, so the warm-up check only sees our own errors.
 	gl.getError();
 
 	const programs: WebGLProgram[] = [];
@@ -35,7 +42,6 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 	let columns = 1;
 	let rows = 1;
 	let disposed = false;
-	let checkedFirstFrame = false;
 
 	function dispose() {
 		if (disposed) return;
@@ -46,7 +52,8 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 		gl.deleteFramebuffer(framebuffer);
 	}
 
-	function link(fragment: string) {
+	/** Starts compiling and linking; `check` reads the outcome once the GPU is done. */
+	function build(fragment: string) {
 		const program = gl.createProgram();
 		if (!program) throw new Error("Could not allocate a fracture program");
 		programs.push(program);
@@ -60,7 +67,10 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 			return shader;
 		});
 		gl.linkProgram(program);
+		return { program, shaders };
+	}
 
+	function check({ program, shaders }: ReturnType<typeof build>) {
 		const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
 		const log = shaders.map((shader) => gl.getShaderInfoLog(shader)).join("\n").trim() || gl.getProgramInfoLog(program);
 		// The linked program keeps its compiled code; the shader objects are no longer needed.
@@ -70,6 +80,22 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 		}
 		if (!linked) throw new Error(`Fracture shader failed to link: ${log}`);
 		return program;
+	}
+
+	/** Resolves on the first animation frame where `done` holds. */
+	function until(done: () => boolean) {
+		return new Promise<void>((resolve, reject) => {
+			const poll = () => {
+				try {
+					if (gl.isContextLost()) throw new Error("The WebGL context was lost while the fracture was being prepared");
+					if (done()) resolve();
+					else requestAnimationFrame(poll);
+				} catch (error) {
+					reject(error);
+				}
+			};
+			poll();
+		});
 	}
 
 	function locate<Name extends string>(program: WebGLProgram, names: readonly Name[]) {
@@ -87,8 +113,12 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 	try {
 		if (!segmentTexture || !candidateTexture || !framebuffer) throw new Error("Could not allocate the fracture textures");
 
-		const candidateProgram = link(CANDIDATE_FRAGMENT);
-		const screenProgram = link(SCREEN_FRAGMENT);
+		const candidateBuild = build(CANDIDATE_FRAGMENT);
+		const screenBuild = build(SCREEN_FRAGMENT);
+		const parallel = gl.getExtension("KHR_parallel_shader_compile");
+		if (parallel) await until(() => programs.every((program) => gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)));
+		const candidateProgram = check(candidateBuild);
+		const screenProgram = check(screenBuild);
 		const candidateUniforms = locate(candidateProgram, ["uGrid", "uSegments", "uCount"]);
 		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
 
@@ -97,7 +127,7 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 2, MAX_SEGMENTS, 0, gl.RGBA, gl.FLOAT, null);
 		configure(candidateTexture, gl.NEAREST);
 
-		return {
+		const renderer = {
 			resize(cssWidth: number, cssHeight: number, dpr: number) {
 				width = Math.max(1, cssWidth);
 				height = Math.max(1, cssHeight);
@@ -150,17 +180,25 @@ export function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.uniform1f(screenUniforms.uSway, sway);
 				gl.uniform2fv(screenUniforms.uGlitch, glitch);
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-				// Surface driver failures once instead of polling getError every frame.
-				if (!checkedFirstFrame) {
-					checkedFirstFrame = true;
-					const error = gl.getError();
-					if (error !== gl.NO_ERROR) throw new Error(`Fracture draw failed: 0x${error.toString(16)}`);
-				}
 			},
 
 			dispose,
 		};
+
+		// The GPU builds its pipelines on the first draw that uses them, so make
+		// that a 1px frame now; the fence says when it is done without waiting.
+		renderer.resize(1, 1, 1);
+		renderer.draw(0, 0, new Float32Array(2), new Float32Array(0), 0);
+		const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+		if (!fence) throw new Error("Could not create the fracture warm-up fence");
+		gl.flush();
+		await until(() => gl.getSyncParameter(fence, gl.SYNC_STATUS) === gl.SIGNALED);
+		gl.deleteSync(fence);
+
+		// The warm-up frame used the same draw path, so its errors are the ones real frames would hit.
+		const error = gl.getError();
+		if (error !== gl.NO_ERROR) throw new Error(`Fracture draw failed: 0x${error.toString(16)}`);
+		return renderer;
 	} catch (error) {
 		dispose();
 		throw error;

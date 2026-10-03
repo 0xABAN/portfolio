@@ -33,11 +33,15 @@ smashed display.
   `.fracture-background--ready` after the first successful frame, and
   `onReadyAction` reports it, so the desktop can start the sparks.
 - `controller.ts`: frame loop, reduced motion, visibility, resizing and pixel
-  density, context loss and the eased cursor.
+  density, context loss and the eased cursor. `prepareFracture` builds the
+  canvas and renderer early; `runFracture` adopts them.
 - `cracks.ts`: composition, motion and glitch-burst timing, free of DOM and
   WebGL.
 - `renderer.ts`: WebGL2 setup and both passes. The backing store is capped at
   1.5× density and 3 megapixels; the shaders work in CSS px regardless.
+  Building it compiles the shaders and draws a 1px warm-up frame, polling
+  KHR_parallel_shader_compile and a fence once per frame rather than
+  waiting on the GPU.
 - `shaders.ts`: GLSL sources.
 
 ## Behaviour
@@ -55,6 +59,9 @@ smashed display.
   draw every frame. Hidden tabs draw nothing.
 - Reduced motion shows one settled, motionless frame with the still damage
   and no bursts.
+- The boot screen calls `prepareFracture`, so the shaders compile while it is
+  up and the first frame lands right after the desktop mounts. Cold, they
+  take about 1.3 s to compile on an Apple M4, which used to freeze the page.
 - Missing WebGL2 or a failed shader is logged and leaves the plain desktop
   colour. Lost contexts are rebuilt when the browser restores them.
 
