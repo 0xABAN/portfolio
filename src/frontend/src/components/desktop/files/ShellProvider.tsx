@@ -5,7 +5,7 @@ import {
 	deleteNodes, driveSettings, initialShellState, moveNodes, oversizedRoots,
 	parseShellState, purgeEntries, restoreEntries, RestoreConflict, saveShellState,
 	selectedRoots, STORAGE_KEY, itemOf, type ShellState,
-} from "./recycleBinState";
+} from "./state";
 
 export type ShellSnapshot = { state: ShellState; raw: string | null; error?: string };
 export type ShellDialog =

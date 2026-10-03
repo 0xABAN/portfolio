@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { DESKTOP_REVEAL_MS } from "../desktopReveal";
-import { BIN_ICON, DESK_ICONS as FILE_ICONS, type DeskIcon as CatalogIcon } from "../recycle-bin/shellCatalog";
-import { itemOf, type ShellNode } from "../recycle-bin/recycleBinState";
-import { useShell } from "../recycle-bin/ShellProvider";
-import { useDesktopSelection } from "../recycle-bin/useDesktopSelection";
+import { BIN_ICON, DESK_ICONS as FILE_ICONS, type DeskIcon as CatalogIcon } from "./catalog";
+import { useShell } from "./ShellProvider";
+import { itemOf, type ShellNode } from "./state";
+import { useDesktopSelection } from "./useDesktopSelection";
 import { TASKBAR_H } from "../window/layout";
 
 type DeskIcon = CatalogIcon & { recycle?: boolean; catalogId?: string };

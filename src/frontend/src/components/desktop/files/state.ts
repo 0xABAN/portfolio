@@ -1,4 +1,4 @@
-import { DESKTOP_PATH, ITEM_BY_ID, SHELL_ITEMS, type ShellItem } from "./shellCatalog";
+import { DESKTOP_PATH, ITEM_BY_ID, SHELL_ITEMS, type ShellItem } from "./catalog";
 
 export const STORAGE_KEY = "portfolio.shell.v1";
 export const DRIVE_BYTES = 32 * 1024 * 1024;

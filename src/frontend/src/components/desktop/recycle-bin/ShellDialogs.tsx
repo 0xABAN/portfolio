@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { binBytes, DRIVE_BYTES, SYSTEM_BYTES, ancestorsOf, entryRoot, itemOf, nodeBytes, originalLocation, subtree, type BinSettings } from "./recycleBinState";
-import { BIN_ICON, DESKTOP_PATH, formatBytes } from "./shellCatalog";
+import { binBytes, DRIVE_BYTES, SYSTEM_BYTES, ancestorsOf, entryRoot, itemOf, nodeBytes, originalLocation, subtree, type BinSettings } from "../files/state";
+import { BIN_ICON, DESKTOP_PATH, formatBytes } from "../files/catalog";
 import { ShellDialogFrame } from "../shell/ShellControls";
-import { useShell, type ShellSnapshot } from "./ShellProvider";
+import { useShell, type ShellSnapshot } from "../files/ShellProvider";
 
 function BinProperties({ snapshot }: { snapshot: ShellSnapshot }) {
 	const shell = useShell();
