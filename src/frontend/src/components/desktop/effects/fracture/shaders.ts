@@ -3,7 +3,12 @@ import { WIDEST_SHARD } from "./cracks";
 /** CSS px per cell of the candidate pass. */
 export const CELL = 8;
 /** CSS px beyond which a crack cannot mark a pixel. */
-export const REACH = 48;
+const REACH = 48;
+/**
+ * CSS px within which a cell can pick a segment: pixels read the four cells
+ * around them, so a cell of slack beyond REACH.
+ */
+export const PICK_LIMIT = REACH + CELL;
 /** Cells per side of a tile, the unit segments are grouped by for the candidate pass. */
 export const TILE_CELLS = 8;
 /** Segment ids per row of the candidate pass's id list. */
@@ -21,7 +26,6 @@ uniform highp sampler2D uSegments; // two texels per segment: ends, then shape
 
 const float CELL = ${CELL.toFixed(1)};
 const uint NONE = 65535u; // candidate id of an empty slot
-const float REACH = ${REACH.toFixed(1)}; // CSS px beyond which a crack cannot mark a pixel
 const float FAR = 1e4;
 
 struct Hit {
@@ -76,25 +80,23 @@ uniform highp usampler2D uTiles; // per tile: first entry in uList, entry count
 uniform highp usampler2D uList;  // segment ids, tile after tile, LIST_WIDTH to a row
 out uvec2 candidates;
 
-// Widest a shard can get, CSS px: segments further than this plus REACH are skipped cheaply.
-const float WIDEST = ${WIDEST_SHARD.toFixed(1)};
+const float LIMIT = ${PICK_LIMIT.toFixed(1)}; // CSS px within which a cell picks a segment
+// Segments whose ends are further than this, even for the widest shard, are skipped cheaply.
+const float MARGIN = LIMIT + ${WIDEST_SHARD.toFixed(1)};
 const int TILE_CELLS = ${TILE_CELLS};
 const uint LIST_WIDTH = ${LIST_WIDTH}u;
 
 void main() {
 	ivec2 cell = ivec2(gl_FragCoord.x, uGrid.y - gl_FragCoord.y);
 	vec2 centre = (vec2(cell) + 0.5) * CELL;
-	// Pixels read the four cells around them, so allow a cell of slack.
-	float limit = REACH + CELL;
-	vec2 best = vec2(limit); // nearest edge, smallest reach
+	vec2 best = vec2(LIMIT); // nearest edge, smallest reach
 	uvec2 ids = uvec2(NONE);
 
 	uvec2 run = texelFetch(uTiles, cell / TILE_CELLS, 0).rg;
 	for (uint entry = run.x; entry < run.x + run.y; entry++) {
 		uint i = texelFetch(uList, ivec2(entry % LIST_WIDTH, entry / LIST_WIDTH), 0).r;
 		vec4 ends = texelFetch(uSegments, ivec2(0, int(i)), 0);
-		float margin = limit + WIDEST;
-		if (any(lessThan(centre, min(ends.xy, ends.zw) - margin)) || any(greaterThan(centre, max(ends.xy, ends.zw) + margin))) continue;
+		if (any(lessThan(centre, min(ends.xy, ends.zw) - MARGIN)) || any(greaterThan(centre, max(ends.xy, ends.zw) + MARGIN))) continue;
 		Hit hit = measure(i, centre);
 		vec2 score = vec2(min(hit.shard, hit.line), reach(hit));
 		bvec2 better = lessThan(score, best);
@@ -104,19 +106,16 @@ void main() {
 	candidates = ids;
 }`;
 
-/** Colours, hashes and the burst tear shared by the damage and screen passes. */
+/** The damage texel format, its colours, hashes and the burst tear, shared by the damage and screen passes. */
 const DISPLAY = /* glsl */ `
 uniform vec2 uResolution; // backing-store pixels
 uniform float uScale;     // backing-store pixels per CSS pixel
 uniform vec2 uCenter;     // the impact
 uniform vec2 uGlitch;     // burst (0 or 1), burst seed
 
-// Averages to the desktop's #af0000 once the streaks even out.
-const vec3 RED = vec3(0.686, 0.0, 0.0);
 const vec3 DARK = vec3(0.3, 0.0, 0.0);
 const vec3 HOT = vec3(1.0, 0.12, 0.08);
 const vec3 INK = vec3(0.03, 0.0, 0.0);
-const vec3 GLINT = vec3(1.0, 0.62, 0.58);
 
 // A damage texel holds a gain for the screen content, then the ids of a colour
 // painted over it and of a stuck line over everything; id 0 is none. The gain
@@ -246,6 +245,10 @@ uniform float uSway;      // radians the fracture is turned around the impact
 uniform highp usampler2D uCandidates;
 uniform highp usampler2D uDamage; // from DAMAGE_FRAGMENT, one texel per pixel
 out vec4 color;
+
+// Averages to the desktop's #af0000 once the streaks even out.
+const vec3 RED = vec3(0.686, 0.0, 0.0);
+const vec3 GLINT = vec3(1.0, 0.62, 0.58);
 
 // CSS px the red image has slipped against the cracks near the impact; more during bursts.
 const vec2 SLIP = vec2(3.0, -1.0);

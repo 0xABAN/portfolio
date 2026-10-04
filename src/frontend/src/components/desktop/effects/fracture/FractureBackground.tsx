@@ -4,6 +4,8 @@ import { memo, useEffect, useRef, useState } from "react";
 import { runFracture, type FractureRendering } from "./controller";
 import "./fracture.css";
 
+export type { FractureRendering };
+
 /**
  * Procedural WebGL wallpaper; the screen breaks as soon as it mounts.
  * `onRenderingAction` follows how the fracture is on screen: "none" until its

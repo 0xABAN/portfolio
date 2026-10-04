@@ -44,7 +44,7 @@ smashed display.
 - `frameCost.ts`: times the wallpaper's frames on this device.
 - `cracks.ts`: composition, motion and glitch-burst timing, free of DOM and
   WebGL.
-- `renderer.ts`: WebGL2 setup and both passes. The backing store is capped at
+- `renderer.ts`: WebGL2 setup and all three passes. The backing store is capped at
   1.5× density and 3 megapixels; the shaders work in CSS px regardless.
   Building it compiles the shaders and draws a 1px warm-up frame, polling
   KHR_parallel_shader_compile and a fence once per frame rather than

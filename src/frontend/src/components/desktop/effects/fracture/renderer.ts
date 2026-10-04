@@ -5,6 +5,8 @@ import { createTileBinner } from "./tiles";
 /** The shaders work in CSS px, so a smaller backing store only softens edges. */
 const MAX_DENSITY = 1.5;
 const MAX_PIXELS = 3_000_000;
+/** Each texture keeps its own texture unit, so the samplers are connected once. */
+const UNIT = { segments: 0, candidates: 1, tiles: 2, list: 3, damage: 4 };
 
 export type FractureRenderer = Awaited<ReturnType<typeof createFractureRenderer>>;
 
@@ -134,6 +136,27 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		return Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(program, name)])) as Record<Name, WebGLUniformLocation | null>;
 	}
 
+	/** Binds `texture` to its unit and leaves that unit active, for uploads; nothing else is ever bound there. */
+	function bind(texture: WebGLTexture, unit: number) {
+		gl.activeTexture(gl.TEXTURE0 + unit);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+	}
+
+	/** Every texture is read texel by texel. */
+	function configure(texture: WebGLTexture, unit: number) {
+		bind(texture, unit);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	}
+
+	/** Points each sampler of `program` at its texture's unit. */
+	function connect(program: WebGLProgram, samplers: Record<string, number>) {
+		gl.useProgram(program);
+		for (const [name, unit] of Object.entries(samplers)) gl.uniform1i(gl.getUniformLocation(program, name), unit);
+	}
+
 	/** Makes `texture` what `framebuffer` draws to; throws if the GPU cannot draw to it. */
 	function attach(framebuffer: WebGLFramebuffer, texture: WebGLTexture, name: string) {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -143,14 +166,6 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		if (status !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
 			throw new Error(`Fracture ${name} target is incomplete: 0x${status.toString(16)}`);
 		}
-	}
-
-	function configure(texture: WebGLTexture, filter: GLenum) {
-		gl.bindTexture(gl.TEXTURE_2D, texture);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	}
 
 	try {
@@ -166,17 +181,18 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		const candidateProgram = check(candidateBuild);
 		const damageProgram = check(damageBuild);
 		const screenProgram = check(screenBuild);
-		const candidateUniforms = locate(candidateProgram, ["uGrid", "uSegments", "uTiles", "uList"]);
+		const candidateUniforms = locate(candidateProgram, ["uGrid"]);
 		const damageUniforms = locate(damageProgram, ["uResolution", "uScale", "uCenter", "uGlitch"]);
-		const screenUniforms = locate(screenProgram, ["uGrid", "uSegments", "uCandidates", "uDamage", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
+		const screenUniforms = locate(screenProgram, ["uGrid", "uResolution", "uScale", "uTime", "uCenter", "uSway", "uGlitch"]);
+		connect(candidateProgram, { uSegments: UNIT.segments, uTiles: UNIT.tiles, uList: UNIT.list });
+		connect(screenProgram, { uSegments: UNIT.segments, uCandidates: UNIT.candidates, uDamage: UNIT.damage });
 
-		// Every texture is read texel by texel; segment ids are 16-bit.
-		configure(segmentTexture, gl.NEAREST);
+		configure(segmentTexture, UNIT.segments);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 2, MAX_SEGMENTS, 0, gl.RGBA, gl.FLOAT, null);
-		configure(tileTexture, gl.NEAREST);
-		configure(listTexture, gl.NEAREST);
-		configure(candidateTexture, gl.NEAREST);
-		configure(damageTexture, gl.NEAREST);
+		configure(tileTexture, UNIT.tiles);
+		configure(listTexture, UNIT.list);
+		configure(candidateTexture, UNIT.candidates);
+		configure(damageTexture, UNIT.damage);
 
 		const renderer = {
 			software,
@@ -190,12 +206,12 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				columns = Math.ceil(width / CELL);
 				rows = Math.ceil(height / CELL);
 
-				gl.bindTexture(gl.TEXTURE_2D, tileTexture);
+				bind(tileTexture, UNIT.tiles);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32UI, Math.ceil(columns / TILE_CELLS), Math.ceil(rows / TILE_CELLS), 0, gl.RG_INTEGER, gl.UNSIGNED_INT, null);
-				gl.bindTexture(gl.TEXTURE_2D, candidateTexture);
+				bind(candidateTexture, UNIT.candidates);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16UI, columns, rows, 0, gl.RG_INTEGER, gl.UNSIGNED_SHORT, null);
 				attach(candidateFramebuffer, candidateTexture, "candidate");
-				gl.bindTexture(gl.TEXTURE_2D, damageTexture);
+				bind(damageTexture, UNIT.damage);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8UI, canvas.width, canvas.height, 0, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, null);
 				attach(damageFramebuffer, damageTexture, "damage");
 				damageGlitch.fill(NaN);
@@ -206,16 +222,13 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 			 * out as described by SEGMENT_FLOATS.
 			 */
 			draw(time: number, sway: number, glitch: Float32Array, segments: Float32Array, count: number) {
-				gl.activeTexture(gl.TEXTURE0);
-				gl.bindTexture(gl.TEXTURE_2D, segmentTexture);
+				bind(segmentTexture, UNIT.segments);
 				if (count > 0) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 2, count, gl.RGBA, gl.FLOAT, segments, 0);
 
 				const tiles = binSegments(segments, count, columns, rows);
-				gl.activeTexture(gl.TEXTURE2);
-				gl.bindTexture(gl.TEXTURE_2D, tileTexture);
+				bind(tileTexture, UNIT.tiles);
 				gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, tiles.across, tiles.down, gl.RG_INTEGER, gl.UNSIGNED_INT, tiles.runs);
-				gl.activeTexture(gl.TEXTURE3);
-				gl.bindTexture(gl.TEXTURE_2D, listTexture);
+				bind(listTexture, UNIT.list);
 				const rowsNeeded = tiles.entries.length / LIST_WIDTH;
 				if (rowsNeeded !== listRows) {
 					listRows = rowsNeeded;
@@ -241,22 +254,12 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.viewport(0, 0, columns, rows);
 				gl.useProgram(candidateProgram);
 				gl.uniform2f(candidateUniforms.uGrid, columns, rows);
-				gl.uniform1i(candidateUniforms.uSegments, 0);
-				gl.uniform1i(candidateUniforms.uTiles, 2);
-				gl.uniform1i(candidateUniforms.uList, 3);
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 				gl.viewport(0, 0, canvas.width, canvas.height);
-				gl.activeTexture(gl.TEXTURE1);
-				gl.bindTexture(gl.TEXTURE_2D, candidateTexture);
-				gl.activeTexture(gl.TEXTURE4);
-				gl.bindTexture(gl.TEXTURE_2D, damageTexture);
 				gl.useProgram(screenProgram);
 				gl.uniform2f(screenUniforms.uGrid, columns, rows);
-				gl.uniform1i(screenUniforms.uSegments, 0);
-				gl.uniform1i(screenUniforms.uCandidates, 1);
-				gl.uniform1i(screenUniforms.uDamage, 4);
 				gl.uniform2f(screenUniforms.uResolution, canvas.width, canvas.height);
 				gl.uniform1f(screenUniforms.uScale, scale);
 				gl.uniform1f(screenUniforms.uTime, time);

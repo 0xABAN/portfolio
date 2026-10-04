@@ -1,8 +1,6 @@
 import { MAX_SEGMENTS, SEGMENT_FLOATS } from "./cracks";
-import { CELL, LIST_WIDTH, REACH, TILE_CELLS } from "./shaders";
+import { CELL, LIST_WIDTH, PICK_LIMIT, TILE_CELLS } from "./shaders";
 
-/** CSS px within which a cell centre can pick a segment: the candidate pass's limit. */
-const LIMIT = REACH + CELL;
 /** CSS px of slack, so float rounding never drops a segment the GPU would pick. */
 const SLACK = 1;
 const TILE = CELL * TILE_CELLS;
@@ -20,16 +18,17 @@ export type Tiles = {
 
 /**
  * How far from a segment a cell centre can be and still pick it, CSS px; 0 if
- * it never can. A candidate must come within LIMIT of the segment's shard or
- * line edge, and a square-ended shard is also cut off up to LIMIT past its end.
+ * it never can. A candidate must come within PICK_LIMIT of the segment's shard
+ * or line edge, and a square-ended shard is also cut off up to PICK_LIMIT past
+ * its end.
  */
-export function pickRange(segments: Float32Array, id: number) {
+function pickRange(segments: Float32Array, id: number) {
 	const at = id * SEGMENT_FLOATS;
 	const shard = Math.max(segments[at + 4], segments[at + 5]);
 	const line = segments[at + 6];
 	const square = segments[at + 7] > 0.5;
-	const shardRange = shard > 0 ? (square ? Math.hypot(LIMIT + shard, LIMIT) : LIMIT + shard) : 0;
-	const lineRange = line > 0 ? LIMIT + line : 0;
+	const shardRange = shard > 0 ? (square ? Math.hypot(PICK_LIMIT + shard, PICK_LIMIT) : PICK_LIMIT + shard) : 0;
+	const lineRange = line > 0 ? PICK_LIMIT + line : 0;
 	const range = Math.max(shardRange, lineRange);
 	return range > 0 ? range + SLACK : 0;
 }

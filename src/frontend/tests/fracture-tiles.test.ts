@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createFracture, MAX_SEGMENTS, SEGMENT_FLOATS, WIDEST_SHARD, writeSegments } from "@/components/desktop/effects/fracture/cracks";
-import { CELL, REACH, TILE_CELLS } from "@/components/desktop/effects/fracture/shaders";
+import { CELL, PICK_LIMIT, TILE_CELLS } from "@/components/desktop/effects/fracture/shaders";
 import { createTileBinner } from "@/components/desktop/effects/fracture/tiles";
 
-const LIMIT = REACH + CELL;
 const NONE = -1;
 
 /**
@@ -12,9 +11,9 @@ const NONE = -1;
  * in order: the ids with the nearest edge and with the smallest reach.
  */
 function candidates(segments: Float32Array, ids: ArrayLike<number>, count: number, px: number, py: number) {
-	const margin = LIMIT + WIDEST_SHARD;
-	let nearest = LIMIT;
-	let smallest = LIMIT;
+	const margin = PICK_LIMIT + WIDEST_SHARD;
+	let nearest = PICK_LIMIT;
+	let smallest = PICK_LIMIT;
 	let edgeId = NONE;
 	let reachId = NONE;
 	for (let k = 0; k < count; k++) {

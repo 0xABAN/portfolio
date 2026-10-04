@@ -42,7 +42,7 @@ type Wallpaper = { renderer: FractureRenderer; animated: boolean };
  * Builds a renderer for `canvas` and decides whether it animates here: never
  * without a GPU, otherwise if its frames fit FRAME_BUDGET_MS.
  */
-async function build(canvas: HTMLCanvasElement): Promise<Wallpaper> {
+async function buildWallpaper(canvas: HTMLCanvasElement): Promise<Wallpaper> {
 	const renderer = await createFractureRenderer(canvas);
 	try {
 		const animated = !renderer.software && await fitsFrameBudget(renderer, FRAME_BUDGET_MS);
@@ -61,7 +61,7 @@ let prepared: Prepared | null = null;
 function prepare(): Prepared {
 	const canvas = document.createElement("canvas");
 	canvas.className = "fracture-canvas";
-	const wallpaper = build(canvas);
+	const wallpaper = buildWallpaper(canvas);
 	// The runFracture that adopts this reports failures; until then, keep them from counting as unhandled.
 	wallpaper.catch(() => {});
 	return { canvas, wallpaper };
@@ -237,7 +237,7 @@ export function runFracture(root: HTMLElement, onRendering: (rendering: Fracture
 	}
 
 	function onContextRestored() {
-		start(build(canvas));
+		start(buildWallpaper(canvas));
 	}
 
 	function onContextLost(event: Event) {
