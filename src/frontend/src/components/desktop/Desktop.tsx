@@ -7,6 +7,7 @@ import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
 import { DesktopSparks } from "./effects/sparks/DesktopSparks";
 import { FractureBackground } from "./effects/fracture/FractureBackground";
+import type { FractureRendering } from "./effects/fracture/controller";
 import { BIN_ICON } from "./files/catalog";
 import { ShellProvider, useShell } from "./files/ShellProvider";
 import { itemOf } from "./files/state";
@@ -78,7 +79,8 @@ function DesktopWorkspace() {
 	const cdDragged = useRef(false);
 	const revealed = useDesktopReveal();
 	// Sparks fly from the impact, so they wait for the fracture's first frame.
-	const [fractured, setFractured] = useState(false);
+	// Devices too slow to animate the wallpaper get neither.
+	const [wallpaper, setWallpaper] = useState<FractureRendering>("none");
 	const cdWindow = windows.find((w) => w.id === "cd-player");
 	const audio = useCdPlayerAudio(revealed.has("boot-complete"), Boolean(cdWindow));
 
@@ -316,7 +318,7 @@ function DesktopWorkspace() {
 				if (isDesktopSurface(event.target)) shell.drop(event, "desktop");
 			}}>
 
-			<FractureBackground onReadyAction={setFractured} />
+			<FractureBackground onRenderingAction={setWallpaper} />
 			<DesktopIcons
 				onOpenAction={openShell}
 				onSecretsOpenedAction={() => setSecretsOpened(true)}
@@ -336,7 +338,7 @@ function DesktopWorkspace() {
 				/>
 				{visibleWindows.map(renderWindow)}
 			</div>
-			{fractured ? <DesktopSparks /> : null}
+			{wallpaper === "animated" ? <DesktopSparks /> : null}
 			<Taskbar
 				muted={audio.muted}
 				onToggleMuteAction={audio.toggleMute}

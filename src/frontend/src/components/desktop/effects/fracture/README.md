@@ -36,10 +36,12 @@ smashed display.
 
 - `FractureBackground.tsx`, `fracture.css`: canvas markup. The root gets
   `.fracture-background--ready` after the first successful frame, and
-  `onReadyAction` reports it, so the desktop can start the sparks.
+  `onRenderingAction` reports whether it animates, so the desktop knows
+  whether to start the sparks.
 - `controller.ts`: frame loop, reduced motion, visibility, resizing and pixel
   density, context loss and the eased cursor. `prepareFracture` builds the
-  canvas and renderer early; `runFracture` adopts them.
+  canvas and renderer and times its frames early; `runFracture` adopts them.
+- `frameCost.ts`: times the wallpaper's frames on this device.
 - `cracks.ts`: composition, motion and glitch-burst timing, free of DOM and
   WebGL.
 - `renderer.ts`: WebGL2 setup and both passes. The backing store is capped at
@@ -67,6 +69,14 @@ smashed display.
   draw at up to 60 fps, even on faster displays. Hidden tabs draw nothing.
 - Reduced motion shows one settled, motionless frame with the still damage
   and no bursts.
+- Devices too slow to animate it show that same settled frame, and the
+  desktop leaves out the sparks. While the boot screen is up, the wallpaper
+  draws batches of settled frames at the viewport's size; it animates only if
+  they take at most 8 ms each (`FRAME_BUDGET_MS`), about half a 60 fps
+  frame. Browsers that would run WebGL without a GPU (detected with
+  `failIfMajorPerformanceCaveat`) are never timed and always hold still.
+  On an Apple M4 the frames take about 3 ms; with the shaders made to do 10×
+  their work, about 11 ms, where cursor movement already dropped frames.
 - The boot screen calls `prepareFracture`, so the shaders compile while it is
   up and the first frame lands right after the desktop mounts. Cold, they
   take about 1.3 s to compile on an Apple M4, which used to freeze the page.

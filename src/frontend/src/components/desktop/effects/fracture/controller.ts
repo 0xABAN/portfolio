@@ -1,4 +1,5 @@
 import { createFracture, MAX_SEGMENTS, SEGMENT_FLOATS, swayAngle, writeGlitch, writeSegments, type FrameInput } from "./cracks";
+import { fitsFrameBudget } from "./frameCost";
 import { createFractureRenderer, type FractureRenderer } from "./renderer";
 
 /** Ambient motion is slow enough for 30 fps. */
@@ -16,29 +17,60 @@ const BURST_SECONDS = 2;
 const MAX_STEP = 0.1;
 /** Seconds for the eased cursor to close most of the gap to the real one. */
 const POINTER_EASE = 0.12;
+/**
+ * Most ms a frame may take for the wallpaper to animate, measured at the
+ * viewport's size. Busy motion draws at 60 fps, so this keeps the wallpaper
+ * to about half of each 16.7 ms frame. Slower devices get one settled frame.
+ */
+const FRAME_BUDGET_MS = 8;
 
 export type FractureController = {
 	destroy(): void;
 };
 
-/** A canvas whose renderer is being built before the wallpaper mounts. */
-type Prepared = { canvas: HTMLCanvasElement; renderer: Promise<FractureRenderer> };
+/**
+ * How the wallpaper is on screen: not at all (yet, or after a failure),
+ * animated, or as one settled frame because this device draws it too slowly.
+ * Reduced motion also stills it, but does not change this.
+ */
+export type FractureRendering = "none" | "animated" | "still";
+
+/** A renderer, and whether this device draws it fast enough to animate. */
+type Wallpaper = { renderer: FractureRenderer; animated: boolean };
+
+/**
+ * Builds a renderer for `canvas` and decides whether it animates here: never
+ * without a GPU, otherwise if its frames fit FRAME_BUDGET_MS.
+ */
+async function build(canvas: HTMLCanvasElement): Promise<Wallpaper> {
+	const renderer = await createFractureRenderer(canvas);
+	try {
+		const animated = !renderer.software && await fitsFrameBudget(renderer, FRAME_BUDGET_MS);
+		return { renderer, animated };
+	} catch (error) {
+		renderer.dispose();
+		throw error;
+	}
+}
+
+/** A canvas whose wallpaper is being built before it mounts. */
+type Prepared = { canvas: HTMLCanvasElement; wallpaper: Promise<Wallpaper> };
 
 let prepared: Prepared | null = null;
 
 function prepare(): Prepared {
 	const canvas = document.createElement("canvas");
 	canvas.className = "fracture-canvas";
-	const renderer = createFractureRenderer(canvas);
+	const wallpaper = build(canvas);
 	// The runFracture that adopts this reports failures; until then, keep them from counting as unhandled.
-	renderer.catch(() => {});
-	return { canvas, renderer };
+	wallpaper.catch(() => {});
+	return { canvas, wallpaper };
 }
 
 /**
- * Starts compiling the wallpaper's shaders ahead of time, so its first frame
- * does not wait for them. Call it while something else is on screen, such as
- * the boot screen; the next runFracture adopts the result.
+ * Starts compiling the wallpaper's shaders and timing its frames ahead of
+ * time, so its first frame waits for neither. Call it while something else is
+ * on screen, such as the boot screen; the next runFracture adopts the result.
  */
 export function prepareFracture() {
 	prepared ??= prepare();
@@ -50,8 +82,8 @@ export function prepareFracture() {
  * screen breaks as soon as its renderer is ready. Failures leave the plain
  * desktop colour behind and are reported, never replaced by another renderer.
  */
-export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void): FractureController {
-	const { canvas, renderer: preparing } = prepared ?? prepare();
+export function runFracture(root: HTMLElement, onRendering: (rendering: FractureRendering) => void): FractureController {
+	const { canvas, wallpaper: preparing } = prepared ?? prepare();
 	prepared = null;
 	root.append(canvas);
 
@@ -69,6 +101,8 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 
 	let bounds = root.getBoundingClientRect();
 	let renderer: FractureRenderer | null = null;
+	/** Whether this device draws the wallpaper fast enough to animate it. */
+	let animated = false;
 	let sizeKey = "";
 	let density: MediaQueryList | null = null;
 	/** Animated seconds since the impact; it only advances while animating, so a hidden tab sees the impact later. */
@@ -80,12 +114,14 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 	/** Bumped whenever a renderer still being built should be discarded. */
 	let generation = 0;
 
-	const isAnimating = () => !reducedMotion.matches && !document.hidden;
+	/** One settled frame instead of motion: for reduced motion, and on devices too slow to animate. */
+	const holdsStill = () => reducedMotion.matches || !animated;
+	const isAnimating = () => !holdsStill() && !document.hidden;
 
 	/** Brings the per-frame inputs up to date with the clock and the environment. */
 	function updateInput() {
 		input.time = clock;
-		input.still = reducedMotion.matches;
+		input.still = holdsStill();
 		input.width = bounds.width;
 		input.height = bounds.height;
 		writeGlitch(input, glitch);
@@ -164,7 +200,7 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 		stop();
 		renderer?.dispose();
 		renderer = null;
-		onReady(false);
+		onRendering("none");
 		console.error("Fracture wallpaper stopped:", error);
 	}
 
@@ -177,19 +213,20 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 	}
 
 	/** Shows the fracture once `building` resolves, unless it has been superseded by then. */
-	function start(building: Promise<FractureRenderer>) {
+	function start(building: Promise<Wallpaper>) {
 		const current = ++generation;
 		building.then(
 			(built) => {
 				if (destroyed || current !== generation) {
-					built.dispose();
+					built.renderer.dispose();
 					return;
 				}
-				renderer = built;
+				renderer = built.renderer;
+				animated = built.animated;
 				attempt(() => {
 					sizeKey = "";
 					resize();
-					onReady(true);
+					onRendering(animated ? "animated" : "still");
 					sync();
 				});
 			},
@@ -200,7 +237,7 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 	}
 
 	function onContextRestored() {
-		start(createFractureRenderer(canvas));
+		start(build(canvas));
 	}
 
 	function onContextLost(event: Event) {
@@ -210,7 +247,7 @@ export function runFracture(root: HTMLElement, onReady: (ready: boolean) => void
 		stop();
 		renderer?.dispose();
 		renderer = null;
-		onReady(false);
+		onRendering("none");
 	}
 
 	function onPointerMove(event: PointerEvent) {

@@ -21,15 +21,21 @@ export type FractureRenderer = Awaited<ReturnType<typeof createFractureRenderer>
  * polls once per animation frame instead: KHR_parallel_shader_compile for the
  * programs, a fence for the frame. Browsers without that extension block on
  * the link check.
+ *
+ * `software` is true when the browser can only run WebGL without a GPU.
  */
 export async function createFractureRenderer(canvas: HTMLCanvasElement) {
-	const context = canvas.getContext("webgl2", {
+	const attributes: WebGLContextAttributes = {
 		alpha: false,
 		antialias: false,
 		depth: false,
 		stencil: false,
 		powerPreference: "low-power",
-	});
+	};
+	// With this flag, browsers refuse a context that would render in software.
+	const accelerated = canvas.getContext("webgl2", { ...attributes, failIfMajorPerformanceCaveat: true });
+	const software = !accelerated;
+	const context = accelerated ?? canvas.getContext("webgl2", attributes);
 	if (!context) throw new Error("WebGL2 is unavailable");
 	// A non-null binding that the helpers below can rely on.
 	const gl: WebGL2RenderingContext = context;
@@ -99,6 +105,15 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		return program;
 	}
 
+	/** Resolves once the GPU has run every command issued so far, polling once per animation frame. */
+	async function finish() {
+		const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+		if (!fence) throw new Error("Could not create a fracture fence");
+		gl.flush();
+		await until(() => gl.getSyncParameter(fence, gl.SYNC_STATUS) === gl.SIGNALED);
+		gl.deleteSync(fence);
+	}
+
 	/** Resolves on the first animation frame where `done` holds. */
 	function until(done: () => boolean) {
 		return new Promise<void>((resolve, reject) => {
@@ -164,6 +179,8 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 		configure(damageTexture, gl.NEAREST);
 
 		const renderer = {
+			software,
+
 			resize(cssWidth: number, cssHeight: number, dpr: number) {
 				width = Math.max(1, cssWidth);
 				height = Math.max(1, cssHeight);
@@ -249,18 +266,15 @@ export async function createFractureRenderer(canvas: HTMLCanvasElement) {
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
 			},
 
+			finish,
 			dispose,
 		};
 
 		// The GPU builds its pipelines on the first draw that uses them, so make
-		// that a 1px frame now; the fence says when it is done without waiting.
+		// that a 1px frame now and wait for it without stalling.
 		renderer.resize(1, 1, 1);
 		renderer.draw(0, 0, new Float32Array(2), new Float32Array(0), 0);
-		const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-		if (!fence) throw new Error("Could not create the fracture warm-up fence");
-		gl.flush();
-		await until(() => gl.getSyncParameter(fence, gl.SYNC_STATUS) === gl.SIGNALED);
-		gl.deleteSync(fence);
+		await finish();
 
 		// The warm-up frame used the same draw path, so its errors are the ones real frames would hit.
 		const error = gl.getError();
