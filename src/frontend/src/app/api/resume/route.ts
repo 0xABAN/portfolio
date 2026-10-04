@@ -1,5 +1,5 @@
 const RESUME =
-	"https://raw.githubusercontent.com/0xABAN/jobs/main/src/resume/default/Adam_Torres_Encarnacion_Resume.tex";
+	"https://raw.githubusercontent.com/0xABAN/jobs/main/resumes/default/Adam_Torres_Encarnacion_Resume.tex";
 
 /** Live GitHub source for the Word window. */
 export async function GET() {
