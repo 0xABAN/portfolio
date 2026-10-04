@@ -21,7 +21,7 @@ try {
     window.cellLayoutReads = 0;
     const query = Element.prototype.querySelectorAll;
     Element.prototype.querySelectorAll = function (selector) {
-      if (this.matches('.gh-app') && selector.includes('rect[data-level]')) window.cellQueries++;
+      if (this.closest('.gh-app') && selector.includes('rect[data-level]')) window.cellQueries++;
       return query.call(this, selector);
     };
     const bounds = Element.prototype.getBoundingClientRect;
