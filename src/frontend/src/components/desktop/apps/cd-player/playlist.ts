@@ -50,6 +50,17 @@ export function randomTrackIndex(count: number, except?: number) {
 	return pick >= except ? pick + 1 : pick;
 }
 
+/**
+ * A random track to start on, among those SoundCloud has already described.
+ * The widget ignores a skip to a sound it has not loaded yet: it selects the
+ * sound but never plays it, which would leave the player silent.
+ */
+export function randomStartIndex(sounds: ScSound[]) {
+	const described = sounds.flatMap((sound, i) => (sound.title ? [i] : []));
+	if (!described.length) throw new Error("no track is described yet");
+	return described[Math.floor(Math.random() * described.length)];
+}
+
 export function formatElapsed(sec: number) {
 	if (!Number.isFinite(sec) || sec < 0) sec = 0;
 	const s = Math.floor(sec);

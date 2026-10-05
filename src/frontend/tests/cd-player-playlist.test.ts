@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { coverUrl, formatElapsed, PLAYLIST_URL, randomTrackIndex, toTrack, wrapIndex } from "@/components/desktop/apps/cd-player/playlist";
+import { coverUrl, formatElapsed, PLAYLIST_URL, randomStartIndex, randomTrackIndex, toTrack, wrapIndex } from "@/components/desktop/apps/cd-player/playlist";
 
 test("the player reads the portfolio playlist on SoundCloud", () => {
 	assert.equal(new URL(PLAYLIST_URL).origin, "https://soundcloud.com");
@@ -23,6 +23,14 @@ test("shuffle never repeats the track that just ended when there is another", ()
 
 	const first = new Set(Array.from({ length: 500 }, () => randomTrackIndex(4)));
 	assert.deepEqual([...first].sort(), [0, 1, 2, 3]);
+});
+
+test("the first track is one SoundCloud has already described", () => {
+	// The widget describes only the first few sounds of a playlist up front.
+	const sounds = [{ id: 1, title: "One" }, { id: 2 }, { id: 3, title: "Three" }, { id: 4 }];
+	const first = new Set(Array.from({ length: 500 }, () => randomStartIndex(sounds)));
+	assert.deepEqual([...first].sort(), [0, 2]);
+	assert.throws(() => randomStartIndex([{ id: 1 }]), /described/);
 });
 
 test("tracks show SoundCloud's title, uploader and 500px artwork", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PLAYLIST_URL, formatElapsed, randomTrackIndex, toTrack, wrapIndex, type ScSound, type Track } from "./playlist";
+import { PLAYLIST_URL, formatElapsed, randomStartIndex, randomTrackIndex, toTrack, wrapIndex, type ScSound, type Track } from "./playlist";
 
 /**
  * Shared transport survives minimization and Strict Mode; only Quit unloads it.
@@ -196,16 +196,19 @@ function whenPlaylistReady(): Promise<ScWidget> {
 	});
 }
 
-/** Reads the playlist once the widget has loaded it, and picks a random first track. */
+/**
+ * Reads the playlist once the widget has loaded it, and picks a random first track
+ * among the sounds the widget has described; only those play when skipped to.
+ */
 async function loadPlaylist(widget: ScWidget) {
 	if (playlistReady) return;
 	for (let attempt = 0; attempt < RETRIES; attempt++) {
 		const list = await ask<ScSound[]>((answer) => widget.getSounds(answer));
 		if (widget !== sharedWidget) return;
 
-		if (list?.length) {
+		if (list?.some((sound) => sound.title)) {
 			sounds = list;
-			trackIdx = randomTrackIndex(sounds.length);
+			trackIdx = randomStartIndex(sounds);
 			showTrack(trackIdx);
 			transport.readyState = 4;
 			playlistReady = true;
