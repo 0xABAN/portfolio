@@ -17,17 +17,10 @@
 
 .paint-dither {
 	background-color: #111;
-	background-image:
-		linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
-		linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
-		linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
-		linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+	background-image: linear-gradient(45deg, #2a2a2a 25%, transparent 25%), linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, #2a2a2a 75%), linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
 	background-size: 2px 2px;
-	background-position:
-		0 0,
-		0 1px,
-		1px -1px,
-		-1px 0;
+	background-position: 0 0, 0 1px, 1px -1px, -1px 0;
 }
 
 .paint__menu {
@@ -80,9 +73,8 @@
 	height: 25px;
 	margin: 0;
 	padding: 0;
-	border: 0;
-	border-right: 1px solid var(--chrome-lo);
-	border-bottom: 1px solid var(--chrome-lo);
+	border: solid var(--chrome-lo);
+	border-width: 0 1px 1px 0;
 	background: var(--chrome-btn);
 	cursor: var(--cursor-arrow);
 }
@@ -91,18 +83,13 @@
 	content: "";
 	position: absolute;
 	inset: 0;
-	border-top: 1px solid var(--chrome-hi);
-	border-left: 1px solid var(--chrome-hi);
-	border-right: 1px solid var(--chrome-lo);
-	border-bottom: 1px solid var(--chrome-lo);
+	border: 1px solid;
+	border-color: var(--chrome-hi) var(--chrome-lo) var(--chrome-lo) var(--chrome-hi);
 	pointer-events: none;
 }
 
 .paint__tool--selected::before {
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-face);
-	border-bottom: 1px solid var(--chrome-face);
+	border-color: var(--chrome-lo) var(--chrome-face) var(--chrome-face) var(--chrome-lo);
 }
 
 .paint__tool-icon {
@@ -112,9 +99,7 @@
 	top: 4px;
 	width: 16px;
 	height: 16px;
-	background-image: url("/paint/tools.png");
-	background-repeat: no-repeat;
-	background-position: calc(-16px * var(--icon-index, 0)) 0;
+	background: url("/paint/tools.png") no-repeat calc(-16px * var(--icon-index, 0)) 0;
 	image-rendering: pixelated;
 	pointer-events: none;
 }
@@ -127,10 +112,8 @@
 /* 1px sunken bevel: canvas, swatches, status, selected tool */
 .paint__sunken,
 .paint__tool--selected {
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-hi);
-	border-bottom: 1px solid var(--chrome-hi);
+	border: 1px solid;
+	border-color: var(--chrome-lo) var(--chrome-hi) var(--chrome-hi) var(--chrome-lo);
 }
 
 .paint__canvas-wrap {
@@ -166,13 +149,9 @@
 	flex-shrink: 0;
 	width: 30px;
 	height: 31px;
-	border-top: 1px solid var(--chrome-lo);
-	border-left: 1px solid var(--chrome-lo);
-	border-right: 1px solid var(--chrome-face);
-	border-bottom: 1px solid var(--chrome-face);
-	box-shadow:
-		1px 1px 0 var(--chrome-hi),
-		inset 1px 1px 0 var(--chrome-lo);
+	border: 1px solid;
+	border-color: var(--chrome-lo) var(--chrome-face) var(--chrome-face) var(--chrome-lo);
+	box-shadow: 1px 1px 0 var(--chrome-hi), inset 1px 1px 0 var(--chrome-lo);
 }
 
 .paint__swatch {
