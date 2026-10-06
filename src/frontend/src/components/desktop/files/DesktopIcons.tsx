@@ -20,20 +20,15 @@ type Props = {
 	explorerOpen: boolean;
 };
 
-const RECYCLE_BIN: DeskIcon = {
-	id: "recycle-bin",
-	label: "Recycle Bin",
-	src: BIN_ICON.empty,
-	recycle: true,
-};
-
+const RECYCLE_BIN: DeskIcon = { id: "recycle-bin", label: "Recycle Bin", src: BIN_ICON.empty, recycle: true };
 const DESK_ICONS: CatalogIcon[] = [...FILE_ICONS, RECYCLE_BIN];
-const DESK_ICON_CELL_W = 96;
-const DESK_ICON_CELL_H = 112;
-const DESK_ICON_GAP_X = 8;
-const DESK_ICON_GAP_Y = 8;
-const DESK_ICON_STEP_X = DESK_ICON_CELL_W + DESK_ICON_GAP_X;
-const DESK_ICON_STEP_Y = DESK_ICON_CELL_H + DESK_ICON_GAP_Y;
+
+/** Icon cells and the 8px gaps between them; keep in sync with desktop.css. */
+const CELL_W = 96;
+const CELL_H = 112;
+const STEP_X = CELL_W + 8;
+const STEP_Y = CELL_H + 8;
+/** The secrets folder starts bouncing this long after the desktop has finished revealing. */
 const ATTENTION_DELAY_MS = 1000;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
@@ -47,25 +42,22 @@ function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	}), RECYCLE_BIN];
 }
 
+/** The desktop's grid, with enough rows for every icon even when the screen is short. */
 function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
-	const width = Math.max(DESK_ICON_CELL_W, vw - 10);
-	const height = Math.max(DESK_ICON_CELL_H, vh - TASKBAR_H - 28);
-	const cols = Math.max(1, Math.floor((width - DESK_ICON_CELL_W) / DESK_ICON_STEP_X) + 1);
-	const rows = Math.max(
-		Math.max(1, Math.floor((height - DESK_ICON_CELL_H) / DESK_ICON_STEP_Y) + 1),
-		Math.ceil(count / cols),
-	);
+	const width = Math.max(CELL_W, vw - 10);
+	const height = Math.max(CELL_H, vh - TASKBAR_H - 28);
+	const cols = Math.max(1, Math.floor((width - CELL_W) / STEP_X) + 1);
+	const rows = Math.max(1, Math.floor((height - CELL_H) / STEP_Y) + 1, Math.ceil(count / cols));
 	return { cols, rows };
 }
 
+/** Icons fill the columns top to bottom, left to right. */
 function defaultDeskIconPositions(vw: number, vh: number): DeskIconPositions {
 	const { rows } = gridBounds(vw, vh);
-	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, {
-		col: Math.floor(index / rows),
-		row: index % rows,
-	}])) as DeskIconPositions;
+	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, { col: Math.floor(index / rows), row: index % rows }]));
 }
 
+/** Clamps every icon into the grid; an icon whose cell is taken moves to the next free one. */
 function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: number, icons: DeskIcon[]): DeskIconPositions {
 	const { cols, rows } = gridBounds(vw, vh, icons.length);
 	const used = new Set<string>();
@@ -113,9 +105,7 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
 	const shell = useShell();
 	const { getState } = shell;
-	const [deskIconPositions, setDeskIconPositions] = useState(() =>
-		defaultDeskIconPositions(window.innerWidth, window.innerHeight),
-	);
+	const [deskIconPositions, setDeskIconPositions] = useState(() => defaultDeskIconPositions(window.innerWidth, window.innerHeight));
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
@@ -150,22 +140,10 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 		if (!secretsOpened && icon.id === "secrets") onSecretsOpenedAction();
 	}
 
-	function swapDeskIcons(sourceId: string, targetId: string) {
-		if (!sourceId || sourceId === targetId) return;
-		setDeskIconPositions((current) => {
-			const source = current[sourceId] ?? positions[sourceId];
-			const target = current[targetId] ?? positions[targetId];
-			if (!source || !target) return current;
-			return { ...current, [sourceId]: target, [targetId]: source };
-		});
-	}
-
+	/** Moves an icon to a cell, swapping with the icon already there; the Recycle Bin is never displaced. */
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
 		const { cols, rows } = gridBounds(window.innerWidth, window.innerHeight, deskIcons.length);
-		const cell = {
-			col: Math.min(Math.max(col, 0), cols - 1),
-			row: Math.min(Math.max(row, 0), rows - 1),
-		};
+		const cell = { col: Math.min(Math.max(col, 0), cols - 1), row: Math.min(Math.max(row, 0), rows - 1) };
 		setDeskIconPositions((current) => {
 			const source = current[sourceId] ?? positions[sourceId];
 			if (!source) return current;
@@ -178,14 +156,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 			if (target) next[target.id] = source;
 			return next;
 		});
-	}
-
-	function moveDeskIconAtPoint(sourceId: string, clientX: number, clientY: number, bounds: DOMRect) {
-		moveDeskIconToCell(
-			sourceId,
-			Math.round((clientX - bounds.left - DESK_ICON_CELL_W / 2) / DESK_ICON_STEP_X),
-			Math.round((clientY - bounds.top - DESK_ICON_CELL_H / 2) / DESK_ICON_STEP_Y),
-		);
 	}
 
 	return (
@@ -207,7 +177,9 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 				onDrop={(event) => {
 					if (!draggingId) { shell.drop(event, "desktop"); return; }
 					event.preventDefault();
-					moveDeskIconAtPoint(draggingId, event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
+					// The cell nearest the drop point.
+					const bounds = event.currentTarget.getBoundingClientRect();
+					moveDeskIconToCell(draggingId, Math.round((event.clientX - bounds.left - CELL_W / 2) / STEP_X), Math.round((event.clientY - bounds.top - CELL_H / 2) / STEP_Y));
 					shell.endDrag();
 					setDraggingId(null);
 				}}
@@ -216,10 +188,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					<li
 						key={icon.id}
 						role="presentation"
-						style={{
-							left: `${positions[icon.id].col * DESK_ICON_STEP_X}px`,
-							top: `${positions[icon.id].row * DESK_ICON_STEP_Y}px`,
-						}}
+						style={{ left: `${positions[icon.id].col * STEP_X}px`, top: `${positions[icon.id].row * STEP_Y}px` }}
 					>
 						<button
 							type="button"
@@ -262,7 +231,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 								event.stopPropagation();
 								if (icon.recycle) shell.drop(event, "bin");
 								else if (icon.open === "explorer" && draggingId !== RECYCLE_BIN.id) shell.drop(event, icon.id);
-								else if (draggingId) swapDeskIcons(draggingId, icon.id);
+								else if (draggingId && draggingId !== icon.id) moveDeskIconToCell(draggingId, positions[icon.id].col, positions[icon.id].row);
 								shell.endDrag();
 								setBinHot(false);
 								setDraggingId(null);
