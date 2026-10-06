@@ -41,19 +41,24 @@
 	gap: 4px;
 }
 
-.cd-player__field {
+.cd-player__field,
+.cd-player__vol {
 	display: flex;
 	align-items: center;
 	gap: 4px;
 	min-width: 0;
 }
 
+.cd-player__label,
+.cd-player__vol-label {
+	font-size: 11px;
+	user-select: none;
+}
+
 .cd-player__label {
 	flex: 0 0 42px;
 	text-align: right;
-	font-size: 11px;
 	line-height: 1;
-	user-select: none;
 }
 
 .cd-player__combo {
@@ -102,84 +107,11 @@
 .cd-player__spin-ico {
 	width: 0;
 	height: 0;
-	border-left: 3px solid transparent;
-	border-right: 3px solid transparent;
+	border-inline: 3px solid transparent;
 }
 
-.cd-player__spin-ico--up {
-	border-bottom: 4px solid #000;
-}
-
-.cd-player__spin-ico--down {
-	border-top: 4px solid #000;
-}
-
-/* classic Win9x volume trackbar */
-.cd-player__trackbar {
-	-webkit-appearance: none;
-	appearance: none;
-	flex: 1;
-	min-width: 0;
-	width: 100%;
-	height: 18px;
-	margin: 0;
-	background: transparent;
-	cursor: var(--cursor-arrow);
-}
-
-.cd-player__trackbar:focus {
-	outline: none;
-}
-
-.cd-player__trackbar:focus-visible {
-	outline: 1px dotted #000;
-	outline-offset: 1px;
-}
-
-.cd-player__trackbar::-webkit-slider-runnable-track {
-	height: 4px;
-	background: #c0c0c0;
-	border-top: 1px solid #808080;
-	border-left: 1px solid #808080;
-	border-right: 1px solid #fff;
-	border-bottom: 1px solid #fff;
-	box-sizing: border-box;
-}
-
-.cd-player__trackbar::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	appearance: none;
-	width: 11px;
-	height: 18px;
-	margin-top: -8px;
-	background: #c0c0c0;
-	border-top: 2px solid #fff;
-	border-left: 2px solid #fff;
-	border-right: 2px solid #000;
-	border-bottom: 2px solid #000;
-	box-sizing: border-box;
-}
-
-.cd-player__trackbar::-moz-range-track {
-	height: 4px;
-	background: #c0c0c0;
-	border-top: 1px solid #808080;
-	border-left: 1px solid #808080;
-	border-right: 1px solid #fff;
-	border-bottom: 1px solid #fff;
-}
-
-.cd-player__trackbar::-moz-range-thumb {
-	width: 11px;
-	height: 18px;
-	background: #c0c0c0;
-	border-top: 2px solid #fff;
-	border-left: 2px solid #fff;
-	border-right: 2px solid #000;
-	border-bottom: 2px solid #000;
-	border-radius: 0;
-	box-sizing: border-box;
-}
+.cd-player__spin-ico--up { border-bottom: 4px solid #000; }
+.cd-player__spin-ico--down { border-top: 4px solid #000; }
 
 .cd-player__transport {
 	display: flex;
@@ -205,6 +137,7 @@
 	padding-left: 1px;
 }
 
+/* Transport glyphs, drawn from borders and pseudo-elements in a 14×10 box. */
 .cd-player__glyph {
 	display: block;
 	position: relative;
@@ -215,32 +148,30 @@
 .cd-player__glyph--play {
 	width: 0;
 	height: 0;
-	border-top: 5px solid transparent;
-	border-bottom: 5px solid transparent;
+	border-block: 5px solid transparent;
 	border-left: 9px solid #000;
 }
 
+.cd-player__glyph::before,
+.cd-player__glyph::after {
+	position: absolute;
+	top: 0;
+}
+
+/* Pause bars, and the stop square's outline. */
 .cd-player__glyph--pause::before,
 .cd-player__glyph--pause::after {
 	content: "";
-	position: absolute;
-	top: 0;
 	width: 3px;
 	height: 10px;
 	background: #000;
 }
 
-.cd-player__glyph--pause::before {
-	left: 2px;
-}
-
-.cd-player__glyph--pause::after {
-	right: 2px;
-}
+.cd-player__glyph--pause::before { left: 2px; }
+.cd-player__glyph--pause::after { right: 2px; }
 
 .cd-player__glyph--stop::before {
 	content: "";
-	position: absolute;
 	left: 2px;
 	top: 1px;
 	width: 9px;
@@ -250,57 +181,89 @@
 	background: transparent;
 }
 
+/* Skip glyphs: a bar and a triangle pointing away from it. */
 .cd-player__glyph--prev::before,
+.cd-player__glyph--next::before {
+	content: "";
+	width: 2px;
+	height: 10px;
+	background: #000;
+}
+
 .cd-player__glyph--prev::after,
-.cd-player__glyph--next::before,
 .cd-player__glyph--next::after {
 	content: "";
-	position: absolute;
-	top: 0;
-}
-
-.cd-player__glyph--prev::before {
-	left: 0;
-	width: 2px;
-	height: 10px;
-	background: #000;
-}
-
-.cd-player__glyph--prev::after {
-	left: 3px;
 	width: 0;
 	height: 0;
-	border-top: 5px solid transparent;
-	border-bottom: 5px solid transparent;
-	border-right: 8px solid #000;
+	border-block: 5px solid transparent;
 }
 
-.cd-player__glyph--next::before {
-	right: 0;
-	width: 2px;
-	height: 10px;
-	background: #000;
-}
-
-.cd-player__glyph--next::after {
-	right: 3px;
-	width: 0;
-	height: 0;
-	border-top: 5px solid transparent;
-	border-bottom: 5px solid transparent;
-	border-left: 8px solid #000;
-}
+.cd-player__glyph--prev::before { left: 0; }
+.cd-player__glyph--prev::after { left: 3px; border-right: 8px solid #000; }
+.cd-player__glyph--next::before { right: 0; }
+.cd-player__glyph--next::after { right: 3px; border-left: 8px solid #000; }
 
 .cd-player__vol {
-	display: flex;
-	align-items: center;
-	gap: 4px;
 	margin-top: 6px;
-	min-width: 0;
 }
 
 .cd-player__vol-label {
 	flex-shrink: 0;
-	font-size: 11px;
-	user-select: none;
+}
+
+/* Classic Win9x volume trackbar. Vendor pseudo-elements cannot share a rule: one unknown selector voids it. */
+.cd-player__trackbar {
+	appearance: none;
+	flex: 1;
+	min-width: 0;
+	width: 100%;
+	height: 18px;
+	margin: 0;
+	background: transparent;
+	cursor: var(--cursor-arrow);
+}
+
+.cd-player__trackbar:focus {
+	outline: none;
+}
+
+.cd-player__trackbar:focus-visible {
+	outline: 1px dotted #000;
+	outline-offset: 1px;
+}
+
+.cd-player__trackbar::-webkit-slider-runnable-track {
+	height: 4px;
+	background: #c0c0c0;
+	border: 1px solid;
+	border-color: #808080 #fff #fff #808080;
+	box-sizing: border-box;
+}
+
+.cd-player__trackbar::-moz-range-track {
+	height: 4px;
+	background: #c0c0c0;
+	border: 1px solid;
+	border-color: #808080 #fff #fff #808080;
+}
+
+.cd-player__trackbar::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	width: 11px;
+	height: 18px;
+	margin-top: -8px;
+	background: #c0c0c0;
+	border: 2px solid;
+	border-color: #fff #000 #000 #fff;
+	box-sizing: border-box;
+}
+
+.cd-player__trackbar::-moz-range-thumb {
+	width: 11px;
+	height: 18px;
+	background: #c0c0c0;
+	border: 2px solid;
+	border-color: #fff #000 #000 #fff;
+	border-radius: 0;
+	box-sizing: border-box;
 }
