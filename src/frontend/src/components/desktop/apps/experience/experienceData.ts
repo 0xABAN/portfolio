@@ -9,62 +9,15 @@ export type Project = {
 };
 
 export const WORK: readonly Project[] = [
-	{
-		id: "amazon",
-		title: "amazon",
-		blurb: "swe intern @ amazon summer 2026",
-		src: "/photos/amazon.png",
-	},
-	{
-		id: "ibm",
-		title: "ibm",
-		blurb: "ai eng co-op @ ibm 2025-2026",
-		src: "/photos/ibm.png",
-	},
-] as const;
+	{ id: "amazon", title: "amazon", blurb: "swe intern @ amazon summer 2026", src: "/photos/amazon.png" },
+	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/photos/ibm.png" },
+];
 
 export const PROJECTS: readonly Project[] = [
-	{
-		id: "copycat",
-		title: "copycat",
-		blurb:
-			"mcp to copy sites' visuals as DESIGN.md's for later use. very useful :)",
-		src: "/photos/copycat.jpg",
-		href: `${GITHUB_URL}/copycat`,
-	},
-	{
-		id: "definitive",
-		title: "definitive multiplayer",
-		blurb: "terraria multiplayer add-on i built in a week, 1k+ downloads",
-		src: "/photos/definitive-multiplayer.png",
-		href: `${GITHUB_URL}/DefinitiveMultiplayer`,
-	},
-	{
-		id: "fit-check",
-		title: "fit-check",
-		blurb: "fit check",
-		src: "/photos/fit-check.jpg",
-		href: `${GITHUB_URL}/fit-check`,
-	},
-	{
-		id: "maestro",
-		title: "maestro",
-		blurb: "ByteDance 2nd place (solo hacker)",
-		src: "/photos/maestro.jpg",
-		href: `${GITHUB_URL}/maestro`,
-	},
-	{
-		id: "simulacra",
-		title: "simulacra",
-		blurb: "K2 Think V2 1st place @ YHacks",
-		src: "/photos/simulacra.jpg",
-		href: `${GITHUB_URL}/simulacra`,
-	},
-	{
-		id: "terrar",
-		title: "terrar.ai",
-		blurb: "xAI 1st place @ HackPrinceton",
-		src: "/photos/terrar.jpg",
-		href: "https://github.com/SlothfulDreams/terrar.ai",
-	},
-] as const;
+	{ id: "copycat", title: "copycat", blurb: "mcp to copy sites' visuals as DESIGN.md's for later use. very useful :)", src: "/photos/copycat.jpg", href: `${GITHUB_URL}/copycat` },
+	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria multiplayer add-on i built in a week, 1k+ downloads", src: "/photos/definitive-multiplayer.png", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
+	{ id: "fit-check", title: "fit-check", blurb: "fit check", src: "/photos/fit-check.jpg", href: `${GITHUB_URL}/fit-check` },
+	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/photos/maestro.jpg", href: `${GITHUB_URL}/maestro` },
+	{ id: "simulacra", title: "simulacra", blurb: "K2 Think V2 1st place @ YHacks", src: "/photos/simulacra.jpg", href: `${GITHUB_URL}/simulacra` },
+	{ id: "terrar", title: "terrar.ai", blurb: "xAI 1st place @ HackPrinceton", src: "/photos/terrar.jpg", href: "https://github.com/SlothfulDreams/terrar.ai" },
+];

@@ -112,6 +112,13 @@ function StatusBar() {
 	);
 }
 
+/** The PSP's d-pad and buttons: arrows or WASD, Enter or X, Escape or Backspace, and O for options. */
+const KEYS: Record<string, "left" | "right" | "up" | "down" | "enter" | "back" | "options"> = {
+	ArrowLeft: "left", a: "left", ArrowRight: "right", d: "right",
+	ArrowUp: "up", w: "up", ArrowDown: "down", s: "down",
+	Enter: "enter", x: "enter", Escape: "back", Backspace: "back", o: "options",
+};
+
 function openExternal(href?: string) {
 	if (href) window.open(href, "_blank", "noopener,noreferrer");
 }
@@ -141,65 +148,35 @@ export function PspXmb({ ready }: { ready: boolean }) {
 	}, [state.categoryIndex, state.itemIndex]);
 
 	function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+		const action = event.key === "Tab" ? "tab" : KEYS[event.key] ?? KEYS[event.key.toLowerCase()];
+		// The options menu only takes up, down, enter and back.
+		if (!action || (state.optionsOpen && (action === "left" || action === "right" || action === "options"))) return;
+		event.preventDefault();
+		// Focus stays on the XMB itself; its buttons only mark what Enter acts on.
+		focusRoot();
 		const target = event.target as HTMLElement;
-		const key = event.key.toLowerCase();
-		const categoryButton = target.closest<HTMLButtonElement>(".psp-xmb__category");
-		const itemButton = target.closest<HTMLButtonElement>(".psp-xmb__item");
-		const optionButton = target.closest<HTMLButtonElement>(".psp-xmb__options button");
-		const selectButton = target.closest<HTMLButtonElement>(".psp-xmb__select");
-
-		if (event.key === "Tab") {
-			event.preventDefault();
-			focusRoot();
-			return;
-		}
+		const indexOf = (selector: string) => target.closest<HTMLElement>(selector)?.dataset.index;
+		const step = action === "up" || action === "left" ? -1 : 1;
 
 		if (state.optionsOpen) {
-			if (event.key === "ArrowUp" || event.key === "ArrowDown" || key === "w" || key === "s") {
-				event.preventDefault();
-				dispatch({ type: "option", delta: event.key === "ArrowUp" || key === "w" ? -1 : 1 });
-				focusRoot();
-			} else if (event.key === "Enter" || key === "x") {
-				event.preventDefault();
-				const index = optionButton ? Number(optionButton.dataset.index) : state.optionsIndex;
-				if (index === 0) openExternal(project?.href);
-				else dispatch({ type: "toggle-options" });
-				focusRoot();
-			} else if (event.key === "Escape" || event.key === "Backspace") {
-				event.preventDefault();
-				dispatch({ type: "toggle-options" });
-				focusRoot();
-			}
-			return;
-		}
-
-		if (event.key === "ArrowLeft" || key === "a" || event.key === "ArrowRight" || key === "d") {
-			event.preventDefault();
-			dispatch({ type: "category", delta: event.key === "ArrowLeft" || key === "a" ? -1 : 1 });
-			focusRoot();
-		} else if (event.key === "ArrowUp" || key === "w" || event.key === "ArrowDown" || key === "s") {
-			event.preventDefault();
-			dispatch({ type: "item", delta: event.key === "ArrowUp" || key === "w" ? -1 : 1 });
-			focusRoot();
-		} else if (event.key === "Enter" || key === "x") {
-			event.preventDefault();
-			if (categoryButton) dispatch({ type: "select-category", index: Number(categoryButton.dataset.index) });
-			else if (itemButton) {
-				const index = Number(itemButton.dataset.index);
-				if (index === state.itemIndex) openExternal(category.items[index]?.href);
-				else dispatch({ type: "select-item", index });
-			} else if (selectButton) dispatch({ type: "toggle-options" });
+			if (action === "up" || action === "down") dispatch({ type: "option", delta: step });
+			else if (action === "back" || Number(indexOf(".psp-xmb__options button") ?? state.optionsIndex) !== 0) dispatch({ type: "toggle-options" });
 			else openExternal(project?.href);
-			focusRoot();
-		} else if (event.key === "Escape" || event.key === "Backspace") {
-			// Nothing to back out of outside the options menu; just keep focus.
-			event.preventDefault();
-			focusRoot();
-		} else if (key === "o") {
-			event.preventDefault();
+		} else if (action === "left" || action === "right") {
+			dispatch({ type: "category", delta: step });
+		} else if (action === "up" || action === "down") {
+			dispatch({ type: "item", delta: step });
+		} else if (action === "options") {
 			dispatch({ type: "toggle-options" });
-			focusRoot();
+		} else if (action === "enter") {
+			const categoryIndex = indexOf(".psp-xmb__category");
+			const itemIndex = indexOf(".psp-xmb__item");
+			if (categoryIndex !== undefined) dispatch({ type: "select-category", index: Number(categoryIndex) });
+			else if (itemIndex !== undefined && Number(itemIndex) !== state.itemIndex) dispatch({ type: "select-item", index: Number(itemIndex) });
+			else if (itemIndex === undefined && target.closest(".psp-xmb__select")) dispatch({ type: "toggle-options" });
+			else openExternal(project?.href);
 		}
+		// Back has nothing to back out of outside the options menu, and Tab only returns focus.
 	}
 
 	return (
