@@ -1,19 +1,12 @@
 "use client";
 
-import {
-	memo,
-	useEffect,
-	useLayoutEffect,
-	useRef,
-	type ReactNode,
-} from "react";
+import { memo, useEffect, useLayoutEffect, useRef, type FocusEvent, type PointerEvent, type ReactNode } from "react";
 import "./window.css";
 
 type Props = {
 	id: string;
 	active: boolean;
 	minimized: boolean;
-	onActivateAction: (id: string) => void;
 	title: string;
 	icon?: string;
 	x: number;
@@ -25,144 +18,92 @@ type Props = {
 	/** Report moves every frame (nested crop / child follow). Default: commit on pointerup. */
 	liveMove?: boolean;
 	minimizable?: boolean;
+	/** No title bar: the whole window drags, except elements marked data-no-window-drag. */
+	frameless?: boolean;
+	onActivateAction: (id: string) => void;
 	onMinimizeAction: (id: string) => void;
 	onCloseAction?: (id: string) => void;
-	frameless?: boolean;
 	onMoveAction: (id: string, x: number, y: number) => void;
 	children?: ReactNode;
 };
 
-type DragOrigin = {
-	pointerX: number;
-	pointerY: number;
-	originX: number;
-	originY: number;
-	live: boolean;
-	raf: number;
-	pendingX: number;
-	pendingY: number;
-};
+/** The pointer's offset into the window, the window's latest position, and a pending report. */
+type Drag = { offsetX: number; offsetY: number; x: number; y: number; live: boolean; frame: number };
 
-function applyGeometry(
-	el: HTMLElement,
-	g: { x: number; y: number; w: number; h: number; z: number },
-) {
-	el.style.left = `${g.x}px`;
-	el.style.top = `${g.y}px`;
-	el.style.width = `${g.w}px`;
-	el.style.height = `${g.h}px`;
-	el.style.zIndex = String(g.z);
-}
-
-function dragDelta(d: DragOrigin, clientX: number, clientY: number) {
-	return {
-		x: d.originX + (clientX - d.pointerX),
-		y: d.originY + (clientY - d.pointerY),
-	};
-}
-
-function WindowInner({
-	id,
-	active,
-	minimized,
-	onActivateAction,
-	title,
-	icon,
-	x,
-	y,
-	w,
-	h,
-	z,
-	variant,
-	liveMove = false,
-	minimizable = true,
-	onMinimizeAction,
-	onCloseAction,
-	frameless = false,
-	onMoveAction,
-	children,
+export const Window = memo(function Window({
+	id, active, minimized, title, icon, x, y, w, h, z, variant,
+	liveMove = false, minimizable = true, frameless = false,
+	onActivateAction, onMinimizeAction, onCloseAction, onMoveAction, children,
 }: Props) {
 	const rootRef = useRef<HTMLElement>(null);
 	const lastFocus = useRef<HTMLElement | null>(null);
-	const drag = useRef<DragOrigin | null>(null);
+	const drag = useRef<Drag | null>(null);
 	const moveRef = useRef(onMoveAction);
 
 	useEffect(() => {
 		moveRef.current = onMoveAction;
 	});
 
+	// Geometry is written directly, so a drag can move the window without rendering.
 	useLayoutEffect(() => {
-		const el = rootRef.current;
-		if (!el) return;
-		// Activation still raises a window during its imperative drag.
+		const el = rootRef.current!;
+		// Activation still raises a window during its own drag.
 		el.style.zIndex = String(z);
 		if (drag.current && !drag.current.live) return;
-		applyGeometry(el, { x, y, w, h, z });
+		Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
 	}, [x, y, w, h, z]);
 
-	function onTitlePointerDown(e: React.PointerEvent<HTMLElement>) {
-		if ((e.target as HTMLElement).closest(".win-min, [data-no-window-drag]")) return;
-		e.currentTarget.setPointerCapture(e.pointerId);
-		const el = rootRef.current;
-		const originX = el?.offsetLeft ?? x;
-		const originY = el?.offsetTop ?? y;
+	function startDrag(event: PointerEvent<HTMLElement>) {
+		if ((event.target as HTMLElement).closest(".win-min, [data-no-window-drag]")) return;
+		const el = rootRef.current!;
+		event.currentTarget.setPointerCapture(event.pointerId);
 		// Gives the window a layer of its own while it moves (desktop.css).
-		el?.toggleAttribute("data-dragging", true);
+		el.toggleAttribute("data-dragging", true);
 		drag.current = {
-			pointerX: e.clientX,
-			pointerY: e.clientY,
-			originX,
-			originY,
-			live: liveMove,
-			raf: 0,
-			pendingX: originX,
-			pendingY: originY,
+			offsetX: event.clientX - el.offsetLeft, offsetY: event.clientY - el.offsetTop,
+			x: el.offsetLeft, y: el.offsetTop, live: liveMove, frame: 0,
 		};
 	}
 
-	function onTitlePointerMove(e: React.PointerEvent<HTMLElement>) {
-		const d = drag.current;
-		const el = rootRef.current;
-		if (!d || !el) return;
-		const { x: nx, y: ny } = dragDelta(d, e.clientX, e.clientY);
-
-		if (!d.live) {
-			el.style.left = `${nx}px`;
-			el.style.top = `${ny}px`;
-			return;
-		}
-
-		d.pendingX = nx;
-		d.pendingY = ny;
-		if (d.raf) return;
-		d.raf = requestAnimationFrame(() => {
-			const cur = drag.current;
-			if (!cur) return;
-			cur.raf = 0;
-			moveRef.current(id, cur.pendingX, cur.pendingY);
-		});
-	}
-
-	function onTitlePointerUp(e: React.PointerEvent<HTMLElement>) {
+	function moveDrag(event: PointerEvent<HTMLElement>) {
 		const d = drag.current;
 		if (!d) return;
-		if (d.raf) {
-			cancelAnimationFrame(d.raf);
-			d.raf = 0;
+		d.x = event.clientX - d.offsetX;
+		d.y = event.clientY - d.offsetY;
+		if (!d.live) {
+			// Most windows move on screen only, and report where they land on release.
+			Object.assign(rootRef.current!.style, { left: `${d.x}px`, top: `${d.y}px` });
+		} else if (!d.frame) {
+			// Live windows report once per frame, so their nested windows follow.
+			d.frame = requestAnimationFrame(() => {
+				d.frame = 0;
+				moveRef.current(id, d.x, d.y);
+			});
 		}
-		drag.current = null;
-		rootRef.current?.removeAttribute("data-dragging");
-		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-			e.currentTarget.releasePointerCapture(e.pointerId);
-		}
-		const el = rootRef.current;
-		const fallback = dragDelta(d, e.clientX, e.clientY);
-		moveRef.current(
-			id,
-			d.live ? d.pendingX : (el?.offsetLeft ?? fallback.x),
-			d.live ? d.pendingY : (el?.offsetTop ?? fallback.y),
-		);
 	}
+
+	function endDrag(event: PointerEvent<HTMLElement>) {
+		const d = drag.current;
+		if (!d) return;
+		cancelAnimationFrame(d.frame);
+		drag.current = null;
+		rootRef.current!.removeAttribute("data-dragging");
+		if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+		moveRef.current(id, d.x, d.y);
+	}
+
+	function onFocusCapture(event: FocusEvent<HTMLElement>) {
+		onActivateAction(id);
+		const target = event.target as HTMLElement;
+		// Focusing the window itself returns focus to wherever it last was inside.
+		if (target === event.currentTarget) {
+			if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
+		} else if (!target.closest(".win-titlebar")) {
+			lastFocus.current = target;
+		}
+	}
+
+	const dragHandlers = { onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag };
 
 	return (
 		<section
@@ -175,63 +116,28 @@ function WindowInner({
 			inert={minimized}
 			aria-hidden={minimized || undefined}
 			tabIndex={-1}
-			className={["win", variant ? `win--${variant}` : "", frameless ? "win--frameless" : ""].filter(Boolean).join(" ")}
+			className={["win", variant && `win--${variant}`, frameless && "win--frameless"].filter(Boolean).join(" ")}
 			aria-label={title || id}
 			onPointerDownCapture={() => onActivateAction(id)}
-			onPointerDown={frameless ? onTitlePointerDown : undefined}
-			onPointerMove={frameless ? onTitlePointerMove : undefined}
-			onPointerUp={frameless ? onTitlePointerUp : undefined}
-			onPointerCancel={frameless ? onTitlePointerUp : undefined}
-			onFocusCapture={(event) => {
-				onActivateAction(id);
-				if (event.target === event.currentTarget) {
-					if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
-				} else if (!(event.target as HTMLElement).closest(".win-titlebar")) {
-					lastFocus.current = event.target as HTMLElement;
-				}
-			}}
+			onFocusCapture={onFocusCapture}
+			{...(frameless ? dragHandlers : {})}
 		>
-			{!frameless && <header
-				className="win-titlebar"
-				onPointerDown={onTitlePointerDown}
-				onPointerMove={onTitlePointerMove}
-				onPointerUp={onTitlePointerUp}
-				onPointerCancel={onTitlePointerUp}
-			>
-				{icon ? (
-					// eslint-disable-next-line @next/next/no-img-element
-					<img
-						className="win-titlebar__icon"
-						src={icon}
-						alt=""
-						draggable={false}
-					/>
-				) : null}
-				<span className="win-titlebar__text">{title}</span>
-				{minimizable ? (
-					<button
-						type="button"
-						className="win-min chrome-raised"
-						aria-label="Minimize"
-						onClick={() => onMinimizeAction(id)}
-						onPointerDown={(ev) => ev.stopPropagation()}
-					/>
-				) : null}
-				{onCloseAction ? (
-					<button
-						type="button"
-						className="win-min win-close chrome-raised"
-						aria-label={`Close ${title}`}
-						onClick={() => onCloseAction(id)}
-						onPointerDown={(ev) => ev.stopPropagation()}
-					>
-						×
-					</button>
-				) : null}
-			</header>}
+			{!frameless && (
+				<header className="win-titlebar" {...dragHandlers}>
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					{icon && <img className="win-titlebar__icon" src={icon} alt="" draggable={false} />}
+					<span className="win-titlebar__text">{title}</span>
+					{minimizable && (
+						<button type="button" className="win-min chrome-raised" aria-label="Minimize"
+							onClick={() => onMinimizeAction(id)} onPointerDown={(event) => event.stopPropagation()} />
+					)}
+					{onCloseAction && (
+						<button type="button" className="win-min win-close chrome-raised" aria-label={`Close ${title}`}
+							onClick={() => onCloseAction(id)} onPointerDown={(event) => event.stopPropagation()}>×</button>
+					)}
+				</header>
+			)}
 			<div className={frameless ? "win__client" : "win__client chrome-sunken"}>{children}</div>
 		</section>
 	);
-}
-
-export const Window = memo(WindowInner);
+});
