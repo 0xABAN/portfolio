@@ -1,36 +1,45 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { coverUrl, formatElapsed, PLAYLIST_URL, randomStartIndex, randomTrackIndex, toTrack, wrapIndex } from "@/components/desktop/apps/cd-player/playlist";
+import { coverUrl, formatElapsed, PLAYLIST_URL, shuffledOrder, stepShuffle, toTrack, type Shuffle } from "@/components/desktop/apps/cd-player/playlist";
 
 test("the player reads the portfolio playlist on SoundCloud", () => {
 	assert.equal(new URL(PLAYLIST_URL).origin, "https://soundcloud.com");
 	assert.match(new URL(PLAYLIST_URL).pathname, /^\/[^/]+\/sets\/[^/]+$/);
 });
 
-test("track navigation wraps around both ends of the playlist", () => {
-	assert.equal(wrapIndex(-1, 6), 5);
-	assert.equal(wrapIndex(6, 6), 0);
-	assert.equal(wrapIndex(13, 6), 1);
-	assert.throws(() => wrapIndex(0, 0), /empty/);
-});
-
-test("shuffle never repeats the track that just ended when there is another", () => {
+test("a shuffled round holds every track once, in varying order", () => {
+	const firsts = new Set<number>();
 	for (let i = 0; i < 500; i++) {
-		const next = randomTrackIndex(3, 1);
-		assert.ok(next === 0 || next === 2, `picked ${next}`);
+		const order = shuffledOrder(5);
+		assert.deepEqual([...order].sort(), [0, 1, 2, 3, 4]);
+		firsts.add(order[0]);
 	}
-	assert.equal(randomTrackIndex(1, 0), 0);
-
-	const first = new Set(Array.from({ length: 500 }, () => randomTrackIndex(4)));
-	assert.deepEqual([...first].sort(), [0, 1, 2, 3]);
+	assert.deepEqual([...firsts].sort(), [0, 1, 2, 3, 4]);
+	assert.deepEqual(shuffledOrder(1, 0), [0]);
+	assert.throws(() => shuffledOrder(0), /empty/);
 });
 
-test("the first track is one SoundCloud has already described", () => {
-	// The widget describes only the first few sounds of a playlist up front.
-	const sounds = [{ id: 1, title: "One" }, { id: 2 }, { id: 3, title: "Three" }, { id: 4 }];
-	const first = new Set(Array.from({ length: 500 }, () => randomStartIndex(sounds)));
-	assert.deepEqual([...first].sort(), [0, 2]);
-	assert.throws(() => randomStartIndex([{ id: 1 }]), /described/);
+test("the whole playlist plays before any track repeats", () => {
+	let shuffle: Shuffle = { order: shuffledOrder(18), position: 0 };
+	for (let round = 0; round < 50; round++) {
+		const played = [shuffle.order[shuffle.position]];
+		for (let i = 1; i < 18; i++) {
+			shuffle = stepShuffle(shuffle, 1);
+			played.push(shuffle.order[shuffle.position]);
+		}
+		assert.equal(new Set(played).size, 18);
+
+		// The next round never opens with the track that just ended.
+		shuffle = stepShuffle(shuffle, 1);
+		assert.equal(shuffle.position, 0);
+		assert.notEqual(shuffle.order[0], played.at(-1));
+	}
+});
+
+test("previous steps back through the round and wraps to its end", () => {
+	const shuffle: Shuffle = { order: [2, 0, 1], position: 1 };
+	assert.deepEqual(stepShuffle(shuffle, -1), { order: [2, 0, 1], position: 0 });
+	assert.deepEqual(stepShuffle({ ...shuffle, position: 0 }, -1), { order: [2, 0, 1], position: 2 });
 });
 
 test("tracks show SoundCloud's title, uploader and 500px artwork", () => {

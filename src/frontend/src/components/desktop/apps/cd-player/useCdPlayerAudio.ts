@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PLAYLIST_URL, formatElapsed, randomStartIndex, randomTrackIndex, toTrack, wrapIndex, type ScSound, type Track } from "./playlist";
+import { PLAYLIST_URL, formatElapsed, shuffledOrder, stepShuffle, toTrack, type ScSound, type Shuffle, type Track } from "./playlist";
 
 /**
  * Shared transport survives minimization and Strict Mode; only Quit unloads it.
@@ -17,7 +17,6 @@ type ScWidget = {
 	seekTo: (milliseconds: number) => void;
 	setVolume: (volume: number) => void;
 	getSounds: (callback: (sounds: ScSound[]) => void) => void;
-	getCurrentSound: (callback: (sound: ScSound | null) => void) => void;
 };
 
 type ScApi = {
@@ -49,8 +48,8 @@ const FADE_MS = 10_000;
 const API_SRC = "https://w.soundcloud.com/player/api.js";
 /** Widget getters answer by postMessage, and not at all while the widget is busy. */
 const GETTER_TIMEOUT_MS = 2000;
-/** READY can arrive before the widget lists the playlist, and later sounds arrive bare. */
-const RETRIES = 12;
+/** READY can arrive before the widget lists and describes the whole playlist. */
+const RETRIES = 40;
 const RETRY_MS = 250;
 /** A pause at 0:00 that lasts this long means the upload's stream is unavailable. */
 const STALLED_PAUSE_MS = 1500;
@@ -74,15 +73,14 @@ const playingListeners = new Set<() => void>();
 const elapsedNodes = new Set<HTMLElement>();
 let lastElapsedSec = -1;
 
-/** The playlist as the widget lists it; filled in as SoundCloud describes each sound. */
+/** The playlist as the widget lists it, once every sound is described. */
 let sounds: ScSound[] = [];
 let playlistReady = false;
 const readyWaiters: Array<() => void> = [];
+let shuffle: Shuffle = { order: [], position: 0 };
 let trackIdx = 0;
 /** The sound the widget is on; it opens on the first one. */
 let widgetIdx = 0;
-/** The index whose details are on screen, or -1 while they are loading. */
-let shownIdx = -1;
 let currentTrack: Track | null = null;
 
 let setTrackBridge: ((track: Track | null) => void) | null = null;
@@ -197,8 +195,9 @@ function whenPlaylistReady(): Promise<ScWidget> {
 }
 
 /**
- * Reads the playlist once the widget has loaded it, and picks a random first track
- * among the sounds the widget has described; only those play when skipped to.
+ * Reads the playlist and deals the first shuffled round once the widget has
+ * described every sound. At READY it has described only the first few, and a
+ * skip to an undescribed sound selects it without ever playing it.
  */
 async function loadPlaylist(widget: ScWidget) {
 	if (playlistReady) return;
@@ -206,9 +205,10 @@ async function loadPlaylist(widget: ScWidget) {
 		const list = await ask<ScSound[]>((answer) => widget.getSounds(answer));
 		if (widget !== sharedWidget) return;
 
-		if (list?.some((sound) => sound.title)) {
+		if (list?.length && list.every((sound) => sound.title)) {
 			sounds = list;
-			trackIdx = randomStartIndex(sounds);
+			shuffle = { order: shuffledOrder(sounds.length), position: 0 };
+			trackIdx = shuffle.order[0];
 			showTrack(trackIdx);
 			transport.readyState = 4;
 			playlistReady = true;
@@ -217,42 +217,22 @@ async function loadPlaylist(widget: ScWidget) {
 		}
 		await sleep(RETRY_MS);
 	}
-	console.error(`CD Player: SoundCloud did not list the playlist ${PLAYLIST_URL}.`);
+	console.error(`CD Player: SoundCloud did not describe every track of ${PLAYLIST_URL}.`);
 }
 
-/** Shows a track's details if SoundCloud has described it, or blank fields until it has. */
+/** Shows a track's details, or blank fields when there is no track. */
 function showTrack(index: number) {
 	const sound = sounds[index];
-	shownIdx = sound?.title ? index : -1;
 	currentTrack = sound?.title ? toTrack({ ...sound, title: sound.title }) : null;
 	setTrackBridge?.(currentTrack);
 }
 
-/** Only the first few sounds of a playlist arrive described; ask for the playing one. */
-async function describeCurrentTrack() {
-	const index = trackIdx;
-	if (shownIdx === index) return;
-
-	for (let attempt = 0; attempt < RETRIES; attempt++) {
-		const widget = sharedWidget;
-		if (!widget || index !== trackIdx) return;
-
-		const sound = await ask<ScSound | null>((answer) => widget.getCurrentSound(answer));
-		if (sound?.title && sound.id === sounds[index]?.id) {
-			sounds[index] = sound;
-			if (index === trackIdx) showTrack(index);
-			return;
-		}
-		await sleep(RETRY_MS);
-	}
-	console.error(`CD Player: SoundCloud did not describe track ${index + 1} of ${PLAYLIST_URL}.`);
-}
-
-/** Moves to a track of the playlist and plays it. */
-function switchTo(index: number) {
+/** Moves one track through the shuffled round and plays it. */
+function step(direction: 1 | -1) {
 	if (!playlistReady) return;
 	++switchGen;
-	trackIdx = wrapIndex(index, sounds.length);
+	shuffle = stepShuffle(shuffle, direction);
+	trackIdx = shuffle.order[shuffle.position];
 	autoplayBlocked = false;
 	resetElapsed();
 	showTrack(trackIdx);
@@ -266,7 +246,7 @@ function skipUnplayable() {
 		console.error(`CD Player stopped: ${MAX_UNPLAYABLE} tracks in a row would not play.`);
 		return;
 	}
-	switchTo(trackIdx + 1);
+	step(1);
 }
 
 function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
@@ -276,7 +256,6 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 		transport.paused = false;
 		setPlayingBridge?.(true);
 		applyVolume(true);
-		void describeCurrentTrack();
 		for (const listener of playingListeners) listener();
 	});
 	widget.bind(events.PAUSE, (data) => {
@@ -291,9 +270,9 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 			if (gen === switchGen && wantPlaying && transport.paused) skipUnplayable();
 		}, STALLED_PAUSE_MS);
 	});
-	// The widget moves on to the next sound by itself; shuffle instead.
+	// The widget moves on to the next sound of the playlist by itself; follow the shuffle instead.
 	widget.bind(events.FINISH, () => {
-		if (mediaStarted) switchTo(randomTrackIndex(sounds.length, trackIdx));
+		if (mediaStarted) step(1);
 	});
 	widget.bind(events.PLAY_PROGRESS, (data) => {
 		const sec = Math.floor((data?.currentPosition ?? 0) / 1000);
@@ -489,6 +468,7 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 			sounds = [];
 			playlistReady = false;
 			readyWaiters.length = 0;
+			shuffle = { order: [], position: 0 };
 			widgetIdx = 0;
 			showTrack(-1);
 		};
@@ -509,8 +489,8 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 			bindElapsed,
 			toggleMute,
 			togglePlay,
-			playPrev: () => switchTo(trackIdx - 1),
-			playNext: () => switchTo(trackIdx + 1),
+			playPrev: () => step(-1),
+			playNext: () => step(1),
 			stop,
 			quit,
 			setVolume,

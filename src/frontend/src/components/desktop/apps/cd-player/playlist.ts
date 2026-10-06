@@ -1,5 +1,5 @@
 /**
- * The CD Player plays this SoundCloud playlist. Its tracks, order, titles and
+ * The CD Player shuffles this SoundCloud playlist. Its tracks, titles and
  * artwork all come from SoundCloud: edit the playlist there to change the music.
  */
 export const PLAYLIST_URL = "https://soundcloud.com/0x-aban/sets/portfolio";
@@ -7,7 +7,7 @@ export const PLAYLIST_URL = "https://soundcloud.com/0x-aban/sets/portfolio";
 /** The fields the player reads from a SoundCloud Widget sound object. */
 export type ScSound = {
 	id: number;
-	/** Missing until SoundCloud has described the sound; see `getCurrentSound`. */
+	/** Missing until the widget has described the sound, a moment after READY. */
 	title?: string;
 	user?: { username?: string };
 	artwork_url?: string | null;
@@ -35,30 +35,40 @@ export function coverUrl(artworkUrl: string) {
 	return artworkUrl.replace(/-large(\.\w+)$/, "-t500x500$1");
 }
 
-export function wrapIndex(i: number, count: number): number {
-	if (count <= 0) throw new Error("playlist is empty");
-	return ((i % count) + count) % count;
-}
+/** A round of the playlist in random order, and the track playing in it. */
+export type Shuffle = { order: number[]; position: number };
 
-/** A random track, other than `except` when the playlist has another one. */
-export function randomTrackIndex(count: number, except?: number) {
+/**
+ * Every track of the playlist once, in random order, so the whole playlist
+ * plays before any track repeats. `notFirst` keeps the track that just ended
+ * from opening the next round when there is another.
+ */
+export function shuffledOrder(count: number, notFirst?: number): number[] {
 	if (count <= 0) throw new Error("playlist is empty");
-	if (count === 1 || except === undefined) return Math.floor(Math.random() * count);
 
-	// Pick among the others, then step over `except`.
-	const pick = Math.floor(Math.random() * (count - 1));
-	return pick >= except ? pick + 1 : pick;
+	// Fisher–Yates.
+	const order = Array.from({ length: count }, (_, i) => i);
+	for (let i = count - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[order[i], order[j]] = [order[j], order[i]];
+	}
+
+	if (count > 1 && order[0] === notFirst) {
+		const j = 1 + Math.floor(Math.random() * (count - 1));
+		[order[0], order[j]] = [order[j], order[0]];
+	}
+	return order;
 }
 
 /**
- * A random track to start on, among those SoundCloud has already described.
- * The widget ignores a skip to a sound it has not loaded yet: it selects the
- * sound but never plays it, which would leave the player silent.
+ * Moves one track through the round. Going past the last track deals a new
+ * round; going back from the first wraps to the end of the current one.
  */
-export function randomStartIndex(sounds: ScSound[]) {
-	const described = sounds.flatMap((sound, i) => (sound.title ? [i] : []));
-	if (!described.length) throw new Error("no track is described yet");
-	return described[Math.floor(Math.random() * described.length)];
+export function stepShuffle({ order, position }: Shuffle, direction: 1 | -1): Shuffle {
+	const next = position + direction;
+	if (next >= order.length) return { order: shuffledOrder(order.length, order[position]), position: 0 };
+	if (next < 0) return { order, position: order.length - 1 };
+	return { order, position: next };
 }
 
 export function formatElapsed(sec: number) {
