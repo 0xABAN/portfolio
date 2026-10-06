@@ -1,67 +1,34 @@
 "use client";
 
-import { type ComponentProps, type ReactNode, type RefCallback, useEffect, useRef, useState } from "react";
+import { type RefCallback, useEffect, useRef, useState } from "react";
 import { StartButton } from "./StartButton";
 import type { AppId } from "../window/state";
 import type { DesktopWindow } from "../window/layout";
 import "./taskbar.css";
 
-/** One POST per page load — survives React Strict Mode remount. */
-let viewsPromise: Promise<number | null> | null = null;
+/** One POST per page load, so Strict Mode's remount does not count a view twice. Null if it fails. */
+let viewsRequest: Promise<number | null> | null = null;
 
-function loadViews(): Promise<number | null> {
-	if (!viewsPromise) {
-		viewsPromise = fetch("/api/views", { method: "POST" })
-			.then((response) => response.json())
-			.then((data: { count?: number }) =>
-				typeof data.count === "number" ? data.count : null,
-			)
-			.catch(() => null);
-	}
-	return viewsPromise;
-}
-
-/** Site view counter; null until the response lands. */
+/** The site's view count; null until the response lands. */
 function useViewCount() {
 	const [views, setViews] = useState<number | null>(null);
 
 	useEffect(() => {
 		let alive = true;
-		void loadViews().then((count) => {
-			if (alive) setViews(count);
-		});
-		return () => {
-			alive = false;
-		};
+		viewsRequest ??= fetch("/api/views", { method: "POST" })
+			.then((response) => response.json())
+			.then((data: { count?: number }) => (typeof data.count === "number" ? data.count : null))
+			.catch(() => null);
+		viewsRequest.then((count) => { if (alive) setViews(count); });
+		return () => { alive = false; };
 	}, []);
 
 	return views;
 }
 
-function formatClock(d: Date) {
-	return d
-		.toLocaleTimeString(undefined, {
-			hour: "numeric",
-			minute: "2-digit",
-			hour12: true,
-		})
-		.replace(/\u202f/g, " ");
-}
-
-const viewFmt = new Intl.NumberFormat("en-US");
-
-function TaskButton({ icon, children, progress, ...props }: ComponentProps<"button"> & { icon?: string; progress?: ReactNode }) {
-	return (
-		<button type="button" className="task-btn chrome-raised" {...props}>
-			{icon ? (
-				// eslint-disable-next-line @next/next/no-img-element
-				<img className="task-btn__icon" src={icon} alt="" width={16} height={16} draggable={false} />
-			) : null}
-			<span className="task-btn__label">{children}</span>
-			{progress}
-		</button>
-	);
-}
+/** "3:07 PM", with a plain space where some locales use a narrow one. */
+const formatClock = (date: Date) => date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true }).replace(/\u202f/g, " ");
+const viewFormat = new Intl.NumberFormat("en-US");
 
 type Props = {
 	muted: boolean;
@@ -76,7 +43,7 @@ type Props = {
 	onRestoreDecorationsAction: () => void;
 	onResetAction: () => void;
 	canRestoreDecorations: boolean;
-	/** Boot trickle: chrome pieces appear once their id is in the set. */
+	/** Boot trickle: chrome pieces appear once their id is revealed. */
 	revealed: (id: string) => boolean;
 };
 
@@ -100,63 +67,42 @@ function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapse
 				const naming = isCdPlayer && trackLabel !== "";
 				const label = naming ? trackLabel : w.title || w.id;
 				return (
-					<TaskButton
-						key={w.id}
-						icon={w.icon}
-						title={label}
+					<button key={w.id} type="button" className="task-btn chrome-raised" title={label}
 						aria-label={naming ? `CD Player: ${label}` : undefined}
-						progress={isCdPlayer ? <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span> : undefined}
 						data-task-id={w.id}
 						aria-controls={`desktop-window-${w.id}`}
 						aria-pressed={w.id === activeId}
-						onClick={() => onActivateAction(w.id)}
-					>
-						{label}
-					</TaskButton>
+						onClick={() => onActivateAction(w.id)}>
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						{w.icon && <img className="task-btn__icon" src={w.icon} alt="" width={16} height={16} draggable={false} />}
+						<span className="task-btn__label">{label}</span>
+						{isCdPlayer && <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span>}
+					</button>
 				);
 			})}
 		</div>
 	);
 }
 
-export function Taskbar({
-	muted,
-	onToggleMuteAction,
-	trackLabel,
-	bindElapsed,
-	tasks,
-	activeId,
-	onActivateAction,
-	onLaunchAction,
-	onOpenFileAction,
-	onRestoreDecorationsAction,
-	onResetAction,
-	canRestoreDecorations,
-	revealed,
-}: Props) {
-	const show = revealed;
+export function Taskbar({ muted, onToggleMuteAction, revealed: show, ...props }: Props) {
 	const [clock, setClock] = useState(() => formatClock(new Date()));
 	const views = useViewCount();
 
 	useEffect(() => {
-		const tick = () => setClock(formatClock(new Date()));
-		tick();
-		const id = window.setInterval(tick, 15_000);
+		const id = window.setInterval(() => setClock(formatClock(new Date())), 15_000);
 		return () => window.clearInterval(id);
 	}, []);
 
 	return (
 		<footer className="taskbar" role="contentinfo" aria-label="Taskbar">
 			<div className="taskbar__left">
-				{show("tb:start") && (
-					<StartButton onLaunchAction={onLaunchAction} onOpenFileAction={onOpenFileAction} onRestoreDecorationsAction={onRestoreDecorationsAction} onResetAction={onResetAction} canRestoreDecorations={canRestoreDecorations} />
-				)}
-				<WindowTasks tasks={tasks} activeId={activeId} onActivateAction={onActivateAction} trackLabel={trackLabel} bindElapsed={bindElapsed} />
+				{show("tb:start") && <StartButton {...props} />}
+				<WindowTasks {...props} />
 			</div>
 			<div className="taskbar__right">
 				{show("tb:views") && views != null && (
-					<span className="taskbar__views" title="Site views" aria-label={`${viewFmt.format(views)} site views`} suppressHydrationWarning>
-						{viewFmt.format(views)}<span className="taskbar__views-label"> views</span>
+					<span className="taskbar__views" title="Site views" aria-label={`${viewFormat.format(views)} site views`} suppressHydrationWarning>
+						{viewFormat.format(views)}<span className="taskbar__views-label"> views</span>
 					</span>
 				)}
 				{show("tb:tray") && (
