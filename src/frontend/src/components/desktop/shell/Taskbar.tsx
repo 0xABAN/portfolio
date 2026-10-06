@@ -77,7 +77,7 @@ type Props = {
 	onResetAction: () => void;
 	canRestoreDecorations: boolean;
 	/** Boot trickle: chrome pieces appear once their id is in the set. */
-	revealed: ReadonlySet<string>;
+	revealed: (id: string) => boolean;
 };
 
 /**
@@ -134,7 +134,7 @@ export function Taskbar({
 	canRestoreDecorations,
 	revealed,
 }: Props) {
-	const show = (id: string) => revealed.has(id);
+	const show = revealed;
 	const [clock, setClock] = useState(() => formatClock(new Date()));
 	const views = useViewCount();
 

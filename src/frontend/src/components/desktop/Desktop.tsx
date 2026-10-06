@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 import { flushSync } from "react-dom";
-import { DESKTOP_REVEAL_WINDOWS } from "./effects/reveal/desktopReveal";
 import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
 import { DesktopSparks } from "./effects/sparks/DesktopSparks";
@@ -71,7 +70,7 @@ function DesktopWorkspace() {
 	const [wallpaperShown, setWallpaperShown] = useState(false);
 	const showWallpaper = useCallback(() => setWallpaperShown(true), []);
 	const cdWindow = windows.find((w) => w.id === "cd-player");
-	const audio = useCdPlayerAudio(revealed.has("boot-complete"), Boolean(cdWindow));
+	const audio = useCdPlayerAudio(revealed("boot-complete"), Boolean(cdWindow));
 
 	useEffect(() => () => {
 		if (launchTimer.current !== null) window.clearTimeout(launchTimer.current);
@@ -142,7 +141,7 @@ function DesktopWorkspace() {
 	}, [audio]);
 
 	function isBootVisible(w: DesktopWindow) {
-		return w.launched || !DESKTOP_REVEAL_WINDOWS.has(w.id) || revealed.has(w.id);
+		return w.launched || revealed(w.id);
 	}
 
 	const activate = useCallback((id: string) => {
@@ -293,7 +292,7 @@ function DesktopWorkspace() {
 				canRestoreDecorations={windows.some((w) => isDecoration(w) && w.minimized)}
 				revealed={revealed}
 			/>
-			{revealed.has("neko") ? <Neko /> : null}
+			{revealed("neko") ? <Neko /> : null}
 			<ShellDialogs />
 		</div>
 	);

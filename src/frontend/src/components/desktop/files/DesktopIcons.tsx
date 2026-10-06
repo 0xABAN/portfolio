@@ -15,7 +15,7 @@ type DeskIconPositions = Record<string, DeskIconPosition>;
 type Props = {
 	onOpenAction: (id: string) => void;
 	onSecretsOpenedAction: () => void;
-	revealed: ReadonlySet<string>;
+	revealed: (id: string) => boolean;
 	secretsOpened: boolean;
 	explorerOpen: boolean;
 };
@@ -141,10 +141,8 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
 	const bounceSecrets = attention && !secretsOpened && !explorerOpen;
 	const deskIcons = shellDeskIcons(shell.state.nodes);
-	// Icons the desktop starts with wait for the boot reveal; moved and restored items do not.
-	const visibleDeskIcons = deskIcons.filter((icon) =>
-		!DESK_ICONS.some((original) => original.id === icon.id) || revealed.has(icon.id),
-	);
+	// Icons the desktop starts with wait for the boot reveal; files moved onto it do not.
+	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
 	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
 
