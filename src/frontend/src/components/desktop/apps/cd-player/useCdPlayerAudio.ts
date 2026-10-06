@@ -1,47 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { PLAYLIST_URL, formatElapsed, shuffledOrder, stepShuffle, toTrack, type ScSound, type Shuffle, type Track } from "./playlist";
 
 /**
- * Shared transport survives minimization and Strict Mode; only Quit unloads it.
- * A hidden SoundCloud Widget plays the playlist; the Win9x CD Player remains the visible UI.
+ * A hidden SoundCloud Widget plays the playlist; the Win9x CD Player is only
+ * the visible UI. Everything lives at module scope, so playback survives
+ * minimization and Strict Mode; only Quit unloads it.
  */
+
+type ScEvents = { READY: string; PLAY: string; PAUSE: string; FINISH: string; PLAY_PROGRESS: string };
+
 type ScWidget = {
-	bind: (eventName: string, listener: (data?: { currentPosition?: number }) => void) => void;
-	unbind: (eventName: string) => void;
+	bind: (event: string, listener: (data?: { currentPosition?: number }) => void) => void;
+	unbind: (event: string) => void;
 	play: () => unknown;
 	pause: () => void;
 	/** Jumps to a sound of the playlist and starts playing it. */
-	skip: (soundIndex: number) => unknown;
+	skip: (index: number) => unknown;
 	seekTo: (milliseconds: number) => void;
 	setVolume: (volume: number) => void;
 	getSounds: (callback: (sounds: ScSound[]) => void) => void;
 };
 
-type ScApi = {
-	Widget: ((el: HTMLIFrameElement) => ScWidget) & {
-		Events: {
-			READY: string;
-			PLAY: string;
-			PAUSE: string;
-			FINISH: string;
-			PLAY_PROGRESS: string;
-		};
-	};
-};
-
-type Transport = {
-	muted: boolean;
-	volume: number;
-	paused: boolean;
-	currentTime: number;
-	src: string;
-	readyState: number;
-	play: () => Promise<void>;
-	pause: () => void;
-	getAttribute: (name: string) => string | null;
-};
+type ScApi = { Widget: ((iframe: HTMLIFrameElement) => ScWidget) & { Events: ScEvents } };
 
 const FADE_MS = 10_000;
 const API_SRC = "https://w.soundcloud.com/player/api.js";
@@ -51,85 +33,84 @@ const GETTER_TIMEOUT_MS = 2000;
 const RETRIES = 40;
 const RETRY_MS = 250;
 
-let sharedVolume = 1;
+/** The widget and the playlist it described. Quit discards it, so a relaunch reads the playlist afresh. */
+type Session = {
+	widget: ScWidget;
+	iframe: HTMLIFrameElement;
+	events: ScEvents;
+	sounds: ScSound[];
+	shuffle: Shuffle;
+	/** The sound the widget is on: it opens on the first one, and -1 once it moves on by itself. */
+	widgetIndex: number;
+	/** Settles once SoundCloud has described every sound; a skip to an undescribed one never plays. */
+	ready: PromiseWithResolvers<void>;
+	isReady: boolean;
+};
+
+let session: Session | null = null;
+let starting: Promise<Session> | null = null;
+let apiPromise: Promise<ScApi> | null = null;
+let userVolume = 1;
 let fadeProgress = 0;
+/** Playback was requested since launch; Quit clears it. */
 let mediaStarted = false;
+/** The listener wants music, so a browser-blocked start is retried on their next gesture. */
+let wantPlaying = false;
 let autoplayBlocked = false;
 /** Bumped whenever the track or play state changes, so stale async work can tell. */
-let switchGen = 0;
-let sharedWidget: ScWidget | null = null;
-let sharedIframe: HTMLIFrameElement | null = null;
-let widgetPromise: Promise<ScWidget> | null = null;
-let apiPromise: Promise<ScApi> | null = null;
-let wantPlaying = false;
+let generation = 0;
 let lastWidgetVolume = -1;
-let boundEvents: ScApi["Widget"]["Events"] | null = null;
-const playingListeners = new Set<() => void>();
+let lastElapsed = -1;
+let track: Track | null = null;
 const elapsedNodes = new Set<HTMLElement>();
-let lastElapsedSec = -1;
+const playListeners = new Set<() => void>();
 
-/** The playlist as the widget lists it, once every sound is described. */
-let sounds: ScSound[] = [];
-let playlistReady = false;
-const readyWaiters: Array<() => void> = [];
-let shuffle: Shuffle = { order: [], position: 0 };
-let trackIdx = 0;
-/** The sound the widget is on: it opens on the first one, and -1 once it moves on by itself. */
-let widgetIdx = 0;
-let currentTrack: Track | null = null;
-
-let setTrackBridge: ((track: Track | null) => void) | null = null;
-let setPlayingBridge: ((b: boolean) => void) | null = null;
-
-/** Exposed as window.taskbarAudio for the browser checks. */
-const transport: Transport = {
+/** Playback state, exposed as window.taskbarAudio for the browser checks. */
+const transport = {
 	muted: false,
+	/** The volume after the boot fade, before muting. */
 	volume: 0,
 	paused: true,
 	currentTime: 0,
 	src: "",
 	readyState: 0,
-	play: async () => {
-		const widget = sharedWidget;
-		if (!widget) return;
-
+	async play() {
+		if (!session) return;
 		applyVolume(true);
-		if (widgetIdx === trackIdx) {
-			await Promise.resolve(widget.play());
-			return;
+		const index = trackIndex(session);
+		if (session.widgetIndex === index) {
+			await session.widget.play();
+		} else {
+			session.widgetIndex = index;
+			await session.widget.skip(index);
 		}
-		widgetIdx = trackIdx;
-		await Promise.resolve(widget.skip(trackIdx));
 	},
-	pause: () => {
-		sharedWidget?.pause();
+	pause() {
+		session?.widget.pause();
 		transport.paused = true;
 	},
-	getAttribute: (name) => (name === "src" ? transport.src || null : null),
+	getAttribute: (name: string) => (name === "src" ? transport.src || null : null),
 };
 
-if (typeof window !== "undefined") {
-	Object.assign(window, { taskbarAudio: transport });
+if (typeof window !== "undefined") Object.assign(window, { taskbarAudio: transport });
+
+/** What React renders; republished after every change to it. */
+type View = { playing: boolean; track: Track | null; muted: boolean; volume: number };
+let view: View = { playing: false, track: null, muted: false, volume: userVolume };
+const viewers = new Set<() => void>();
+
+function publish() {
+	view = { playing: !transport.paused, track, muted: transport.muted, volume: userVolume };
+	for (const notify of viewers) notify();
 }
 
-function scWindow() {
-	return window as Window & { SC?: ScApi };
+function subscribe(notify: () => void) {
+	viewers.add(notify);
+	return () => { viewers.delete(notify); };
 }
 
-function livePlayer() {
-	return Boolean(document.querySelector(`script[src="${API_SRC}"]`));
-}
-
-function widgetSrc(permalink: string) {
-	const url = new URL("https://w.soundcloud.com/player/");
-	url.searchParams.set("url", permalink);
-	url.searchParams.set("auto_play", "false");
-	return url.toString();
-}
-
-function sleep(ms: number) {
-	return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
-}
+const trackIndex = (s: Session) => s.shuffle.order[s.shuffle.position] ?? 0;
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 /** Calls a widget getter; resolves undefined if the widget never answers. */
 function ask<T>(request: (answer: (value: T) => void) => void): Promise<T | undefined> {
@@ -142,212 +123,225 @@ function ask<T>(request: (answer: (value: T) => void) => void): Promise<T | unde
 	});
 }
 
+/** Re-sends the volume when forced: switching tracks can reset the widget's to full. */
+function applyVolume(force = false) {
+	transport.volume = userVolume * fadeProgress ** 2;
+	const out = Math.round((transport.muted ? 0 : transport.volume) * 100);
+	if (out === lastWidgetVolume && !force) return;
+	lastWidgetVolume = out;
+	session?.widget.setVolume(out);
+}
+
 function loadApi(): Promise<ScApi> {
-	const existing = scWindow().SC;
+	const existing = (window as { SC?: ScApi }).SC;
 	if (existing?.Widget) return Promise.resolve(existing);
-	if (apiPromise) return apiPromise;
-	apiPromise = new Promise((resolve, reject) => {
+	apiPromise ??= new Promise((resolve, reject) => {
 		const script = document.createElement("script");
 		script.src = API_SRC;
 		script.async = true;
 		script.onload = () => {
-			const api = scWindow().SC;
-			if (!api?.Widget) reject(new Error("SoundCloud Widget API missing"));
-			else resolve(api);
+			const api = (window as { SC?: ScApi }).SC;
+			if (api?.Widget) resolve(api);
+			else reject(new Error("SoundCloud Widget API missing"));
 		};
 		script.onerror = () => reject(new Error("SoundCloud Widget API failed to load"));
-		document.head.appendChild(script);
+		document.head.append(script);
 	});
 	return apiPromise;
 }
 
-function hideIframe(el: HTMLIFrameElement) {
-	el.id = "sc-cd-player";
-	el.title = "SoundCloud";
-	el.allow = "autoplay; encrypted-media";
-	el.tabIndex = -1;
-	el.setAttribute("aria-hidden", "true");
-	// Keep the iframe paintable; display:none often suspends media.
-	el.style.cssText =
-		"position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;overflow:hidden";
+function ensureSession(): Promise<Session> {
+	if (session) return Promise.resolve(session);
+	starting ??= (async () => {
+		const api = await loadApi();
+		const iframe = document.createElement("iframe");
+		Object.assign(iframe, { id: "sc-cd-player", title: "SoundCloud", allow: "autoplay; encrypted-media", tabIndex: -1 });
+		iframe.setAttribute("aria-hidden", "true");
+		// Keep the iframe paintable; display:none often suspends media.
+		iframe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;overflow:hidden";
+		// Widget() reads iframe.src and throws on a blank frame. The browser checks stub SC without api.js.
+		if (document.querySelector(`script[src="${API_SRC}"]`)) {
+			iframe.src = `https://w.soundcloud.com/player/?${new URLSearchParams({ url: PLAYLIST_URL, auto_play: "false" })}`;
+		}
+		transport.src = PLAYLIST_URL;
+		document.body.append(iframe);
+		session = {
+			widget: api.Widget(iframe), iframe, events: api.Widget.Events,
+			sounds: [], shuffle: { order: [], position: 0 }, widgetIndex: 0,
+			ready: Promise.withResolvers(), isReady: false,
+		};
+		bindEvents(session);
+		return session;
+	})().catch((error) => {
+		starting = null;
+		throw error;
+	});
+	return starting;
 }
 
-/** Re-sends the volume even when unchanged; switching tracks can reset the widget's to full. */
-function applyVolume(force = false) {
-	const faded = sharedVolume * fadeProgress ** 2;
-	transport.volume = faded;
-	const out = Math.round((transport.muted ? 0 : faded) * 100);
-	if (out === lastWidgetVolume && !force) return;
-	lastWidgetVolume = out;
-	sharedWidget?.setVolume(out);
-}
-
-function whenPlaylistReady(): Promise<ScWidget> {
-	return ensureWidget().then((widget) => {
-		if (playlistReady) return widget;
-		return new Promise<ScWidget>((resolve) => readyWaiters.push(() => resolve(widget)));
+function bindEvents(s: Session) {
+	const { widget, events } = s;
+	widget.bind(events.READY, () => void loadPlaylist(s));
+	widget.bind(events.PLAY, () => {
+		transport.paused = false;
+		applyVolume(true);
+		publish();
+		for (const listener of playListeners) listener();
+	});
+	widget.bind(events.PAUSE, () => {
+		transport.paused = true;
+		publish();
+	});
+	// The widget moves on to the next sound of the playlist by itself; follow the shuffle instead.
+	widget.bind(events.FINISH, () => {
+		s.widgetIndex = -1;
+		if (mediaStarted) step(1);
+	});
+	widget.bind(events.PLAY_PROGRESS, (data) => {
+		transport.currentTime = Math.floor((data?.currentPosition ?? 0) / 1000);
+		writeElapsed();
 	});
 }
 
-/**
- * Reads the playlist and deals the first shuffled round once the widget has
- * described every sound. At READY it has described only the first few, and a
- * skip to an undescribed sound selects it without ever playing it.
- */
-async function loadPlaylist(widget: ScWidget) {
-	if (playlistReady) return;
-	for (let attempt = 0; attempt < RETRIES; attempt++) {
-		const list = await ask<ScSound[]>((answer) => widget.getSounds(answer));
-		if (widget !== sharedWidget) return;
-
-		if (list?.length && list.every((sound) => sound.title)) {
-			sounds = list;
-			shuffle = { order: shuffledOrder(sounds.length), position: 0 };
-			trackIdx = shuffle.order[0];
-			showTrack(trackIdx);
+/** Deals the first shuffled round once the widget has described every sound of the playlist. */
+async function loadPlaylist(s: Session) {
+	for (let attempt = 0; attempt < RETRIES && !s.isReady; attempt++) {
+		const sounds = await ask<ScSound[]>((answer) => s.widget.getSounds(answer));
+		if (s !== session) return;
+		if (sounds?.length && sounds.every((sound) => sound.title)) {
+			s.sounds = sounds;
+			s.shuffle = { order: shuffledOrder(sounds.length), position: 0 };
+			s.isReady = true;
 			transport.readyState = 4;
-			playlistReady = true;
-			for (const wait of readyWaiters.splice(0)) wait();
+			showTrack();
+			s.ready.resolve();
 			return;
 		}
 		await sleep(RETRY_MS);
 	}
-	console.error(`CD Player: SoundCloud did not describe every track of ${PLAYLIST_URL}.`);
+	if (!s.isReady) console.error(`CD Player: SoundCloud did not describe every track of ${PLAYLIST_URL}.`);
 }
 
-/** Shows a track's details, or blank fields when there is no track. */
-function showTrack(index: number) {
-	const sound = sounds[index];
-	currentTrack = sound?.title ? toTrack({ ...sound, title: sound.title }) : null;
-	setTrackBridge?.(currentTrack);
+/** Shows the current track's details, or blank fields when there is none. */
+function showTrack() {
+	const sound = session?.isReady ? session.sounds[trackIndex(session)] : undefined;
+	track = sound?.title ? toTrack({ ...sound, title: sound.title }) : null;
+	publish();
 }
 
 /** Moves one track through the shuffled round and plays it. */
 function step(direction: 1 | -1) {
-	if (!playlistReady) return;
-	++switchGen;
-	shuffle = stepShuffle(shuffle, direction);
-	trackIdx = shuffle.order[shuffle.position];
+	if (!session?.isReady) return;
+	generation++;
+	session.shuffle = stepShuffle(session.shuffle, direction);
 	autoplayBlocked = false;
 	resetElapsed();
-	showTrack(trackIdx);
+	showTrack();
 	void startPlayback();
 }
 
-function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
-	boundEvents = events;
-	widget.bind(events.READY, () => void loadPlaylist(widget));
-	widget.bind(events.PLAY, () => {
-		transport.paused = false;
-		setPlayingBridge?.(true);
-		applyVolume(true);
-		for (const listener of playingListeners) listener();
-	});
-	widget.bind(events.PAUSE, () => {
-		transport.paused = true;
-		setPlayingBridge?.(false);
-	});
-	// The widget moves on to the next sound of the playlist by itself; follow the shuffle instead.
-	widget.bind(events.FINISH, () => {
-		widgetIdx = -1;
-		if (mediaStarted) step(1);
-	});
-	widget.bind(events.PLAY_PROGRESS, (data) => {
-		const sec = Math.floor((data?.currentPosition ?? 0) / 1000);
-		transport.currentTime = sec;
-		writeElapsed(sec);
-	});
-}
-
-function ensureWidget(): Promise<ScWidget> {
-	if (sharedWidget) return Promise.resolve(sharedWidget);
-	if (widgetPromise) return widgetPromise;
-	widgetPromise = (async () => {
-		const api = await loadApi();
-		const iframe = document.createElement("iframe");
-		hideIframe(iframe);
-		// Widget() reads iframe.src; a blank frame throws. Tests stub SC without api.js.
-		if (livePlayer()) iframe.src = widgetSrc(PLAYLIST_URL);
-		transport.src = PLAYLIST_URL;
-		document.body.appendChild(iframe);
-		sharedIframe = iframe;
-		const widget = api.Widget(iframe);
-		sharedWidget = widget;
-		bindWidget(widget, api.Widget.Events);
-		return widget;
-	})().catch((error) => {
-		widgetPromise = null;
-		throw error;
-	});
-	return widgetPromise;
-}
-
-async function startPlayback(): Promise<void> {
-	const gen = switchGen;
-	await whenPlaylistReady();
-	if (gen !== switchGen) return;
-	mediaStarted = true;
-	wantPlaying = true;
+async function startPlayback() {
+	const current = generation;
+	await (await ensureSession()).ready.promise;
+	if (current !== generation) return;
+	mediaStarted = wantPlaying = true;
 	autoplayBlocked = false;
 	try {
 		await transport.play();
 	} catch (error) {
-		if (gen !== switchGen) return;
+		if (current !== generation) return;
 		autoplayBlocked = error instanceof DOMException && error.name === "NotAllowedError";
-		setPlayingBridge?.(false);
+		publish();
 	}
+	// A browser can also hold play() without rejecting it; still paused a second later means blocked.
 	window.setTimeout(() => {
-		if (gen !== switchGen) return;
-		if (wantPlaying && transport.paused) autoplayBlocked = true;
+		if (current === generation && wantPlaying && transport.paused) autoplayBlocked = true;
 	}, 1000);
 }
 
-function writeElapsed(sec: number) {
-	if (sec === lastElapsedSec) return;
-	lastElapsedSec = sec;
-	const text = formatElapsed(sec);
-	for (const node of elapsedNodes) node.textContent = text;
+function writeElapsed() {
+	if (transport.currentTime === lastElapsed) return;
+	lastElapsed = transport.currentTime;
+	for (const node of elapsedNodes) node.textContent = formatElapsed(lastElapsed);
 }
 
 function resetElapsed() {
 	transport.currentTime = 0;
-	lastElapsedSec = -1;
-	writeElapsed(0);
+	lastElapsed = -1;
+	writeElapsed();
 }
 
+/** Ref callback for every element showing the elapsed time; written directly, not rendered. */
 function bindElapsed(node: HTMLElement | null) {
-	if (!node) return undefined;
+	if (!node) return;
 	elapsedNodes.add(node);
 	node.textContent = formatElapsed(transport.currentTime);
-	return () => {
-		elapsedNodes.delete(node);
-	};
+	return () => { elapsedNodes.delete(node); };
+}
+
+function toggleMute() {
+	transport.muted = !transport.muted;
+	applyVolume();
+	publish();
+	if (!transport.muted && transport.paused && mediaStarted) void startPlayback();
+}
+
+function togglePlay() {
+	if (mediaStarted && !transport.paused) {
+		wantPlaying = false;
+		transport.pause();
+		publish();
+		return;
+	}
+	transport.muted = false;
+	applyVolume();
+	publish();
+	void startPlayback();
+}
+
+function stop() {
+	generation++;
+	wantPlaying = autoplayBlocked = false;
+	transport.pause();
+	session?.widget.seekTo(0);
+	resetElapsed();
+	publish();
+}
+
+function quit() {
+	stop();
+	mediaStarted = false;
+	fadeProgress = 0;
+	lastWidgetVolume = -1;
+	Object.assign(transport, { volume: 0, src: "", readyState: 0 });
+	if (session) {
+		for (const name of Object.values(session.events)) session.widget.unbind(name);
+		session.iframe.remove();
+	}
+	session = null;
+	starting = null;
+	showTrack();
+}
+
+function setVolume(value: number) {
+	userVolume = Math.min(1, Math.max(0, value));
+	applyVolume();
+	publish();
 }
 
 /** Desktop owns the transport so minimizing the app does not stop its music. */
 export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
-	const [muted, setMuted] = useState(() => transport.muted);
-	const [playing, setPlaying] = useState(() => mediaStarted && !transport.paused);
-	const [track, setTrack] = useState(() => currentTrack);
-	const [volume, setVolumeState] = useState(() => sharedVolume);
+	const { playing, track, muted, volume } = useSyncExternalStore(subscribe, () => view, () => view);
 
 	useEffect(() => {
-		setTrackBridge = setTrack;
-		setPlayingBridge = setPlaying;
-		void ensureWidget();
-		if (mediaStarted) writeElapsed(transport.currentTime);
-
-		const retryPlayback = () => {
-			if (autoplayBlocked && !transport.muted) void startPlayback();
-		};
-		window.addEventListener("click", retryPlayback);
-		window.addEventListener("keydown", retryPlayback);
-
+		void ensureSession();
+		// A gesture retries a start the browser blocked, unless the listener muted the music.
+		const retry = () => { if (autoplayBlocked && !transport.muted) void startPlayback(); };
+		window.addEventListener("click", retry);
+		window.addEventListener("keydown", retry);
 		return () => {
-			if (setTrackBridge === setTrack) setTrackBridge = null;
-			if (setPlayingBridge === setPlaying) setPlayingBridge = null;
-			window.removeEventListener("click", retryPlayback);
-			window.removeEventListener("keydown", retryPlayback);
+			window.removeEventListener("click", retry);
+			window.removeEventListener("keydown", retry);
 		};
 	}, []);
 
@@ -355,6 +349,7 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 		if (running && !mediaStarted) void startPlayback();
 	}, [running]);
 
+	// Once the desktop has booted, the music fades in over FADE_MS, resuming where an interrupted fade stopped.
 	useEffect(() => {
 		if (!running || !bootComplete || fadeProgress === 1) return;
 		let frame = 0;
@@ -371,101 +366,28 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 			frame = requestAnimationFrame(fade);
 		};
 
-		playingListeners.add(beginFade);
+		playListeners.add(beginFade);
 		if (!transport.paused && transport.readyState >= 2) beginFade();
 		return () => {
 			cancelAnimationFrame(frame);
-			playingListeners.delete(beginFade);
+			playListeners.delete(beginFade);
 		};
 	}, [bootComplete, running]);
 
-	return useMemo(() => {
-		const tryPlay = () => {
-			void startPlayback();
-		};
-
-		const toggleMute = () => {
-			const next = !transport.muted;
-			transport.muted = next;
-			setMuted(next);
-			applyVolume();
-			if (!next && transport.paused && mediaStarted) tryPlay();
-		};
-
-		const togglePlay = () => {
-			if (mediaStarted && !transport.paused) {
-				wantPlaying = false;
-				transport.pause();
-				setPlaying(false);
-				return;
-			}
-			transport.muted = false;
-			setMuted(false);
-			applyVolume();
-			tryPlay();
-		};
-
-		const stop = () => {
-			++switchGen;
-			wantPlaying = false;
-			autoplayBlocked = false;
-			transport.pause();
-			sharedWidget?.seekTo(0);
-			setPlaying(false);
-			resetElapsed();
-		};
-
-		const quit = () => {
-			stop();
-			mediaStarted = false;
-			fadeProgress = 0;
-			transport.volume = 0;
-			transport.src = "";
-			transport.readyState = 0;
-			transport.currentTime = 0;
-			lastWidgetVolume = -1;
-			if (sharedWidget && boundEvents) {
-				for (const name of Object.values(boundEvents)) {
-					if (name) sharedWidget.unbind(name);
-				}
-			}
-			sharedWidget?.pause();
-			sharedIframe?.remove();
-			sharedIframe = null;
-			sharedWidget = null;
-			boundEvents = null;
-			widgetPromise = null;
-
-			// A relaunch reads the playlist afresh, in case it changed on SoundCloud.
-			sounds = [];
-			playlistReady = false;
-			readyWaiters.length = 0;
-			shuffle = { order: [], position: 0 };
-			widgetIdx = 0;
-			showTrack(-1);
-		};
-
-		const setVolume = (v: number) => {
-			sharedVolume = Math.min(1, Math.max(0, v));
-			applyVolume();
-			setVolumeState(sharedVolume);
-		};
-
-		return {
-			muted,
-			playing,
-			/** Null until SoundCloud has described the current track. */
-			track,
-			trackLabel: track ? `${track.artist} - ${track.title}` : "",
-			volume,
-			bindElapsed,
-			toggleMute,
-			togglePlay,
-			playPrev: () => step(-1),
-			playNext: () => step(1),
-			stop,
-			quit,
-			setVolume,
-		};
-	}, [muted, playing, track, volume]);
+	return useMemo(() => ({
+		muted,
+		playing,
+		/** Null until SoundCloud has described the current track. */
+		track,
+		trackLabel: track ? `${track.artist} - ${track.title}` : "",
+		volume,
+		bindElapsed,
+		toggleMute,
+		togglePlay,
+		playPrev: () => step(-1),
+		playNext: () => step(1),
+		stop,
+		quit,
+		setVolume,
+	}), [muted, playing, track, volume]);
 }
