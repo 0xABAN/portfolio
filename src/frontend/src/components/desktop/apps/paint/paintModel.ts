@@ -27,45 +27,12 @@ export function isDrawable(tool: ToolId): tool is DrawableTool {
 	return tool === "pencil" || tool === "brush" || tool === "eraser";
 }
 
-/** jspaint color-data.js default palette — 2×14 */
+/** jspaint color-data.js default palette, in its two rows of 14. */
 export const PALETTE = [
-	"rgb(0,0,0)",
-	"rgb(128,128,128)",
-	"rgb(128,0,0)",
-	"rgb(128,128,0)",
-	"rgb(0,128,0)",
-	"rgb(0,128,128)",
-	"rgb(0,0,128)",
-	"rgb(128,0,128)",
-	"rgb(128,128,64)",
-	"rgb(0,64,64)",
-	"rgb(0,128,255)",
-	"rgb(0,64,128)",
-	"rgb(64,0,255)",
-	"rgb(128,64,0)",
-	"rgb(255,255,255)",
-	"rgb(192,192,192)",
-	"rgb(255,0,0)",
-	"rgb(255,255,0)",
-	"rgb(0,255,0)",
-	"rgb(0,255,255)",
-	"rgb(0,0,255)",
-	"rgb(255,0,255)",
-	"rgb(255,255,128)",
-	"rgb(0,255,128)",
-	"rgb(128,255,255)",
-	"rgb(128,128,255)",
-	"rgb(255,0,128)",
-	"rgb(255,128,64)",
+	"rgb(0,0,0)", "rgb(128,128,128)", "rgb(128,0,0)", "rgb(128,128,0)", "rgb(0,128,0)", "rgb(0,128,128)", "rgb(0,0,128)", "rgb(128,0,128)", "rgb(128,128,64)", "rgb(0,64,64)", "rgb(0,128,255)", "rgb(0,64,128)", "rgb(64,0,255)", "rgb(128,64,0)",
+	"rgb(255,255,255)", "rgb(192,192,192)", "rgb(255,0,0)", "rgb(255,255,0)", "rgb(0,255,0)", "rgb(0,255,255)", "rgb(0,0,255)", "rgb(255,0,255)", "rgb(255,255,128)", "rgb(0,255,128)", "rgb(128,255,255)", "rgb(128,128,255)", "rgb(255,0,128)", "rgb(255,128,64)",
 ] as const;
 
-export const MENUS = [
-	"File",
-	"Edit",
-	"View",
-	"Image",
-	"Colors",
-	"Help",
-] as const;
+export const MENUS = ["File", "Edit", "View", "Image", "Colors", "Help"] as const;
 
 export const UNDO_LIMIT = 20;
