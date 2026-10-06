@@ -23,7 +23,9 @@ export function prefetchFracture() {
  * The loop's first frame follows straight on from the intro's last, so the
  * loop waits underneath, paused on that frame. The intro stays on top until
  * the loop is actually playing, so a slow download holds a frame rather than
- * showing a gap. Reduced motion skips the intro and leaves the loop paused.
+ * showing a gap. The loop only starts downloading once the intro can play
+ * through, so it does not slow the shatter down on a slow connection.
+ * Reduced motion skips the intro and leaves the loop paused.
  *
  * `onShownAction` fires once the wallpaper is on screen: when the screen
  * shatters, or for reduced motion, when the still frame has loaded.
@@ -33,13 +35,14 @@ export const FractureBackground = memo(function FractureBackground({ onShownActi
 	// Read once, like the other effects: a later change does not restart or stop the wallpaper.
 	const [still] = useState(() => matchMedia("(prefers-reduced-motion: reduce)").matches);
 	const [intro, setIntro] = useState(!still);
+	const [loopSrc, setLoopSrc] = useState(still ? LOOP : undefined);
 
 	return (
 		<div className="fracture-background" aria-hidden="true">
 			<video
 				ref={loopRef}
 				className="fracture-background__video"
-				src={LOOP}
+				src={loopSrc}
 				muted
 				loop
 				playsInline
@@ -54,6 +57,7 @@ export const FractureBackground = memo(function FractureBackground({ onShownActi
 					muted
 					autoPlay
 					playsInline
+					onCanPlayThrough={() => setLoopSrc(LOOP)}
 					onPlaying={onShownAction}
 					onEnded={() => loopRef.current?.play()}
 				/>

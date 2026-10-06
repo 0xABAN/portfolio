@@ -22,10 +22,11 @@ async function checkFracture(page) {
 	await page.locator(".rsod").waitFor();
 	await page.evaluate(() => {
 		// Log each clip's frames as they reach the screen, its playback events and the intro's removal.
+		// The loop only gets its source once the intro can play through.
 		window.wallpaper = [];
 		const log = (...entry) => window.wallpaper.push(entry);
 		new MutationObserver(() => {
-			for (const video of document.querySelectorAll(".fracture-background video:not([data-watched])")) {
+			for (const video of document.querySelectorAll(".fracture-background video[src]:not([data-watched])")) {
 				video.dataset.watched = "";
 				const clip = video.getAttribute("src").includes("intro") ? "intro" : "loop";
 				for (const type of ["playing", "ended"]) video.addEventListener(type, () => log(clip, type));
@@ -34,7 +35,7 @@ async function checkFracture(page) {
 			}
 			const intro = window.wallpaper.some(([clip]) => clip === "intro");
 			if (intro && !document.querySelector('.fracture-background video[src*="intro"]') && !window.wallpaper.some(([, type]) => type === "removed")) log("intro", "removed");
-		}).observe(document.body, { subtree: true, childList: true });
+		}).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"] });
 	});
 	await page.locator(".rsod").click();
 

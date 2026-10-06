@@ -12,9 +12,11 @@ keeps cracking and glitching in a loop. It plays from two recordings in
 
 - The boot screen calls `prefetchFracture`, so the intro is already in the
   HTTP cache when the desktop mounts and the screen shatters at once.
-- The loop waits under the intro, paused on its first frame. When the intro
-  ends the loop starts, and the intro is removed once the loop is playing, so
-  a slow download holds a frame instead of showing a gap.
+- The loop starts downloading once the intro can play through, so on a slow
+  connection it does not hold up the shatter. It waits under the intro,
+  paused on its first frame. When the intro ends the loop starts, and the
+  intro is removed once the loop is playing, so a slow download holds a frame
+  instead of showing a gap.
 - The desktop starts the sparks once the screen shatters.
 - Reduced motion, read when the desktop mounts, skips the intro and leaves the
   loop paused on its first frame.
