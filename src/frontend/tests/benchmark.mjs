@@ -59,7 +59,7 @@ try {
           if (event.target.closest?.('.rsod')) window.benchmark.boot.continueAt = performance.now();
         }, true);
         const observer = new MutationObserver(() => {
-          for (const [name, selector] of [['desktopAt', '.desktop'], ['revealAt', '.neko'], ['fractureReadyAt', '.fracture-background--ready']]) {
+          for (const [name, selector] of [['desktopAt', '.desktop'], ['revealAt', '.neko'], ['wallpaperAt', '.desktop-sparks']]) {
             if (!window.benchmark.boot[name] && document.querySelector(selector)) window.benchmark.boot[name] = performance.now();
           }
         });
@@ -93,7 +93,6 @@ try {
         await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
         const hydratedAt = await page.evaluate(() => performance.now());
         await page.locator('.rsod').click();
-        await page.locator('.fracture-background--ready').waitFor();
         await page.locator('.neko').waitFor({ state: 'attached' });
         await page.locator('.desktop-sparks').waitFor({ state: 'attached' });
         await page.evaluate(async () => {

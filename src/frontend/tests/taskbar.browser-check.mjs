@@ -179,10 +179,11 @@ async function checkTaskbar(page) {
 		}
 	}), "Hand cursor overrides the busy hourglass");
 
-	// Sparks mount after the fracture's first frame; wait so the reduced-motion check is not vacuous.
-	await page.locator(".fracture-background--ready").waitFor();
+	// Sparks mount once the wallpaper's still frame loads; wait so the reduced-motion check is not vacuous.
 	const sparks = page.locator(".desktop-sparks");
 	await sparks.waitFor({ state: "attached" });
+	check(await page.locator(".fracture-background video").evaluateAll((videos) => videos.length === 1
+		&& videos[0].getAttribute("src") === "/fracture/loop.mp4" && videos[0].paused && videos[0].currentTime === 0), "Reduced motion did not hold the wallpaper on the loop's first frame");
 	check(!(await sparks.isVisible()), "Sparks ignore reduced motion");
 	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Hidden sparks still animate");
 	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
@@ -212,8 +213,6 @@ async function checkTaskbar(page) {
 	await secretsIcon.dragTo(cdIcon);
 	check(await bubble.count() === 0, "Dragging Secrets did not dismiss its speech bubble");
 	await secretsIcon.dragTo(cdIcon);
-	await page.locator(".fracture-background--ready").waitFor();
-	check(await page.locator(".fracture-overlay, .fracture-fragments").count() === 0, "Branch-hover particle renderer still exists");
 	check(await sparks.evaluate((el) => {
 		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);
 		return z(".fracture-background") < z(".desktop-sparks") && z(".desktop-sparks") < z(".desktop__windows")

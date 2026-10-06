@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Desktop } from "../desktop/Desktop";
-import { prepareFracture } from "../desktop/effects/fracture/controller";
+import { prefetchFracture } from "../desktop/effects/fracture/FractureBackground";
 import { Restarting } from "./Restarting";
 import { MobileUnsupported, Rsod } from "./Rsod";
 
@@ -24,9 +24,9 @@ export function Boot() {
 		return mobile ? "unsupported" : "rsod";
 	});
 
-	// Compile the wallpaper's shaders while the stop screen is up, so the desktop does not wait for them.
+	// Download the shatter clip while the stop screen is up, so the desktop does not wait for it.
 	useEffect(() => {
-		if (phase === "rsod") prepareFracture();
+		if (phase === "rsod") prefetchFracture();
 	}, [phase]);
 
 	useEffect(() => {

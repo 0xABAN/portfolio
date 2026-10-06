@@ -1,30 +1,33 @@
-/* One opaque WebGL surface behind the desktop, clipped above the taskbar. */
-.fracture-viewport {
-	position: absolute;
-	inset: 0 0 var(--taskbar-height);
-	overflow: hidden;
-	pointer-events: none;
-	user-select: none;
-	-webkit-user-select: none;
-}
-
+/* The recorded wallpaper behind the desktop, ending at the taskbar. */
 .fracture-background {
 	position: absolute;
-	inset: 0;
+	inset: 0 0 var(--taskbar-height);
 	/* Explicit, so stacking checks can compare it with the sparks and windows. */
 	z-index: 0;
-	contain: strict;
+	pointer-events: none;
+	/* Shows until the first frame loads, and matches the recording's average red. */
 	background: var(--desktop-bg);
 }
 
-/* Hidden until the first frame draws, so a failed start shows the plain desktop colour. */
-.fracture-canvas {
-	display: block;
+/* Each clip covers the wallpaper, cropped evenly so the impact stays centred. */
+.fracture-background__video {
+	position: absolute;
+	inset: 0;
 	width: 100%;
 	height: 100%;
-	visibility: hidden;
+	object-fit: cover;
 }
 
-.fracture-background--ready .fracture-canvas {
-	visibility: visible;
+/*
+ * The clips are grayscale: each grey is the wallpaper's red level. Video keeps
+ * brightness at full resolution but colour at half, which blurred the fine
+ * red-on-black detail. Multiplying by pure red restores the colour; the root's
+ * stacking context keeps the blend to the clips.
+ */
+.fracture-background::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: #f00;
+	mix-blend-mode: multiply;
 }

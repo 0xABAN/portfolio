@@ -123,7 +123,7 @@ try {
 
     await capture('rsod');
     await page.locator('.rsod').click();
-    await page.locator('.fracture-background--ready').waitFor();
+    await page.waitForFunction(() => document.querySelector('.fracture-background video')?.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
     await page.getByRole('textbox', { name: 'Terminal input' }).waitFor({ state: 'attached' });
     await page.locator('.neko').waitFor({ state: 'attached' });
     // Framework initialization also consumes randomness; choose a track via the UI.
@@ -249,7 +249,7 @@ try {
       await page.keyboard.press('Enter');
       await page.locator('.restarting__line').first().waitFor();
       assert.equal(await page.locator('.restarting__line').first().textContent(), 'ATAPI CD-ROM: CD-ROM DRIVE');
-      await page.locator('.fracture-background--ready').waitFor();
+      await page.locator('.desktop-sparks').waitFor({ state: 'attached' });
       await page.locator('.desk-icon--bounce[title="secrets"]').waitFor();
       assert.equal(await secrets.locator('.desk-icon__art').evaluate(el => getComputedStyle(el).animationName), 'desk-icon-bounce');
       await page.locator('.git-cell-pop').first().waitFor();

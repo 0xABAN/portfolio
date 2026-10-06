@@ -1,36 +1,63 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
-import { runFracture, type FractureRendering } from "./controller";
+import { memo, useRef, useState } from "react";
 import "./fracture.css";
 
-export type { FractureRendering };
+const INTRO = "/fracture/intro.mp4";
+const LOOP = "/fracture/loop.mp4";
 
 /**
- * Procedural WebGL wallpaper; the screen breaks as soon as it mounts.
- * `onRenderingAction` follows how the fracture is on screen: "none" until its
- * first frame and again if the WebGL context is lost or fails, otherwise
- * whether it animates or this device is too slow and it holds still.
+ * Downloads the intro ahead of time, so the screen shatters as soon as the
+ * desktop mounts. Call it while something else is on screen, such as the boot
+ * screen; the intro's video then finds the clip in the HTTP cache.
  */
-export const FractureBackground = memo(function FractureBackground({ onRenderingAction }: { onRenderingAction: (rendering: FractureRendering) => void }) {
-	const rootRef = useRef<HTMLDivElement>(null);
-	const [rendering, setRendering] = useState<FractureRendering>("none");
+export function prefetchFracture() {
+	// Reading the body lets the whole clip land in the cache.
+	fetch(INTRO).then((response) => response.blob());
+}
 
-	useEffect(() => onRenderingAction(rendering), [rendering, onRenderingAction]);
+/**
+ * The broken-screen wallpaper, played from two recordings: the screen
+ * shatters in a short intro, then settles into a seamless loop.
+ *
+ * The loop's first frame follows straight on from the intro's last, so the
+ * loop waits underneath, paused on that frame. The intro stays on top until
+ * the loop is actually playing, so a slow download holds a frame rather than
+ * showing a gap. Reduced motion skips the intro and leaves the loop paused.
+ *
+ * `onShownAction` fires once the wallpaper is on screen: when the screen
+ * shatters, or for reduced motion, when the still frame has loaded.
+ */
+export const FractureBackground = memo(function FractureBackground({ onShownAction }: { onShownAction: () => void }) {
+	const loopRef = useRef<HTMLVideoElement>(null);
+	// Read once, like the other effects: a later change does not restart or stop the wallpaper.
+	const [still] = useState(() => matchMedia("(prefers-reduced-motion: reduce)").matches);
+	const [intro, setIntro] = useState(!still);
 
-	useEffect(() => {
-		const root = rootRef.current;
-		if (!root) return;
-
-		// The controller supplies the canvas, so its shaders can compile before this mounts.
-		const controller = runFracture(root, setRendering);
-		return () => controller.destroy();
-	}, []);
-
-	const ready = rendering !== "none";
 	return (
-		<div className="fracture-viewport">
-			<div ref={rootRef} className={ready ? "fracture-background fracture-background--ready" : "fracture-background"} aria-hidden="true" />
+		<div className="fracture-background" aria-hidden="true">
+			<video
+				ref={loopRef}
+				className="fracture-background__video"
+				src={LOOP}
+				muted
+				loop
+				playsInline
+				preload="auto"
+				onLoadedData={still ? onShownAction : undefined}
+				onPlaying={() => setIntro(false)}
+			/>
+			{intro ? (
+				<video
+					className="fracture-background__video"
+					src={INTRO}
+					muted
+					autoPlay
+					playsInline
+					onPlaying={onShownAction}
+					onEnded={() => loopRef.current?.play()}
+				/>
+			) : null}
 		</div>
 	);
 });

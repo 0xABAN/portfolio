@@ -104,7 +104,7 @@ try {
     await capture('boot', '.rsod');
     if (!mobile) {
       await page.locator('button.rsod').click();
-      await page.locator('.fracture-background--ready').waitFor();
+      await page.waitForFunction(() => document.querySelector('.fracture-background video')?.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
       await page.locator('.gh-app rect[data-date="2025-12-31"]').waitFor();
       await page.locator('.neko').waitFor({ state: 'attached' });
       await capture('desktop', '.desktop');

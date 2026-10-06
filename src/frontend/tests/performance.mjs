@@ -54,7 +54,7 @@ try {
     await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
     await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
     await page.locator('.rsod').click();
-    await page.locator('.fracture-background--ready').waitFor();
+    await page.waitForFunction(() => document.querySelector('.fracture-background video')?.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
     await page.locator('.term__input').waitFor({ state: 'attached' });
     await page.locator('.neko').waitFor({ state: 'attached' });
     await page.locator('.gh-app rect[data-date="2025-12-31"]').waitFor();
@@ -195,9 +195,10 @@ try {
       await shortcut.waitFor({ state: 'detached' });
       assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
 
+      // Reduced motion was read at boot, so the wallpaper stays still; only the sparks start.
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await page.waitForTimeout(3000);
-      await measure('fracture-idle', () => page.waitForTimeout(5000));
+      await measure('sparks-idle', () => page.waitForTimeout(5000));
     }
     assert.deepEqual(errors, [], 'Browser errors');
     await context.close();
