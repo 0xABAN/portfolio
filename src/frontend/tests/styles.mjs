@@ -133,8 +133,6 @@ try {
         await page.keyboard.press('Escape');
         await page.keyboard.press('Escape');
 
-        await launch('Documents', 'bio.txt', '#desktop-window-bio');
-        await capture('bio', '#desktop-window-bio');
         await launch('Documents', 'secrets', '#desktop-window-explorer');
         await capture('explorer', '#desktop-window-explorer');
         await page.getByRole('option', { name: 'experience.exe', exact: true }).dblclick();

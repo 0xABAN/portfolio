@@ -1,5 +1,4 @@
 import { memo, type CSSProperties } from "react";
-import { Bio } from "./bio/Bio";
 import { CdPlayer } from "./cd-player/CdPlayer";
 import type { useCdPlayerAudio } from "./cd-player/useCdPlayerAudio";
 import { Explorer } from "./explorer/Explorer";
@@ -53,8 +52,6 @@ export const WindowContent = memo(function WindowContent({
 			return <Experience onClose={() => onClose(id)} />;
 		case "terminal":
 			return <Terminal />;
-		case "bio":
-			return <Bio />;
 		case "word":
 			return <Word onCloseAction={() => onClose(id)} onMinimizeAction={() => onMinimize(id)} onNoticeAction={onNoticeAction} />;
 		case "recycle-bin":

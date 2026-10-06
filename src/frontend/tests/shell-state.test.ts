@@ -6,20 +6,20 @@ import {
 	restoreEntries, RestoreConflict, saveShellState, STORAGE_KEY,
 } from "@/components/desktop/files/state";
 
-const remove = (state = initialShellState(), ids = ["bio"], now = 1000) => deleteNodes(state, ids, now).state;
+const remove = (state = initialShellState(), ids = ["experience"], now = 1000) => deleteNodes(state, ids, now).state;
 
 test("delete, hydrate, restore and permanent delete retain exact item identity", () => {
 	const initial = initialShellState();
 	const deleted = remove(initial);
-	assert.ok(initial.nodes.some((node) => node.id === "bio"));
-	assert.ok(!deleted.nodes.some((node) => node.id === "bio"));
+	assert.ok(initial.nodes.some((node) => node.id === "experience"));
+	assert.ok(!deleted.nodes.some((node) => node.id === "experience"));
 	assert.equal(originalLocation(deleted.entries[0]), "C:\\Windows\\Desktop\\secrets");
-	assert.equal(entryBytes(deleted.entries), 4096);
+	assert.equal(entryBytes(deleted.entries), 512 * 1024);
 	const restored = restoreEntries(parseShellState(JSON.stringify(deleted)), [1]);
-	assert.deepEqual(restored.nodes.find((node) => node.id === "bio"), initial.nodes.find((node) => node.id === "bio"));
+	assert.deepEqual(restored.nodes.find((node) => node.id === "experience"), initial.nodes.find((node) => node.id === "experience"));
 	assert.equal(restored.entries.length, 0);
 	const purged = parseShellState(JSON.stringify(purgeEntries(deleted, [1])));
-	assert.ok(!purged.nodes.some((node) => node.id === "bio"));
+	assert.ok(!purged.nodes.some((node) => node.id === "experience"));
 	assert.equal(restoreEntries(purged, [1]).nodes.length, purged.nodes.length);
 });
 
@@ -27,12 +27,12 @@ test("folder deletion is one entry and never includes independently deleted chil
 	const first = remove();
 	const state = remove(first, ["secrets", "resume", "secrets", "bogus", "recycle-bin"], 2000);
 	assert.equal(state.entries.length, 2);
-	assert.deepEqual(state.entries[1].nodes.map((node) => node.id), ["secrets", "resume", "experience"]);
+	assert.deepEqual(state.entries[1].nodes.map((node) => node.id), ["secrets", "resume"]);
 	const restored = restoreEntries(state, [2]);
 	assert.ok(restored.nodes.some((node) => node.id === "secrets"));
-	assert.ok(!restored.nodes.some((node) => node.id === "bio"));
-	assert.equal(restored.entries[0].rootId, "bio");
-	assert.deepEqual(deleteNodes(state, ["bio", "unknown"], 3000).state, state);
+	assert.ok(!restored.nodes.some((node) => node.id === "experience"));
+	assert.equal(restored.entries[0].rootId, "experience");
+	assert.deepEqual(deleteNodes(state, ["experience", "unknown"], 3000).state, state);
 });
 
 test("restoring a child recreates only its missing parent; original folder can subsequently merge", () => {
@@ -40,12 +40,12 @@ test("restoring a child recreates only its missing parent; original folder can s
 	const child = restoreEntries(state, [1]);
 	const parent = child.nodes.find((node) => node.catalogId === "secrets")!;
 	assert.match(parent.id, /^restored-/);
-	assert.equal(child.nodes.find((node) => node.id === "bio")?.parentId, parent.id);
+	assert.equal(child.nodes.find((node) => node.id === "experience")?.parentId, parent.id);
 	assert.ok(!child.nodes.some((node) => node.id === "resume"));
 	assert.throws(() => restoreEntries(child, [2]), RestoreConflict);
 	const merged = restoreEntries(child, [2], undefined, true);
 	assert.equal(merged.nodes.filter((node) => node.catalogId === "secrets").length, 1);
-	assert.ok(merged.nodes.filter((node) => ["bio", "resume", "experience"].includes(node.id)).every((node) => node.parentId === parent.id));
+	assert.ok(merged.nodes.filter((node) => ["resume", "experience"].includes(node.id)).every((node) => node.parentId === parent.id));
 	assert.deepEqual(parseShellState(JSON.stringify(merged)), merged);
 });
 
@@ -53,14 +53,14 @@ test("restoring a whole selection restores parents before their separately delet
 	const state = remove(remove(), ["secrets"], 2000);
 	const restored = restoreEntries(state, [1, 2]);
 	assert.equal(restored.entries.length, 0);
-	assert.equal(restored.nodes.find((node) => node.id === "bio")?.parentId, "secrets");
+	assert.equal(restored.nodes.find((node) => node.id === "experience")?.parentId, "secrets");
 	assert.equal(restored.nodes.length, initialShellState().nodes.length);
 });
 
 test("drag-out uses chosen destination and folders cannot move into descendants", () => {
 	const state = restoreEntries(remove(), [1], "desktop");
-	assert.equal(state.nodes.find((node) => node.id === "bio")?.parentId, "desktop");
-	assert.equal(moveNodes(state, ["bio"], "secrets").nodes.find((node) => node.id === "bio")?.parentId, "secrets");
+	assert.equal(state.nodes.find((node) => node.id === "experience")?.parentId, "desktop");
+	assert.equal(moveNodes(state, ["experience"], "secrets").nodes.find((node) => node.id === "experience")?.parentId, "secrets");
 	assert.throws(() => moveNodes(state, ["secrets"], "secrets"), /itself/);
 	assert.throws(() => restoreEntries(remove(), [1], "missing"), /no longer exists/);
 });
@@ -71,7 +71,7 @@ test("permanent deletion, bypass and emptying do not resurrect or free space on 
 	state = remove(state);
 	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used);
 	state = purgeEntries(state, [1]);
-	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used - 4096);
+	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used - 512 * 1024);
 	state.settings.global.bypass = true;
 	assert.equal(remove(state, ["resume"]).entries.length, 0);
 	assert.equal(deleteNodes(initialShellState(), ["secrets"], 1000, true).state.entries.length, 0);
@@ -86,17 +86,17 @@ test("capacity evicts oldest entries on insertion and refuses oversized items wi
 	assert.deepEqual(state.entries.map((entry) => entry.rootId), ["experience"]);
 	assert.equal(restoreEntries(state, [1]).nodes.length, state.nodes.length);
 	state.settings.global.percent = 1;
-	assert.equal(oversizedRoots(state, ["secrets"]).length, 0); // Only bio remains in secrets.
+	assert.equal(oversizedRoots(state, ["secrets"]).length, 0); // secrets is now empty.
 	const small = initialShellState();
-	small.settings.global.percent = 1;
+	small.settings.global.percent = 2; // Fits experience.exe but not resume.doc.
 	assert.throws(() => remove(small, ["resume"]), /too large/);
-	const consented = deleteNodes(small, ["resume", "bio"], 3000, false, true);
-	assert.deepEqual(consented.state.entries.map((entry) => entry.rootId), ["bio"]);
+	const consented = deleteNodes(small, ["resume", "experience"], 3000, false, true);
+	assert.deepEqual(consented.state.entries.map((entry) => entry.rootId), ["experience"]);
 	assert.ok(!consented.state.nodes.some((node) => node.id === "resume"));
 });
 
 test("zero capacity and independent drive settings are functional, including empty folders", () => {
-	let state = deleteNodes(initialShellState(), ["bio", "resume", "experience"], 1000, true).state;
+	let state = deleteNodes(initialShellState(), ["resume", "experience"], 1000, true).state;
 	state.settings.independent = true;
 	state.settings.drive.percent = 0;
 	assert.equal(capacity(state), 0);

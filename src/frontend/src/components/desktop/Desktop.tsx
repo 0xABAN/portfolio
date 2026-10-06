@@ -30,7 +30,7 @@ import {
 import "./desktop.css";
 
 /** Apps that open a shell file; launching fails while that file is deleted. */
-const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", word: "resume", bio: "bio", experience: "experience" };
+const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", word: "resume", experience: "experience" };
 
 /** Fake load times, like a slow 90s PC; folders open faster than programs. */
 const FOLDER_LOAD_MS = 500;

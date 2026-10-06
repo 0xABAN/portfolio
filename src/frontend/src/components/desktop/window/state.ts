@@ -1,6 +1,6 @@
-import { TASKBAR_H, layoutDesktop, makeBioWindow, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, makeWordWindow, type DesktopWindow } from "./layout";
+import { TASKBAR_H, layoutDesktop, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, makeWordWindow, type DesktopWindow } from "./layout";
 
-export type AppId = "me" | "terminal" | "github" | "bio" | "explorer" | "experience" | "cd-player" | "recycle-bin" | "word";
+export type AppId = "me" | "terminal" | "github" | "explorer" | "experience" | "cd-player" | "recycle-bin" | "word";
 
 export function isDecoration(w: DesktopWindow) {
 	return w.kind === "error" || w.id === "new";
@@ -17,7 +17,6 @@ export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: num
 	if (!windows.some((w) => w.id === id)) {
 		const z = nextZ(windows);
 		const created = id === "recycle-bin" ? [makeRecycleBinWindow(z, vw, vh)]
-			: id === "bio" ? [makeBioWindow(z, vw, vh)]
 			: id === "word" ? [makeWordWindow(z, vw, vh)]
 			: id === "experience" ? [makeExperienceWindow(z, vw, vh)]
 			: id === "explorer" ? [makeExplorerWindow(z, windows.find((w) => w.id === "me"), vw, vh)]

@@ -349,19 +349,18 @@ async function checkTaskbar(page) {
 
 	await start.click();
 	await menu.getByRole("menuitem", { name: "Documents", exact: true }).hover();
-	await menu.getByRole("menuitem", { name: "bio.txt", exact: true }).click();
+	await menu.getByRole("menuitem", { name: "secrets", exact: true }).click();
 	await waitForLaunch();
-	check(await win("bio").isVisible(), "Documents did not open bio.txt");
-	await win("bio").evaluate((el) => { window.savedBio = el; });
-	await win("bio").getByRole("button", { name: "Minimize", exact: true }).click();
+	check(await win("explorer").isVisible(), "Documents did not open secrets");
+	await win("explorer").evaluate((el) => { window.savedExplorer = el; });
+	await win("explorer").getByRole("button", { name: "Minimize", exact: true }).click();
 	await start.click();
 	await menu.getByRole("menuitem", { name: "Documents", exact: true }).click();
 	await page.waitForFunction(() => document.activeElement?.textContent === "secrets");
-	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await waitForLaunch();
-	check(await win("bio").evaluate((el) => el === window.savedBio && !el.inert), "Start replaced rather than restored bio.txt");
-	await page.waitForFunction(() => document.getElementById("desktop-window-bio").contains(document.activeElement));
+	check(await win("explorer").evaluate((el) => el === window.savedExplorer && !el.inert), "Start replaced rather than restored secrets");
+	await page.waitForFunction(() => document.getElementById("desktop-window-explorer").contains(document.activeElement));
 
 	await start.focus();
 	await start.press("ArrowDown");
@@ -573,9 +572,10 @@ async function checkTaskbar(page) {
 		await page.locator("#task-strip").evaluate((el) => { el.scrollLeft = 0; });
 		await page.getByRole("button", { name: "Next tasks", exact: true }).click();
 		check(await page.locator("#task-strip").evaluate((el) => el.scrollLeft > 0), "Task overflow arrows did not scroll");
-		await task("bio").focus();
-		await task("bio").press("Enter");
-		check(await task("bio").getAttribute("aria-pressed") === "true", "An overflowed task was unreachable");
+		const lastTask = page.locator("[data-task-id]").last();
+		await lastTask.focus();
+		await lastTask.press("Enter");
+		check(await lastTask.getAttribute("aria-pressed") === "true", "An overflowed task was unreachable");
 		await start.click();
 		await menu.getByRole("menuitem", { name: "Programs", exact: true }).click();
 		const submenu = await page.getByRole("menu", { name: "Programs", exact: true }).boundingBox();

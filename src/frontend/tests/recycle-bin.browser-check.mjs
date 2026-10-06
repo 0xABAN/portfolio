@@ -11,7 +11,7 @@ function browser(...args) {
 
 async function checkRecycling(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
-	const key = "portfolio.shell.v1";
+	const key = "portfolio.shell.v2";
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -120,22 +120,22 @@ async function checkRecycling(page) {
 	await row("secrets").dblclick();
 	await page.clock.runFor(516);
 	check(await win("explorer").getAttribute("aria-label") === "secrets", "Explorer title did not return to the folder");
-	await row("bio").click();
+	await row("experience").click();
 	await page.keyboard.press("Delete");
 	await answer("Yes");
-	await row("bio").waitFor({ state: "detached" });
+	await row("experience").waitFor({ state: "detached" });
 	await minimizeAll();
 	await icon("secrets").click();
 	await page.keyboard.press("Delete");
 	await answer("Yes");
 	await icon("secrets").waitFor({ state: "detached" });
 	await openIcon("recycle-bin");
-	await deleted("bio.txt").dblclick();
+	await deleted("experience.exe").dblclick();
 	await dialog().getByRole("button", { name: "Restore", exact: true }).click();
 	check(await dialog().innerText().then((text) => text.includes("recreate")), "Missing parent was not confirmed");
 	await answer("Yes");
-	await deleted("bio.txt").waitFor({ state: "detached" });
-	check((await state()).nodes.filter((node) => ["resume", "experience"].includes(node.id)).length === 0, "Restoring a child resurrected siblings");
+	await deleted("experience.exe").waitFor({ state: "detached" });
+	check(!(await state()).nodes.some((node) => node.id === "resume"), "Restoring a child resurrected siblings");
 	await deleted("secrets").dblclick();
 	await dialog().getByRole("button", { name: "Restore", exact: true }).click();
 	check(await dialog().innerText().then((text) => text.includes("Combine")), "Existing folder merge was not confirmed");
@@ -218,7 +218,7 @@ async function checkRecycling(page) {
 	await page.getByRole("menuitem", { name: "Reset portfolio", exact: true }).click();
 	await answer("Yes");
 	await icon("silksong").waitFor();
-	check((await state()).nodes.length === 15 && (await state()).settings.global.percent === 10, "Reset did not restore the initial catalog/settings");
+	check((await state()).nodes.length === 14 && (await state()).settings.global.percent === 10, "Reset did not restore the initial catalog/settings");
 	// A queued taskbar-focus frame must not steal focus after typing activates Terminal.
 	await page.locator('[data-task-id="terminal"]').click();
 	await page.clock.runFor(16);
@@ -231,17 +231,17 @@ async function checkRecycling(page) {
 
 	// Shift+Delete is permanent, missing Start targets cannot recreate files.
 	await openIcon("secrets");
-	await row("bio").click();
+	await row("resume").click();
 	await page.keyboard.press("Shift+Delete");
 	await answer("No");
-	check((await state()).nodes.some((node) => node.id === "bio"), "Cancel permanently deleted a file");
+	check((await state()).nodes.some((node) => node.id === "resume"), "Cancel permanently deleted a file");
 	await page.keyboard.press("Shift+Delete");
 	await answer("Yes");
-	await row("bio").waitFor({ state: "detached" });
+	await row("resume").waitFor({ state: "detached" });
 	check((await state()).entries.length === 0, "Shift+Delete recycled instead of deleting");
 	await page.getByRole("button", { name: "Start", exact: true }).click();
 	await page.getByRole("menuitem", { name: "Documents", exact: true }).click();
-	await page.getByRole("menuitem", { name: "bio.txt", exact: true }).click();
+	await page.getByRole("menuitem", { name: "resume.doc", exact: true }).click();
 	check(await dialog().innerText().then((text) => text.includes("could not be found")), "Start recreated a deleted document");
 	await answer("OK");
 
@@ -274,7 +274,7 @@ async function checkRecycling(page) {
 	await page.evaluate(() => {
 		window.originalStorageWrite = Storage.prototype.setItem;
 		Storage.prototype.setItem = function (key, value) {
-			if (key === "portfolio.shell.v1") throw new Error("Storage unavailable");
+			if (key === "portfolio.shell.v2") throw new Error("Storage unavailable");
 			return window.originalStorageWrite.call(this, key, value);
 		};
 	});
@@ -302,7 +302,7 @@ async function checkRecycling(page) {
 	await page.getByRole("menuitem", { name: "Reset portfolio", exact: true }).click();
 	await answer("Yes");
 	await icon("hollow-knight").waitFor();
-	check((await state()).nodes.length === 15 && (await state()).entries.length === 0, "Explicit reset did not recover damaged storage");
+	check((await state()).nodes.length === 14 && (await state()).entries.length === 0, "Explicit reset did not recover damaged storage");
 	check(errors.length === 0, `Browser errors: ${errors.join("; ")}`);
 	await page.clock.resume();
 	return "PASS: Win95 selection, restore, undo, folder recovery, quota settings/eviction, reload persistence, safe dragging, permanent deletion and reset";
@@ -312,7 +312,7 @@ try {
 	browser("open", process.env.RECYCLE_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	console.log(browser("run-code", checkRecycling.toString()));
 } catch (error) {
-	console.log(browser("run-code", `async (page) => { await page.clock.resume(); return { active: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500)), dialogs: await page.locator('dialog').evaluateAll((elements) => elements.map((el) => el.outerHTML)), selected: await page.locator('[aria-selected="true"]').allTextContents(), state: await page.evaluate(() => localStorage.getItem('portfolio.shell.v1')) }; }`));
+	console.log(browser("run-code", `async (page) => { await page.clock.resume(); return { active: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500)), dialogs: await page.locator('dialog').evaluateAll((elements) => elements.map((el) => el.outerHTML)), selected: await page.locator('[aria-selected="true"]').allTextContents(), state: await page.evaluate(() => localStorage.getItem('portfolio.shell.v2')) }; }`));
 	throw error;
 } finally {
 	try { browser("close"); } catch { /* Preserve the original failure. */ }

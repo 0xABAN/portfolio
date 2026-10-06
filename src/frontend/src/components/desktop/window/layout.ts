@@ -13,7 +13,6 @@ export type DesktopWindow = {
 		| "github"
 		| "experience"
 		| "terminal"
-		| "bio"
 		| "explorer"
 		| "cd-player"
 		| "recycle-bin"
@@ -335,21 +334,6 @@ export function makeWordWindow(z: number, vw: number, vh: number): DesktopWindow
 		icon: "/icons/word/app.png",
 		z,
 		...layoutCentered(w, h, vw, vh),
-	};
-}
-
-const BIO_W = 572;
-const BIO_H = 420;
-
-/** Centered bio.txt window (opened from desk icon, not on load). */
-export function makeBioWindow(z: number, vw: number, vh: number): DesktopWindow {
-	return {
-		id: "bio",
-		title: "bio.txt",
-		kind: "bio",
-		icon: "/icons/notepad.svg",
-		z,
-		...layoutCentered(BIO_W, BIO_H, vw, vh),
 	};
 }
 

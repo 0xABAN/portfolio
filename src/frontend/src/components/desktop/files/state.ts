@@ -1,6 +1,10 @@
 import { DESKTOP_PATH, ITEM_BY_ID, SHELL_ITEMS, type ShellItem } from "./catalog";
 
-export const STORAGE_KEY = "portfolio.shell.v1";
+/**
+ * Bump when a catalog item is retired: hydration rejects unknown catalog IDs,
+ * so older saved desktops would otherwise fail to load.
+ */
+export const STORAGE_KEY = "portfolio.shell.v2";
 export const DRIVE_BYTES = 32 * 1024 * 1024;
 export const SYSTEM_BYTES = 8 * 1024 * 1024;
 

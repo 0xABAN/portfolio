@@ -61,10 +61,9 @@ async function checkLaunches(page) {
 	await delayed("cd-player", 1500, () => icon("cd-player").dblclick(), () => icon("explorer").dblclick());
 	check(await win("explorer").count() === 0, "A second click queued another app during the wait");
 	await delayed("explorer", 500, () => icon("explorer").dblclick());
-	await delayed("bio", 1500, () => win("explorer").getByRole("option", { name: "bio.txt", exact: true }).dblclick());
+	await delayed("experience", 1500, () => win("explorer").getByRole("option", { name: "experience.exe", exact: true }).dblclick());
 	await task("explorer").click();
 	check(!(await busy()) && await win("explorer").isVisible(), "Taskbar switching unexpectedly used the launch delay");
-	await delayed("experience", 1500, () => win("explorer").getByRole("option", { name: "experience.exe", exact: true }).dblclick());
 
 	for (const [id, label, group] of [
 		["me", "Paint", "Programs"],
@@ -72,17 +71,15 @@ async function checkLaunches(page) {
 		["github", "Activity", "Programs"],
 		["cd-player", "CD Player", "Programs"],
 		["explorer", "secrets", "Documents"],
-		["bio", "bio.txt", "Documents"],
 	]) {
 		// Some initial windows extend offscreen; minimize without moving their layout.
 		await win(id).getByRole("button", { name: "Minimize", exact: true }).dispatchEvent("click");
 		await delayed(id, id === "explorer" ? 500 : 1500, () => fromStart(label, group));
 	}
 
-	await win("bio").getByRole("button", { name: "Minimize", exact: true }).click();
-	await task("bio").click();
-	check(await win("bio").isVisible() && !(await busy()), "Taskbar restoration should remain immediate");
+	await win("explorer").getByRole("button", { name: "Minimize", exact: true }).click();
 	await task("explorer").click();
+	check(await win("explorer").isVisible() && !(await busy()), "Taskbar restoration should remain immediate");
 	await delayed("word", 1500, () => win("explorer").getByRole("option", { name: "resume.doc", exact: true }).dblclick());
 	check(await page.evaluate(() => window.openedLinks.length) === 0, "Resume opened an external link");
 

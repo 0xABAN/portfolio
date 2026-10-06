@@ -4,7 +4,6 @@ export const GITHUB_USER = "0xABAN";
 export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
 
 const DOCUMENTS = [
-	{ id: "bio", name: "bio.txt", icon: "/icons/notepad.svg", open: "bio", type: "Text Document", bytes: 4096 },
 	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", open: "word", type: "Microsoft Word Document", bytes: 768 * 1024 },
 	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application", bytes: 512 * 1024 },
 ] as const;
