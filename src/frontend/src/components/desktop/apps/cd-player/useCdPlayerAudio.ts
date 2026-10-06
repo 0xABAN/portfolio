@@ -27,7 +27,6 @@ type ScApi = {
 			PAUSE: string;
 			FINISH: string;
 			PLAY_PROGRESS: string;
-			ERROR?: string;
 		};
 	};
 };
@@ -51,9 +50,6 @@ const GETTER_TIMEOUT_MS = 2000;
 /** READY can arrive before the widget lists and describes the whole playlist. */
 const RETRIES = 40;
 const RETRY_MS = 250;
-/** A pause at 0:00 that lasts this long means the upload's stream is unavailable. */
-const STALLED_PAUSE_MS = 1500;
-const MAX_UNPLAYABLE = 8;
 
 let sharedVolume = 1;
 let fadeProgress = 0;
@@ -66,7 +62,6 @@ let sharedIframe: HTMLIFrameElement | null = null;
 let widgetPromise: Promise<ScWidget> | null = null;
 let apiPromise: Promise<ScApi> | null = null;
 let wantPlaying = false;
-let unplayableInARow = 0;
 let lastWidgetVolume = -1;
 let boundEvents: ScApi["Widget"]["Events"] | null = null;
 const playingListeners = new Set<() => void>();
@@ -79,8 +74,6 @@ let playlistReady = false;
 const readyWaiters: Array<() => void> = [];
 let shuffle: Shuffle = { order: [], position: 0 };
 let trackIdx = 0;
-/** The way the listener last moved through the shuffle. */
-let lastDirection: 1 | -1 = 1;
 /** The sound the widget is on: it opens on the first one, and -1 once it moves on by itself. */
 let widgetIdx = 0;
 let currentTrack: Track | null = null;
@@ -233,26 +226,12 @@ function showTrack(index: number) {
 function step(direction: 1 | -1) {
 	if (!playlistReady) return;
 	++switchGen;
-	lastDirection = direction;
 	shuffle = stepShuffle(shuffle, direction);
 	trackIdx = shuffle.order[shuffle.position];
 	autoplayBlocked = false;
 	resetElapsed();
 	showTrack(trackIdx);
 	void startPlayback();
-}
-
-/**
- * Skips an upload whose stream will not play, giving up after several in a row.
- * It keeps going the listener's way, so Previous does not bounce back off it.
- */
-function skipUnplayable() {
-	if (++unplayableInARow > MAX_UNPLAYABLE) {
-		wantPlaying = false;
-		console.error(`CD Player stopped: ${MAX_UNPLAYABLE} tracks in a row would not play.`);
-		return;
-	}
-	step(lastDirection);
 }
 
 function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
@@ -264,17 +243,9 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 		applyVolume(true);
 		for (const listener of playingListeners) listener();
 	});
-	widget.bind(events.PAUSE, (data) => {
+	widget.bind(events.PAUSE, () => {
 		transport.paused = true;
 		setPlayingBridge?.(false);
-
-		// Some uploads play for a moment and then stop at 0:00 because their stream is
-		// unavailable. Switching tracks also pauses, briefly, so only a lasting pause counts.
-		if (!wantPlaying || !mediaStarted || (data?.currentPosition ?? 0) >= 1000) return;
-		const gen = switchGen;
-		window.setTimeout(() => {
-			if (gen === switchGen && wantPlaying && transport.paused) skipUnplayable();
-		}, STALLED_PAUSE_MS);
 	});
 	// The widget moves on to the next sound of the playlist by itself; follow the shuffle instead.
 	widget.bind(events.FINISH, () => {
@@ -284,14 +255,8 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 	widget.bind(events.PLAY_PROGRESS, (data) => {
 		const sec = Math.floor((data?.currentPosition ?? 0) / 1000);
 		transport.currentTime = sec;
-		if (sec > 0) unplayableInARow = 0;
 		writeElapsed(sec);
 	});
-	if (events.ERROR) {
-		widget.bind(events.ERROR, () => {
-			if (mediaStarted) skipUnplayable();
-		});
-	}
 }
 
 function ensureWidget(): Promise<ScWidget> {
@@ -476,7 +441,6 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 			playlistReady = false;
 			readyWaiters.length = 0;
 			shuffle = { order: [], position: 0 };
-			lastDirection = 1;
 			widgetIdx = 0;
 			showTrack(-1);
 		};
