@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import "./rsod.css";
 
 /** A real stop screen: no button semantics or continue/restart handlers. */
@@ -22,25 +22,15 @@ export function MobileUnsupported() {
 	);
 }
 
-type Props = {
-	onContinueAction: () => void;
-};
-
-export function Rsod({ onContinueAction }: Props) {
-	const done = useRef(false);
-	const go = useCallback(() => {
-		if (done.current) return;
-		done.current = true;
-		onContinueAction();
+/** Any key or click continues; continuing twice is harmless, since it only moves Boot to the next phase. */
+export function Rsod({ onContinueAction }: { onContinueAction: () => void }) {
+	useEffect(() => {
+		window.addEventListener("keydown", onContinueAction);
+		return () => window.removeEventListener("keydown", onContinueAction);
 	}, [onContinueAction]);
 
-	useEffect(() => {
-		window.addEventListener("keydown", go);
-		return () => window.removeEventListener("keydown", go);
-	}, [go]);
-
 	return (
-		<button type="button" className="rsod" onClick={go}>
+		<button type="button" className="rsod" onClick={onContinueAction}>
 			<div className="rsod__inner">
 				<span className="rsod__badge">Windows</span>
 				<p className="rsod__body">
