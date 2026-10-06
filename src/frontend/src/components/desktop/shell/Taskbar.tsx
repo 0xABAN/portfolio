@@ -80,69 +80,41 @@ type Props = {
 	revealed: ReadonlySet<string>;
 };
 
-/** Only the task strip scrolls; Start and the tray remain reachable. */
+/**
+ * Tasks shrink to share the strip, as in Windows 95. If they still do not fit,
+ * only the strip scrolls, so Start and the tray stay in reach.
+ */
 function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapsed }: Pick<Props, "tasks" | "activeId" | "onActivateAction" | "trackLabel" | "bindElapsed">) {
 	const strip = useRef<HTMLDivElement>(null);
-	const [arrows, setArrows] = useState({ previous: false, next: false });
-
-	useEffect(() => {
-		const el = strip.current;
-		if (!el) return;
-		const measure = () => {
-			const previous = el.scrollLeft > 1;
-			const next = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-			setArrows((old) => old.previous === previous && old.next === next ? old : { previous, next });
-		};
-		const resize = new ResizeObserver(measure);
-		resize.observe(el);
-		el.addEventListener("scroll", measure);
-		measure();
-		return () => {
-			resize.disconnect();
-			el.removeEventListener("scroll", measure);
-		};
-	}, [tasks.length]);
 
 	useEffect(() => {
 		strip.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
 	}, [activeId]);
 
 	return (
-		<div className="taskbar__task-area">
-			<div ref={strip} id="task-strip" className="taskbar__tasks" role="group" aria-label="Open applications"
-				onFocusCapture={(event) => (event.target as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" })}>
-				{tasks.map((w) => {
-					const isCdPlayer = w.id === "cd-player";
-					// The CD Player's task names the track once SoundCloud has described it.
-					const naming = isCdPlayer && trackLabel !== "";
-					const label = naming ? trackLabel : w.title || w.id;
-					return (
-						<TaskButton
-							key={w.id}
-							icon={w.icon}
-							title={label}
-							aria-label={naming ? `CD Player: ${label}` : undefined}
-							progress={isCdPlayer ? <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span> : undefined}
-							data-task-id={w.id}
-							aria-controls={`desktop-window-${w.id}`}
-							aria-pressed={w.id === activeId}
-							onClick={() => onActivateAction(w.id)}
-						>
-							{label}
-						</TaskButton>
-					);
-				})}
-			</div>
-			{(arrows.previous || arrows.next) && (
-				<div className="taskbar__scroll-controls">
-					{(["previous", "next"] as const).map((direction) => (
-						<button key={direction} type="button" className={`task-scroll-btn task-scroll-btn--${direction} chrome-raised`}
-							aria-label={direction === "previous" ? "Previous tasks" : "Next tasks"}
-							aria-controls="task-strip" disabled={!arrows[direction]}
-							onClick={() => strip.current?.scrollBy({ left: (direction === "previous" ? -1 : 1) * strip.current.clientWidth })} />
-					))}
-				</div>
-			)}
+		<div ref={strip} className="taskbar__tasks" role="group" aria-label="Open applications"
+			onFocusCapture={(event) => (event.target as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" })}>
+			{tasks.map((w) => {
+				const isCdPlayer = w.id === "cd-player";
+				// The CD Player's task names the track once SoundCloud has described it.
+				const naming = isCdPlayer && trackLabel !== "";
+				const label = naming ? trackLabel : w.title || w.id;
+				return (
+					<TaskButton
+						key={w.id}
+						icon={w.icon}
+						title={label}
+						aria-label={naming ? `CD Player: ${label}` : undefined}
+						progress={isCdPlayer ? <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span> : undefined}
+						data-task-id={w.id}
+						aria-controls={`desktop-window-${w.id}`}
+						aria-pressed={w.id === activeId}
+						onClick={() => onActivateAction(w.id)}
+					>
+						{label}
+					</TaskButton>
+				);
+			})}
 		</div>
 	);
 }

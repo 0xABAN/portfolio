@@ -568,9 +568,8 @@ async function checkTaskbar(page) {
 			const r = await control.boundingBox();
 			check(r.x >= 0 && r.x + r.width <= width, "Fixed taskbar controls clipped on narrow screens");
 		}
-		await page.locator("#task-strip").evaluate((el) => { el.scrollLeft = 0; });
-		await page.getByRole("button", { name: "Next tasks", exact: true }).click();
-		check(await page.locator("#task-strip").evaluate((el) => el.scrollLeft > 0), "Task overflow arrows did not scroll");
+		// At 320px even bare icons no longer fit; the strip scrolls and focus brings each task into view.
+		if (width === 390) check(await page.locator(".taskbar__tasks").evaluate((el) => el.scrollWidth <= el.clientWidth), "Tasks overflowed instead of shrinking to share the taskbar");
 		const lastTask = page.locator("[data-task-id]").last();
 		await lastTask.focus();
 		await lastTask.press("Enter");
