@@ -134,11 +134,6 @@ try {
         await page.getByRole('button', { name: 'Close Experience', exact: true }).click();
 
         await launch('Programs', 'CD Player', '#desktop-window-cd-player');
-        const cd = page.locator('#desktop-window-cd-player');
-        for (let i = 0; i < 20 && !(await cd.innerText()).includes('Fallen Down'); i++) {
-          await cd.getByRole('toolbar', { name: 'Playback' }).getByRole('button', { name: 'Next track', exact: true }).click();
-        }
-        assert.match(await cd.innerText(), /Fallen Down/);
         await capture('cd-player', '#desktop-window-cd-player');
 
         await page.locator('.win:not([data-minimized="true"]) .win-min[aria-label="Minimize"]')

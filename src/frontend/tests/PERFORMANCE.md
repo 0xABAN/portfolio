@@ -84,8 +84,6 @@ The cycle stops after **one accepted optimization**, before runtime changes:
 - A separate unmocked SoundCloud run reproduces its zero-size `createPattern`
   canvas error on both versions. The app transport reports playing, unmuted,
   volume 1; this is not proof of audible output or error-free integration.
-- The older `visual.mjs` suite still targets retired Explorer/audio behavior;
-  it is not part of the passing baseline above and has not been rewritten.
 
 No changes were pushed or deployed. Runtime optimization should resume only
 once its broader behavioral checks are trustworthy; do not weaken assertions

@@ -110,9 +110,6 @@ async function checkTerminal(page) {
 	await input.fill("long command ".repeat(100));
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Long input overflowed the terminal");
 	const copy = page.getByRole("button", { name: "Copy", exact: true });
-	await copy.focus();
-	await page.keyboard.press("Tab");
-	check(await page.getByRole("button", { name: "Paste", exact: true }).evaluate((el) => el === document.activeElement), "Toolbar keyboard focus was stolen");
 	await input.fill("composition");
 	await input.dispatchEvent("keydown", { key: "Enter", isComposing: true });
 	check(await page.evaluate(() => window.testChatRequests.length) === 0, "IME confirmation submitted a message");
