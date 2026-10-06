@@ -1,4 +1,4 @@
-import { layoutDesktop, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, type DesktopWindow } from "./layout";
+import { clampToParent, clampWindowPos, layoutDesktop, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, nestBounds, type DesktopWindow } from "./layout";
 
 export type AppId = "me" | "terminal" | "github" | "explorer" | "experience" | "cd-player" | "recycle-bin";
 
@@ -60,4 +60,23 @@ export function minimizeWindowTree(windows: DesktopWindow[], id: string): Deskto
 	const target = windows.find((w) => w.id === id);
 	const rootId = target?.parentId ?? id;
 	return windows.map((w) => w.id === rootId || w.parentId === rootId ? { ...w, minimized: true } : w);
+}
+
+/**
+ * Moves a window, clamped to the screen, or to its parent's canvas if it is
+ * nested. Windows nested in it move along and stay inside it.
+ */
+export function moveWindow(windows: DesktopWindow[], id: string, x: number, y: number, vw: number, vh: number): DesktopWindow[] {
+	const target = windows.find((w) => w.id === id);
+	const parent = windows.find((w) => w.id === target?.parentId);
+	if (!target || (target.parentId && !parent)) return windows;
+	const moved = parent
+		? { ...target, ...clampToParent({ ...target, x, y }, nestBounds(parent)) }
+		: { ...target, ...clampWindowPos(x, y, target.w, vw, vh) };
+	const dx = moved.x - target.x;
+	const dy = moved.y - target.y;
+	if (!dx && !dy) return windows;
+	return windows.map((w) => w.id === id ? moved
+		: w.parentId === id ? { ...w, ...clampToParent({ ...w, x: w.x + dx, y: w.y + dy }, nestBounds(moved)) }
+		: w);
 }

@@ -16,17 +16,8 @@ import { Neko } from "./effects/neko/Neko";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";
-import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./window/state";
-import {
-	TASKBAR_H,
-	altCropStyle,
-	clampToParent,
-	nestBounds,
-	clampWindowPos,
-	layoutDesktop,
-	reflowDesktop,
-	type DesktopWindow,
-} from "./window/layout";
+import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, moveWindow, openApp, restoreDecorations, taskWindows, type AppId } from "./window/state";
+import { TASKBAR_H, altCropStyle, layoutDesktop, reflowDesktop, type DesktopWindow } from "./window/layout";
 import "./desktop.css";
 
 /** Apps that open a shell file; launching fails while that file is deleted. */
@@ -68,9 +59,7 @@ function DesktopWorkspace() {
 	const { getState, notice } = shell;
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
 	// Boot mounts this client-only, so window is available on first paint
-	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
-		layoutDesktop(window.innerWidth, window.innerHeight),
-	);
+	const [windows, setWindows] = useState<DesktopWindow[]>(() => layoutDesktop(window.innerWidth, window.innerHeight));
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
@@ -227,42 +216,9 @@ function DesktopWorkspace() {
 		else notice(FILE_NOT_FOUND, "File not found");
 	}, [openShell, getState, notice]);
 
-	const moveWindow = useCallback((id: string, x: number, y: number) => {
+	const move = useCallback((id: string, x: number, y: number) => {
 		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
-		setWindows((prev) => {
-			const target = prev.find((w) => w.id === id);
-			if (!target) return prev;
-
-			if (target.parentId) {
-				const parent = prev.find((w) => w.id === target.parentId);
-				if (!parent) return prev;
-				const next = clampToParent(
-					{ x, y, w: target.w, h: target.h },
-					nestBounds(parent),
-				);
-				if (next.x === target.x && next.y === target.y) return prev;
-				return prev.map((w) =>
-					w.id === id ? { ...w, x: next.x, y: next.y } : w,
-				);
-			}
-
-			const next = clampWindowPos(x, y, target.w, window.innerWidth, window.innerHeight);
-			const dx = next.x - target.x;
-			const dy = next.y - target.y;
-			if (dx === 0 && dy === 0) return prev;
-
-			return prev.map((w) => {
-				if (w.id === id) return { ...w, x: next.x, y: next.y };
-				if (w.parentId === id) {
-					const moved = clampToParent(
-						{ x: w.x + dx, y: w.y + dy, w: w.w, h: w.h },
-						nestBounds({ ...target, x: next.x, y: next.y }),
-					);
-					return { ...w, x: moved.x, y: moved.y };
-				}
-				return w;
-			});
-		});
+		setWindows((prev) => moveWindow(prev, id, x, y, window.innerWidth, window.innerHeight));
 	}, [cdWindow]);
 
 	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
@@ -275,28 +231,18 @@ function DesktopWorkspace() {
 	const renderWindow = (w: DesktopWindow) => {
 		const parent = windows.find((p) => p.id === w.parentId);
 		return <Window
-			key={w.id}
-			id={w.id}
+			key={w.id} id={w.id} title={w.title} icon={w.icon} x={w.x} y={w.y} w={w.w} h={w.h} z={w.z}
 			active={(w.parentId ?? w.id) === activeId}
 			minimized={Boolean(w.minimized)}
-			onActivateAction={activate}
-			title={w.title}
-			icon={w.icon}
-			x={w.x}
-			y={w.y}
-			w={w.w}
-			h={w.h}
-			z={w.z}
 			variant={w.kind === "terminal" ? "dos" : w.kind === "error" ? "error" : undefined}
 			// Nested crop + parent-of-nested need live React geometry while dragging
-			liveMove={Boolean(
-				w.parentId || windows.some((c) => c.parentId === w.id),
-			)}
+			liveMove={Boolean(w.parentId || windows.some((c) => c.parentId === w.id))}
 			minimizable={w.id !== "alt"}
+			frameless={w.kind === "experience"}
+			onActivateAction={activate}
 			onMinimizeAction={minimizeWindow}
 			onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
-			frameless={w.kind === "experience"}
-			onMoveAction={moveWindow}
+			onMoveAction={move}
 		>
 			<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
 				audio={w.kind === "cd-player" ? audio : undefined}
@@ -317,13 +263,8 @@ function DesktopWorkspace() {
 			}}>
 
 			<FractureBackground onShownAction={showWallpaper} />
-			<DesktopIcons
-				onOpenAction={openShell}
-				onSecretsOpenedAction={() => setSecretsOpened(true)}
-				revealed={revealed}
-				secretsOpened={secretsOpened}
-				explorerOpen={windows.some((w) => w.id === "explorer")}
-			/>
+			<DesktopIcons onOpenAction={openShell} onSecretsOpenedAction={() => setSecretsOpened(true)}
+				revealed={revealed} secretsOpened={secretsOpened} explorerOpen={windows.some((w) => w.id === "explorer")} />
 			<div className="desktop__windows">
 				<div
 					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
