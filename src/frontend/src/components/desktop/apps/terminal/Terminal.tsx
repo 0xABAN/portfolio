@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	type FormEvent,
-	type KeyboardEvent,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import "./terminal.css";
 
 const GREETING = "how u doing :)";
@@ -19,111 +12,90 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 // keep in sync with portfolio_backend.chat.BROKE_MSG
 const BROKE_MSG = "sry i'm too broke to afford this rn";
 
-const COPYRIGHT = [
-	"Microsoft(R) Windows 95",
-	"   (C)Copyright Microsoft Corp 1981-1995.",
+const COPYRIGHT = ["Microsoft(R) Windows 95", "   (C)Copyright Microsoft Corp 1981-1995.", ""];
+const COMMANDS = [
+	"Available commands:",
+	"  ADAM.EXE  Chat with Adam about his work.",
+	"  HELP      Show this list.",
+	"  CLS       Clear the screen.",
+	"  VER       Show the Windows version.",
 	"",
-] as const;
+];
+const HELP = [
+	"CLS    Clear the screen; keep the conversation.",
+	"CLEAR  Alias for CLS.",
+	"HELP   Show this help.",
+	"VER    Show the Windows version.",
+	"",
+	"Up/Down recalls input; Esc clears the entry.",
+	"Anything else goes to Adam.",
+	"",
+];
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type Line = { id: number; text: string };
 
 let lineId = 0;
-const nextId = () => ++lineId;
 
-function sleep(ms: number) {
-	return new Promise<void>((r) => setTimeout(r, ms));
-}
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function prefersReducedMotion() {
-	return (
-		typeof window !== "undefined" &&
-		window.matchMedia("(prefers-reduced-motion: reduce)").matches
-	);
-}
-
-/** ms between chars, and after spaces. Batches React ticks. */
-async function typewrite(
-	text: string,
-	onTick: (full: string) => void,
-	alive: () => boolean,
-	charMs: number,
-	spaceMs: number,
-) {
-	const instant = prefersReducedMotion();
-	if (instant) {
+/** Types `text` out, `charMs` per character and `spaceMs` after spaces, rendering every third character. */
+async function typewrite(text: string, onTick: (typed: string) => void, alive: () => boolean, charMs: number, spaceMs: number) {
+	if (prefersReducedMotion()) {
 		onTick(text);
 		return;
 	}
-	let out = "";
-	// Commit ~every 2–3 chars instead of every keystroke
-	const BATCH = 3;
-	let sinceFlush = 0;
+	let typed = "";
+	let pending = 0;
 	for (const ch of text) {
 		if (!alive()) return;
-		out += ch;
-		sinceFlush += 1;
-		if (sinceFlush >= BATCH || ch === " ") {
-			onTick(out);
-			sinceFlush = 0;
+		typed += ch;
+		if (++pending >= 3 || ch === " ") {
+			onTick(typed);
+			pending = 0;
 		}
 		await sleep(ch === " " ? spaceMs : charMs);
 	}
-	if (sinceFlush) onTick(out);
+	if (pending) onTick(typed);
 }
 
-async function streamChat(
-	messages: ChatMessage[],
-	onToken: (t: string) => void,
-): Promise<void> {
+/** Streams Adam's reply from the chat API's server-sent events, one token at a time. */
+async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
 	const res = await fetch(`${API_URL}/chat`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ messages }),
 	});
 	if (!res.ok) {
-		let detail = res.statusText;
-		try {
-			const j = (await res.json()) as { detail?: string };
-			if (j.detail) detail = j.detail;
-		} catch {
-			/* ignore */
-		}
-		throw new Error(detail || `HTTP ${res.status}`);
+		const detail = await res.json().then((body: { detail?: string }) => body.detail, () => undefined);
+		throw new Error(detail || res.statusText || `HTTP ${res.status}`);
 	}
 	if (!res.body) throw new Error("no response body");
 
-	const reader = res.body.getReader();
-	const decoder = new TextDecoder();
-	let buf = "";
+	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+	let buffer = "";
 	let event = "message";
-
-	while (true) {
+	for (;;) {
 		const { done, value } = await reader.read();
-		if (done) break;
-		buf += decoder.decode(value, { stream: true });
-		const parts = buf.split("\n");
-		buf = parts.pop() ?? "";
-
-		for (const raw of parts) {
+		if (done) return;
+		const lines = (buffer + value).split("\n");
+		buffer = lines.pop() ?? "";
+		for (const raw of lines) {
 			const line = raw.replace(/\r$/, "");
-			if (!line) continue;
 			if (line.startsWith("event:")) {
 				event = line.slice(6).trim();
 				continue;
 			}
 			if (!line.startsWith("data:")) continue;
-			const data = line.slice(5).trim();
-			let parsed: { content?: string; detail?: string };
+			let data: { content?: string; detail?: string };
 			try {
-				parsed = JSON.parse(data) as typeof parsed;
+				data = JSON.parse(line.slice(5));
 			} catch {
 				continue;
 			}
-			if (event === "token" && parsed.content) onToken(parsed.content);
-			else if (event === "error") {
-				throw new Error(parsed.detail || "stream error");
-			}
+			if (event === "token" && data.content) onToken(data.content);
+			else if (event === "error") throw new Error(data.detail || "stream error");
 			event = "message";
 		}
 	}
@@ -138,125 +110,72 @@ export function Terminal() {
 	const [clipboardStatus, setClipboardStatus] = useState("");
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
-	const aliveRef = useRef(true);
-	const runGen = useRef(0);
-
 	// Shell recall is independent of the conversation sent to the chat API.
 	const submittedInput = useRef<string[]>([]);
 	const recallIndex = useRef<number | null>(null);
 	const draft = useRef("");
 
 	useEffect(() => {
-		aliveRef.current = true;
-		return () => {
-			aliveRef.current = false;
-		};
-	}, []);
-
-	useEffect(() => {
 		const el = bodyRef.current;
 		if (el) el.scrollTop = el.scrollHeight;
 	}, [lines, input, busy]);
 
-	const setLineText = useCallback((id: number, text: string) => {
-		setLines((prev) => prev.map((l) => (l.id === id ? { ...l, text } : l)));
-	}, []);
-
 	/** Adds a line and returns its id, so typewriters can keep updating it. */
 	const append = useCallback((text: string) => {
-		const id = nextId();
+		const id = ++lineId;
 		setLines((prev) => [...prev, { id, text }]);
 		return id;
 	}, []);
 
-	const playBoot = useCallback(async () => {
-		const gen = ++runGen.current;
-		const alive = () => runGen.current === gen && aliveRef.current;
-		const pause = async (ms: number) => {
-			if (prefersReducedMotion()) return;
-			await sleep(ms);
-		};
+	const setLineText = useCallback((id: number, text: string) => {
+		setLines((prev) => prev.map((line) => (line.id === id ? { ...line, text } : line)));
+	}, []);
 
-		await sleep(0);
-		if (!alive()) return;
-
-		setBusy(true);
-		setBooted(false);
-		setHistory([]);
-		setInput("");
-		setLines([]);
-
-		// Cold open: the DOS session starts before the chat program.
-		await pause(350);
-
-		// Shell startup banner, not a BIOS or simulated operating-system boot.
-		for (const text of COPYRIGHT) {
-			if (!alive()) return;
-			append(text);
-			await pause(text ? 210 : 140);
-		}
+	// The opening script: a DOS banner, a typed HELP and ADAM.EXE, then Adam's greeting.
+	useEffect(() => {
+		let alive = true;
+		const pause = (ms: number) => (prefersReducedMotion() ? Promise.resolve() : sleep(ms));
 
 		// The two shell commands are a demonstration, not messages sent to Adam.
 		async function typeCommand(command: string) {
-			if (!alive()) return;
 			const id = append(SHELL);
 			await pause(450);
-			await typewrite(command, (full) => {
-				if (alive()) setLineText(id, SHELL + full);
-			}, alive, 80, 110);
+			await typewrite(command, (typed) => { if (alive) setLineText(id, SHELL + typed); }, () => alive, 80, 110);
 			await pause(220);
 		}
 
-		await typeCommand("help");
-		if (!alive()) return;
-		for (const line of [
-			"Available commands:",
-			"  ADAM.EXE  Chat with Adam about his work.",
-			"  HELP      Show this list.",
-			"  CLS       Clear the screen.",
-			"  VER       Show the Windows version.",
-			"",
-		]) append(line);
-		await pause(500);
-
-		await typeCommand("ADAM.EXE");
-		if (!alive()) return;
-		append("");
-		await pause(550);
-		// program init (no output yet)
-		await pause(420);
-
-		// adam starts talking
-		const greetId = append(BOT);
-		await pause(190);
-		await typewrite(
-			GREETING,
-			(full) => {
-				if (!alive()) return;
-				setLineText(greetId, BOT + full);
-			},
-			alive,
-			40,
-			60,
-		);
-		if (!alive()) return;
-
-		await pause(175);
-		setHistory([{ role: "assistant", content: GREETING }]);
-		append("");
-		setBusy(false);
-		setBooted(true);
+		void (async () => {
+			// Cold open: the DOS session starts before the chat program.
+			await pause(350);
+			for (const text of COPYRIGHT) {
+				if (!alive) return;
+				append(text);
+				await pause(text ? 210 : 140);
+			}
+			if (!alive) return;
+			await typeCommand("help");
+			if (!alive) return;
+			COMMANDS.forEach(append);
+			await pause(500);
+			if (!alive) return;
+			await typeCommand("ADAM.EXE");
+			if (!alive) return;
+			append("");
+			// The program starts without output, then Adam starts talking.
+			await pause(970);
+			if (!alive) return;
+			const greeting = append(BOT);
+			await pause(190);
+			await typewrite(GREETING, (typed) => { if (alive) setLineText(greeting, BOT + typed); }, () => alive, 40, 60);
+			if (!alive) return;
+			await pause(175);
+			setHistory([{ role: "assistant", content: GREETING }]);
+			append("");
+			setBusy(false);
+			setBooted(true);
+		})();
+		return () => { alive = false; };
 	}, [append, setLineText]);
-
-	useEffect(() => {
-		const t = window.setTimeout(() => {
-			void playBoot();
-		}, 0);
-		return () => {
-			window.clearTimeout(t);
-			runGen.current += 1;
-		};
-	}, [playBoot]);
 
 	function editInput(value: string) {
 		recallIndex.current = null;
@@ -264,35 +183,18 @@ export function Terminal() {
 		setClipboardStatus("");
 	}
 
-	const runLocal = (cmd: string): boolean => {
-		const c = cmd.toLowerCase();
-		if (c === "clear" || c === "cls") {
-			setLines([]);
-			return true;
-		}
-		if (c === "help") {
-			for (const line of [
-				"CLS    Clear the screen; keep the conversation.",
-				"CLEAR  Alias for CLS.",
-				"HELP   Show this help.",
-				"VER    Show the Windows version.",
-				"",
-				"Up/Down recalls input; Esc clears the entry.",
-				"Anything else goes to Adam.",
-				"",
-			]) append(line);
-			return true;
-		}
-		if (c === "ver") {
-			append(WINDOWS_VERSION);
-			append("");
-			return true;
-		}
-		return false;
-	};
+	/** Runs a shell command; returns false for anything meant for Adam. */
+	function runLocal(command: string) {
+		const name = command.toLowerCase();
+		if (name === "clear" || name === "cls") setLines([]);
+		else if (name === "help") HELP.forEach(append);
+		else if (name === "ver") [WINDOWS_VERSION, ""].forEach(append);
+		else return false;
+		return true;
+	}
 
-	const submit = async (e?: FormEvent) => {
-		e?.preventDefault();
+	async function submit(event?: FormEvent) {
+		event?.preventDefault();
 		const text = input.trim();
 		if (busy || !text) return;
 
@@ -301,55 +203,50 @@ export function Terminal() {
 		editInput("");
 		if (runLocal(text)) return;
 
-		const userMsg: ChatMessage = { role: "user", content: text };
-		const nextHistory = [...history, userMsg];
+		const conversation: ChatMessage[] = [...history, { role: "user", content: text }];
 		setBusy(true);
-
-		let assistant = "";
-		const assistId = append(BOT + "...");
-
+		let reply = "";
+		const replyId = append(BOT + "...");
 		try {
-			await streamChat(nextHistory, (tok) => {
-				assistant += tok;
-				setLineText(assistId, BOT + assistant);
+			await streamChat(conversation, (token) => {
+				reply += token;
+				setLineText(replyId, BOT + reply);
 			});
-			if (!assistant.trim()) throw new Error("No reply received. Please try again.");
-			setHistory([...nextHistory, { role: "assistant", content: assistant }]);
-			append("");
-		} catch (err) {
-			const msg = err instanceof Error ? err.message : "request failed";
-			const broke =
-				msg === BROKE_MSG ||
-				/too broke|rate limit|quota|credit|billing/i.test(msg);
-			setLineText(assistId, broke ? `${BOT}${BROKE_MSG}` : `error: ${msg}`);
-			append("");
+			if (!reply.trim()) throw new Error("No reply received. Please try again.");
+			setHistory([...conversation, { role: "assistant", content: reply }]);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "request failed";
+			const broke = message === BROKE_MSG || /too broke|rate limit|quota|credit|billing/i.test(message);
+			setLineText(replyId, broke ? `${BOT}${BROKE_MSG}` : `error: ${message}`);
 		} finally {
+			append("");
 			setBusy(false);
 		}
-	};
+	}
 
-	const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-		if (busy || e.nativeEvent.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-		if (e.key === "Enter") {
-			e.preventDefault();
+	function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+		if (busy || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+		if (event.key === "Enter") {
+			event.preventDefault();
 			void submit();
-		} else if (e.key === "Escape") {
-			e.preventDefault();
+		} else if (event.key === "Escape") {
+			event.preventDefault();
 			editInput("");
-		} else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-			e.preventDefault();
+		} else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+			event.preventDefault();
 			const entries = submittedInput.current;
 			if (!entries.length) return;
 
 			// Keep the unfinished entry so Down past the newest command restores it.
 			const current = recallIndex.current ?? entries.length;
 			if (recallIndex.current === null) draft.current = input;
-			const next = Math.max(0, Math.min(entries.length, current + (e.key === "ArrowUp" ? -1 : 1)));
+			const next = Math.max(0, Math.min(entries.length, current + (event.key === "ArrowUp" ? -1 : 1)));
 			recallIndex.current = next === entries.length ? null : next;
 			setInput(next === entries.length ? draft.current : entries[next]);
 		}
-	};
+	}
 
+	/** Copies selected output, else the selected input, else the whole transcript. */
 	async function copy() {
 		const field = inputRef.current;
 		const selectedInput = field?.value.slice(field.selectionStart ?? 0, field.selectionEnd ?? 0);
@@ -407,20 +304,9 @@ export function Terminal() {
 					aria-label="DOS font credits" title="DOS font credits">?</a>
 			</div>
 			<div className="term__status" role="status">{clipboardStatus}</div>
-			<div
-				className="term__body"
-				ref={bodyRef}
-				onClick={() => {
-					if (window.getSelection()?.isCollapsed) inputRef.current?.focus();
-				}}
-			>
+			<div className="term__body" ref={bodyRef} onClick={() => { if (window.getSelection()?.isCollapsed) inputRef.current?.focus(); }}>
 				{lines.map((line) => (
-					<span
-						key={line.id}
-						className={`term__line${line.text ? "" : " term__line--blank"}`}
-					>
-						{line.text || "\u00a0"}
-					</span>
+					<span key={line.id} className={line.text ? "term__line" : "term__line term__line--blank"}>{line.text || "\u00a0"}</span>
 				))}
 				{/* Keep the field mounted during replies: native focus and selection survive. */}
 				{booted && (
@@ -432,7 +318,7 @@ export function Terminal() {
 							readOnly={busy}
 							tabIndex={busy ? -1 : 0}
 							value={input}
-							onChange={(e) => editInput(e.target.value)}
+							onChange={(event) => editInput(event.target.value)}
 							onKeyDown={onKeyDown}
 							spellCheck={false}
 							autoComplete="off"
