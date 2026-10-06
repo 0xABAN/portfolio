@@ -1,27 +1,7 @@
 /* Recreated MS Sans Serif by lou, CC BY-SA 3.0; see /fonts/win95-ui-LICENSE.txt. */
-@font-face {
-	font-family: "Win95 UI";
-	src: url("/fonts/win95-ui.woff2") format("woff2");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: "Win95 UI";
-	src: url("/fonts/win95-ui-bold.woff2") format("woff2");
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: "Rose Tinted";
-	src: url("/fonts/rose-tinted-bolditalic.woff2") format("woff2");
-	font-weight: 700;
-	font-style: italic;
-	font-display: swap;
-}
+@font-face { font-family: "Win95 UI"; src: url("/fonts/win95-ui.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Win95 UI"; src: url("/fonts/win95-ui-bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Rose Tinted"; src: url("/fonts/rose-tinted-bolditalic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
 
 .desktop {
 	--desktop-bg: #af0000;
@@ -50,6 +30,12 @@
 	cursor: var(--cursor-hand);
 }
 
+/* fake app-launch wait — force hourglass over everything */
+.desktop--busy,
+.desktop--busy * {
+	cursor: var(--cursor-wait) !important;
+}
+
 /* Window z-order is local: repeated activation must never cover the taskbar. */
 .desktop__windows {
 	position: absolute;
@@ -61,6 +47,12 @@
 .desktop__windows > .win {
 	pointer-events: auto;
 	outline: none;
+}
+
+/* Retain layout, scroll positions and canvas resolution while excluding interaction. */
+.desktop__windows > .win[data-minimized="true"] {
+	visibility: hidden;
+	pointer-events: none;
 }
 
 /*
@@ -76,13 +68,8 @@
 .desktop__psp-dimmer {
 	position: absolute;
 	inset: 0 0 var(--taskbar-height);
-	background: radial-gradient(
-		ellipse 72% 90% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
-		rgba(0, 0, 0, 0.92) 0%,
-		rgba(0, 0, 0, 0.62) 48%,
-		rgba(0, 0, 0, 0.22) 78%,
-		transparent 100%
-	);
+	background: radial-gradient(ellipse 72% 90% at var(--psp-dimmer-x, 50%) var(--psp-dimmer-y, 50%),
+		rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.62) 48%, rgba(0, 0, 0, 0.22) 78%, transparent 100%);
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 480ms ease;
@@ -90,24 +77,6 @@
 
 .desktop__psp-dimmer--active {
 	opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.desktop__psp-dimmer {
-		transition: none;
-	}
-}
-
-/* Retain layout, scroll positions and canvas resolution while excluding interaction. */
-.desktop__windows > .win[data-minimized="true"] {
-	visibility: hidden;
-	pointer-events: none;
-}
-
-/* fake app-launch wait — force hourglass over everything */
-.desktop--busy,
-.desktop--busy * {
-	cursor: var(--cursor-wait) !important;
 }
 
 .desktop__icons {
@@ -160,32 +129,14 @@
 	opacity: 0.45;
 }
 
-@keyframes desk-icon-bounce {
-	0%,
-	24%,
-	44%,
-	100% {
-		transform: translateY(0);
-		animation-timing-function: ease-out;
-	}
-	12% {
-		transform: translateY(-8px);
-		animation-timing-function: ease-in;
-	}
-	34% {
-		transform: translateY(-3px);
-		animation-timing-function: ease-in;
-	}
-}
-
 .desk-icon--bounce .desk-icon__img {
 	animation: desk-icon-bounce 1.8s infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.desk-icon--bounce .desk-icon__img {
-		animation: none;
-	}
+@keyframes desk-icon-bounce {
+	0%, 24%, 44%, 100% { transform: translateY(0); animation-timing-function: ease-out; }
+	12% { transform: translateY(-8px); animation-timing-function: ease-in; }
+	34% { transform: translateY(-3px); animation-timing-function: ease-in; }
 }
 
 .desk-icon__art {
@@ -193,6 +144,26 @@
 	display: block;
 	width: 70.4px;
 	height: 70.4px;
+}
+
+.desk-icon__img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	image-rendering: pixelated;
+	overflow: hidden;
+}
+
+.desk-icon__label {
+	max-width: 100%;
+	min-height: 2.4em;
+	padding: 0 2px;
+	font-size: 12px;
+	line-height: 1.2;
+	text-align: center;
+	text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
+	overflow-wrap: anywhere;
 }
 
 .desk-icon__badge {
@@ -214,6 +185,7 @@
 	pointer-events: none;
 }
 
+/* The "don't click me!" balloon wobbles on four independent, unsynchronised loops. */
 .desk-icon__bubble {
 	position: absolute;
 	left: calc(100% + 2px);
@@ -254,9 +226,7 @@
 	font: italic 700 14px / 16px "Rose Tinted", "Win95 UI", Tahoma, sans-serif;
 	white-space: nowrap;
 	transform-origin: 35% 76%;
-	animation:
-		secrets-bubble-resize 9s ease-in-out infinite,
-		secrets-bubble-rotate 13s ease-in-out infinite;
+	animation: secrets-bubble-resize 9s ease-in-out infinite, secrets-bubble-rotate 13s ease-in-out infinite;
 	will-change: scale, rotate;
 }
 
@@ -267,78 +237,32 @@
 }
 
 @keyframes secrets-bubble-horizontal {
-	0%,
-	100% {
-		transform: translateX(0);
-	}
-	25% {
-		transform: translateX(3px);
-	}
-	50% {
-		transform: translateX(-4px);
-	}
-	75% {
-		transform: translateX(2px);
-	}
+	0%, 100% { transform: translateX(0); }
+	25% { transform: translateX(3px); }
+	50% { transform: translateX(-4px); }
+	75% { transform: translateX(2px); }
 }
 
 @keyframes secrets-bubble-vertical {
-	0%,
-	100% {
-		transform: translateY(0);
-	}
-	23% {
-		transform: translateY(-2px);
-	}
-	48% {
-		transform: translateY(3px);
-	}
-	72% {
-		transform: translateY(-1px);
-	}
+	0%, 100% { transform: translateY(0); }
+	23% { transform: translateY(-2px); }
+	48% { transform: translateY(3px); }
+	72% { transform: translateY(-1px); }
 }
 
 @keyframes secrets-bubble-resize {
-	0%,
-	100% {
-		scale: 1 1;
-	}
-	20% {
-		scale: 1.02 0.95;
-	}
-	43% {
-		scale: 0.99 1.1;
-	}
-	65% {
-		scale: 1.03 0.96;
-	}
-	82% {
-		scale: 0.98 1.18;
-	}
+	0%, 100% { scale: 1 1; }
+	20% { scale: 1.02 0.95; }
+	43% { scale: 0.99 1.1; }
+	65% { scale: 1.03 0.96; }
+	82% { scale: 0.98 1.18; }
 }
 
 @keyframes secrets-bubble-rotate {
-	0%,
-	100% {
-		rotate: 0deg;
-	}
-	30% {
-		rotate: 0.5deg;
-	}
-	58% {
-		rotate: -0.6deg;
-	}
-	80% {
-		rotate: 0.35deg;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.desk-icon__bubble-x,
-	.desk-icon__bubble-y,
-	.desk-icon__bubble-body {
-		animation: none;
-	}
+	0%, 100% { rotate: 0deg; }
+	30% { rotate: 0.5deg; }
+	58% { rotate: -0.6deg; }
+	80% { rotate: 0.35deg; }
 }
 
 @media (max-width: 520px) {
@@ -355,52 +279,32 @@
 	}
 }
 
-.desk-icon__img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: contain;
-	image-rendering: pixelated;
-	overflow: hidden;
+@media (prefers-reduced-motion: reduce) {
+	.desktop__psp-dimmer {
+		transition: none;
+	}
+
+	.desk-icon--bounce .desk-icon__img,
+	.desk-icon__bubble-x,
+	.desk-icon__bubble-y,
+	.desk-icon__bubble-body {
+		animation: none;
+	}
 }
 
-.desk-icon__label {
-	max-width: 100%;
-	min-height: 2.4em;
-	padding: 0 2px;
-	font-size: 12px;
-	line-height: 1.2;
-	text-align: center;
-	text-shadow:
-		0 1px 0 #000,
-		1px 0 0 #000,
-		-1px 0 0 #000,
-		0 -1px 0 #000;
-	overflow-wrap: anywhere;
-}
-
+/* Win9x bevels: light top-left and dark bottom-right, swapped while pressed or sunken. */
 .chrome-raised {
-	border-top: 2px solid var(--chrome-hi);
-	border-left: 2px solid var(--chrome-hi);
-	border-right: 2px solid var(--chrome-lo);
-	border-bottom: 2px solid var(--chrome-lo);
+	border: 2px solid;
+	border-color: var(--chrome-hi) var(--chrome-lo) var(--chrome-lo) var(--chrome-hi);
 }
 
-.chrome-raised:active {
-	border-top-color: var(--chrome-lo);
-	border-left-color: var(--chrome-lo);
-	border-right-color: var(--chrome-hi);
-	border-bottom-color: var(--chrome-hi);
+.chrome-raised:active,
+.chrome-sunken {
+	border: 2px solid;
+	border-color: var(--chrome-lo) var(--chrome-hi) var(--chrome-hi) var(--chrome-lo);
 }
 
 .chrome-raised:focus-visible {
 	outline: 1px dotted var(--chrome-text);
 	outline-offset: -4px;
-}
-
-.chrome-sunken {
-	border-top: 2px solid var(--chrome-lo);
-	border-left: 2px solid var(--chrome-lo);
-	border-right: 2px solid var(--chrome-hi);
-	border-bottom: 2px solid var(--chrome-hi);
 }
