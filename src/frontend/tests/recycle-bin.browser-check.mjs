@@ -11,7 +11,7 @@ function browser(...args) {
 
 async function checkRecycling(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
-	const key = "portfolio.shell.v2";
+	const key = "portfolio.shell.v3";
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -39,6 +39,7 @@ async function checkRecycling(page) {
 	const deleted = (name) => win("recycle-bin").getByRole("option", { name, exact: true });
 	const dialog = () => page.getByRole("dialog");
 	const state = () => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
+	const parentOf = async (id) => (await state()).nodes.find((node) => node.id === id)?.parentId;
 	async function boot() {
 		await page.locator(".rsod").click();
 		await page.clock.runFor(900);
@@ -58,12 +59,6 @@ async function checkRecycling(page) {
 	async function answer(label) {
 		await dialog().getByRole("button", { name: label, exact: true }).click();
 		await dialog().waitFor({ state: "hidden" });
-	}
-	async function properties() {
-		await minimizeAll();
-		await bin().click({ button: "right" });
-		await page.getByRole("menuitem", { name: "Properties", exact: true }).click();
-		await dialog().waitFor();
 	}
 	await boot();
 	await minimizeAll();
@@ -101,18 +96,17 @@ async function checkRecycling(page) {
 	check(await win("recycle-bin").getByRole("toolbar").isVisible(), "Toolbar toggle did not enable the toolbar");
 	await win("recycle-bin").getByRole("button", { name: "Sort by Date Deleted" }).click();
 	await page.screenshot({ path: "/tmp/portfolio-recycle-bin.png" });
-	await deleted("Hollow Knight").dblclick();
-	check(await dialog().getAttribute("aria-labelledby"), "Item Properties has no accessible title");
-	check(await page.evaluate(() => window.openedLinks.length) === 1, "Opening deleted item launched its target");
-	await dialog().getByRole("button", { name: "Restore", exact: true }).click();
+	await deleted("Hollow Knight").click();
+	await win("recycle-bin").getByRole("toolbar").getByRole("button", { name: "Restore", exact: true }).click();
 	await deleted("Hollow Knight").waitFor({ state: "detached" });
 	check(await icon("hollow-knight").count() === 1, "Restore did not return shortcut");
-	await win("recycle-bin").getByRole("listbox").focus();
-	await page.keyboard.press("Control+z");
+	check(await page.evaluate(() => window.openedLinks.length) === 1, "Restoring launched the shortcut");
+	await deleted("Terraria").click({ button: "right" });
+	await page.getByRole("menuitem", { name: "Restore", exact: true }).click();
 	await deleted("Terraria").waitFor({ state: "detached" });
-	check((await state()).entries.length === 0, "Undo did not recover remaining batch entries");
+	check((await state()).entries.length === 0, "Context-menu restore left the entry behind");
 
-	// Folder membership, missing-parent restoration and explicit folder merge.
+	// Folder membership: a child whose folder is gone comes back onto the desktop.
 	await openIcon("secrets");
 	await win("explorer").getByRole("button", { name: "Up", exact: true }).click();
 	await page.clock.runFor(516);
@@ -130,51 +124,31 @@ async function checkRecycling(page) {
 	await answer("Yes");
 	await icon("secrets").waitFor({ state: "detached" });
 	await openIcon("recycle-bin");
-	await deleted("experience.exe").dblclick();
-	await dialog().getByRole("button", { name: "Restore", exact: true }).click();
-	check(await dialog().innerText().then((text) => text.includes("recreate")), "Missing parent was not confirmed");
-	await answer("Yes");
+	await deleted("experience.exe").click();
+	await page.keyboard.press("Alt+f");
+	await page.getByRole("menuitem", { name: "Restore", exact: true }).click();
 	await deleted("experience.exe").waitFor({ state: "detached" });
+	check(await parentOf("experience") === "desktop", "A child of a deleted folder was not restored onto the desktop");
 	check(!(await state()).nodes.some((node) => node.id === "resume"), "Restoring a child resurrected siblings");
-	await deleted("secrets").dblclick();
-	await dialog().getByRole("button", { name: "Restore", exact: true }).click();
-	check(await dialog().innerText().then((text) => text.includes("Combine")), "Existing folder merge was not confirmed");
-	await answer("Yes");
+	await deleted("secrets").click();
+	await page.keyboard.press("Alt+f");
+	await page.getByRole("menuitem", { name: "Restore", exact: true }).click();
 	await deleted("secrets").waitFor({ state: "detached" });
+	check(await parentOf("secrets") === "desktop" && await parentOf("resume") === "secrets", "The folder did not come back with its contents");
+	await minimizeAll();
+	await icon("experience").dragTo(icon("secrets"));
+	await icon("experience").waitFor({ state: "detached" });
+	check(await parentOf("experience") === "secrets", "Dragging a file onto a folder did not move it");
 
-	// Full drive settings: Cancel is inert; Apply and independent settings persist.
-	await properties();
-	await dialog().locator('input[type="range"]').focus();
-	await page.keyboard.press("Home");
-	await page.keyboard.press("ArrowRight");
-	await answer("Cancel");
-	check((await state()).settings.global.percent === 10, "Cancel applied drive settings");
-	await properties();
-	await dialog().getByRole("radio", { name: "Configure drives independently" }).check();
-	await dialog().getByRole("tab", { name: "(C:)" }).click();
-	await dialog().locator('input[type="range"]').focus();
-	await page.keyboard.press("Home");
-	for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
-	await dialog().getByRole("button", { name: "Apply", exact: true }).click();
-	await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).settings.drive.percent === 3, key);
-	await answer("OK");
-
-	const folderId = (await state()).nodes.find((node) => node.catalogId === "secrets").id;
-	await openIcon(folderId);
-	await page.clock.runFor(1500);
-	for (const id of ["resume", "experience"]) {
-		await row(id).click();
-		await page.keyboard.press("Delete");
-		await answer("Yes");
-		await row(id).waitFor({ state: "detached" });
-	}
-	check((await state()).entries.length === 1 && (await state()).entries[0].rootId === "experience", "Quota did not evict oldest entry");
-
-	// Reload keeps both permanent deletions and recoverable entries.
+	// Reload keeps recoverable entries.
+	await openIcon("secrets");
+	await row("experience").click();
+	await page.keyboard.press("Delete");
+	await answer("Yes");
+	await row("experience").waitFor({ state: "detached" });
 	await page.reload();
 	await boot();
-	check((await state()).entries[0].rootId === "experience", "Reload lost bin contents");
-	check(!(await state()).nodes.some((node) => node.id === "resume"), "Reload resurrected an evicted file");
+	check((await state()).entries[0].nodes[0].id === "experience", "Reload lost bin contents");
 	await openIcon("recycle-bin");
 	await deleted("experience.exe").click();
 	await page.keyboard.press("Delete");
@@ -218,7 +192,7 @@ async function checkRecycling(page) {
 	await page.getByRole("menuitem", { name: "Reset portfolio", exact: true }).click();
 	await answer("Yes");
 	await icon("silksong").waitFor();
-	check((await state()).nodes.length === 14 && (await state()).settings.global.percent === 10, "Reset did not restore the initial catalog/settings");
+	check((await state()).nodes.length === 14, "Reset did not restore the initial catalog");
 	// A queued taskbar-focus frame must not steal focus after typing activates Terminal.
 	await page.locator('[data-task-id="terminal"]').click();
 	await page.clock.runFor(16);
@@ -245,74 +219,57 @@ async function checkRecycling(page) {
 	check(await dialog().innerText().then((text) => text.includes("could not be found")), "Start recreated a deleted document");
 	await answer("OK");
 
-	await properties();
-	await dialog().getByRole("checkbox", { name: "Display delete confirmation dialog" }).uncheck();
-	await answer("OK");
+	// Dragging to the bin never asks; dragging out restores where it lands.
 	await minimizeAll();
-	await icon("roblox").click();
-	await page.keyboard.press("Delete");
+	await icon("roblox").dragTo(bin());
 	await icon("roblox").waitFor({ state: "detached" });
-	check(await dialog().count() === 0, "Disabled delete confirmation was ignored");
+	check(await dialog().count() === 0, "Dragging to the bin asked for confirmation");
 	await openIcon("recycle-bin");
 	await deleted("Roblox").dragTo(page.locator(".desktop"), { targetPosition: { x: 1200, y: 50 } });
 	await deleted("Roblox").waitFor({ state: "detached" });
 	check(await icon("roblox").count() === 1, "Dragging out did not restore to Desktop");
 
-	// Small viewports keep settings reachable and Details headings aligned while scrolling.
-	await page.setViewportSize({ width: 320, height: 700 });
-	await properties();
-	const bounds = await dialog().boundingBox();
-	check(bounds.x >= 0 && bounds.x + bounds.width <= 320, "Properties overflows the viewport");
-	check(Math.abs(bounds.x - (320 - bounds.width) / 2) < 2 && Math.abs(bounds.y - (700 - bounds.height) / 2) < 2, "Properties is not centered");
-	await page.screenshot({ path: "/tmp/portfolio-recycle-properties-mobile.png" });
-	await answer("Cancel");
-
-	// A failed persistent write must not publish a deletion or lose the old bin.
-	await page.setViewportSize({ width: 1440, height: 900 });
+	// A failed write keeps the change for this visit and says it was not saved.
 	await minimizeAll();
 	const beforeFailure = await state();
-	await page.evaluate(() => {
+	await page.evaluate((key) => {
 		window.originalStorageWrite = Storage.prototype.setItem;
-		Storage.prototype.setItem = function (key, value) {
-			if (key === "portfolio.shell.v2") throw new Error("Storage unavailable");
-			return window.originalStorageWrite.call(this, key, value);
+		Storage.prototype.setItem = function (name, value) {
+			if (name === key) throw new Error("Storage unavailable");
+			return window.originalStorageWrite.call(this, name, value);
 		};
-	});
+	}, key);
 	await icon("roblox").click();
 	await page.keyboard.press("Delete");
-	await dialog().waitFor();
-	check(await dialog().innerText().then((text) => text.includes("No changes")), "Storage failure was hidden");
-	check(JSON.stringify(await state()) === JSON.stringify(beforeFailure) && await icon("roblox").count() === 1, "Failed save published a deletion");
+	// The notice takes the confirmation's place in the same dialog.
+	await dialog().getByRole("button", { name: "Yes", exact: true }).click();
+	await dialog().getByText("could not be saved").waitFor();
+	check(JSON.stringify(await state()) === JSON.stringify(beforeFailure) && await icon("roblox").count() === 0, "A failed save was not kept in memory only");
 	await page.evaluate(() => { Storage.prototype.setItem = window.originalStorageWrite; });
 	await answer("OK");
 
-	// Damaged updates from another tab preserve the last good UI until explicit reset.
-	await icon("hollow-knight").click();
-	await page.keyboard.press("Delete");
-	await icon("hollow-knight").waitFor({ state: "detached" });
-	await page.evaluate((key) => {
-		localStorage.setItem(key, "damaged snapshot");
-		window.dispatchEvent(new StorageEvent("storage", { key, newValue: "damaged snapshot" }));
-	}, key);
+	// Damaged saved data starts a fresh desktop, says so, and survives until the next change.
+	await page.evaluate((key) => localStorage.setItem(key, "damaged snapshot"), key);
+	await page.reload();
+	await boot();
 	await dialog().waitFor();
-	check(await icon("hollow-knight").count() === 0 && (await bin().locator("img").getAttribute("src")).includes("full"), "Damaged update replaced the last good desktop");
-	check(await page.evaluate((key) => localStorage.getItem(key), key) === "damaged snapshot", "Damaged saved data was silently overwritten");
+	check(await dialog().innerText().then((text) => text.includes("could not be read")), "Damaged saved data was not reported");
 	await answer("OK");
-	await page.getByRole("button", { name: "Start", exact: true }).click();
-	await page.getByRole("menuitem", { name: "Reset portfolio", exact: true }).click();
-	await answer("Yes");
-	await icon("hollow-knight").waitFor();
-	check((await state()).nodes.length === 14 && (await state()).entries.length === 0, "Explicit reset did not recover damaged storage");
+	check(await icon("roblox").count() === 1 && await page.evaluate((key) => localStorage.getItem(key), key) === "damaged snapshot", "Damaged saved data was silently replaced");
+	await minimizeAll();
+	await icon("roblox").dragTo(bin());
+	await icon("roblox").waitFor({ state: "detached" });
+	check((await state()).entries.length === 1, "The next change did not replace the damaged copy");
 	check(errors.length === 0, `Browser errors: ${errors.join("; ")}`);
 	await page.clock.resume();
-	return "PASS: Win95 selection, restore, undo, folder recovery, quota settings/eviction, reload persistence, safe dragging, permanent deletion and reset";
+	return "PASS: Win95 selection, views, restore, folder recovery, moving, reload persistence, safe dragging, permanent deletion, reset and storage failures";
 }
 
 try {
 	browser("open", process.env.RECYCLE_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	console.log(browser("run-code", checkRecycling.toString()));
 } catch (error) {
-	console.log(browser("run-code", `async (page) => { await page.clock.resume(); return { active: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500)), dialogs: await page.locator('dialog').evaluateAll((elements) => elements.map((el) => el.outerHTML)), selected: await page.locator('[aria-selected="true"]').allTextContents(), state: await page.evaluate(() => localStorage.getItem('portfolio.shell.v2')) }; }`));
+	console.log(browser("run-code", `async (page) => { await page.clock.resume(); return { active: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500)), dialogs: await page.locator('dialog').evaluateAll((elements) => elements.map((el) => el.outerHTML)), selected: await page.locator('[aria-selected="true"]').allTextContents(), state: await page.evaluate(() => localStorage.getItem('portfolio.shell.v3')) }; }`));
 	throw error;
 } finally {
 	try { browser("close"); } catch { /* Preserve the original failure. */ }

@@ -5,8 +5,8 @@ export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
 const RESUME_URL = `${GITHUB_URL}/jobs/blob/main/resumes/default/Adam_Torres_Encarnacion_Resume.pdf`;
 
 const DOCUMENTS = [
-	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", href: RESUME_URL, type: "Microsoft Word Document", bytes: 768 * 1024 },
-	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application", bytes: 512 * 1024 },
+	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", href: RESUME_URL, type: "Microsoft Word Document" },
+	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application" },
 ] as const;
 
 export type DeskIcon = {
@@ -42,12 +42,10 @@ export type ShellItem = {
 	icon: string;
 	kind: "shortcut" | "folder" | "file";
 	type: string;
-	bytes: number;
 	open?: AppId;
 	href?: string;
 };
 
-/** Logical sizes belong to the simulated C: drive, not network asset sizes. */
 export const SHELL_ITEMS: readonly ShellItem[] = [
 	...DESK_ICONS.map((icon): ShellItem => {
 		const folder = icon.id === "secrets";
@@ -55,7 +53,6 @@ export const SHELL_ITEMS: readonly ShellItem[] = [
 			id: icon.id, name: icon.label, icon: icon.src,
 			kind: folder ? "folder" : "shortcut",
 			type: folder ? "File Folder" : "Shortcut",
-			bytes: folder ? 0 : 1024,
 			open: icon.open, href: icon.href,
 		};
 	}),
@@ -65,7 +62,3 @@ export const SHELL_ITEMS: readonly ShellItem[] = [
 export const ITEM_BY_ID = new Map(SHELL_ITEMS.map((item) => [item.id, item]));
 export const DESKTOP_PATH = "C:\\Windows\\Desktop";
 export const BIN_ICON = { empty: "/icons/recycle-bin-empty.png", full: "/icons/recycle-bin-full.png" };
-
-export function formatBytes(bytes: number) {
-	return bytes < 1024 ? `${bytes} bytes` : `${Math.ceil(bytes / 1024).toLocaleString("en-US")} KB`;
-}

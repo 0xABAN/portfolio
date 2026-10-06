@@ -1,144 +1,86 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import {
-	deleteNodes, driveSettings, initialShellState, moveNodes, oversizedRoots,
-	parseShellState, purgeEntries, restoreEntries, RestoreConflict, saveShellState,
-	selectedRoots, STORAGE_KEY, itemOf, type ShellState,
-} from "./state";
+import { createContext, useContext, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { deleteNodes, entryId, initialShellState, itemOf, moveNodes, parseShellState, purgeEntries, restoreEntries, selectedRoots, STORAGE_KEY, type ShellState } from "./state";
 
-export type ShellSnapshot = { state: ShellState; raw: string | null; error?: string };
-type ShellDialog =
-	| { kind: "message"; title: string; message: string; accept?: () => void }
-	| { kind: "settings"; snapshot: ShellSnapshot }
-	| { kind: "items"; nodes?: string[]; entries?: number[]; state: ShellState };
-
-type ShellDrag = { kind: "nodes"; ids: string[] } | { kind: "entries"; ids: number[] };
+type ShellDialog = { title: string; message: string; accept?: () => void };
+type ShellDrag = { kind: "nodes" | "entries"; ids: string[] };
 const DRAG_TYPE = "application/x-portfolio-shell";
 
-function loadSnapshot(): ShellSnapshot {
-	let raw: string | null = null;
+/** The saved desktop, or a fresh one and the reason when it cannot be read. */
+function loadState(): { state: ShellState; error?: string } {
 	try {
-		raw = window.localStorage.getItem(STORAGE_KEY);
-		return { raw, state: parseShellState(raw) };
+		return { state: parseShellState(window.localStorage.getItem(STORAGE_KEY)) };
 	} catch {
-		return { raw, state: initialShellState(), error: "The saved desktop could not be read. Changes are disabled until you reset the portfolio or allow browser storage. Your saved data has not been overwritten." };
+		return { state: initialShellState(), error: "The saved desktop could not be read, so the portfolio starts fresh. Your next change replaces the saved copy." };
 	}
 }
 
 function useShellController() {
-	const [snapshot, setSnapshot] = useState(loadSnapshot);
-	const current = useRef(snapshot);
-	const [dialog, setDialog] = useState<ShellDialog | null>(() => snapshot.error ? { kind: "message", title: "Desktop storage", message: snapshot.error } : null);
-	const [saving, setSaving] = useState(false);
-	const [undoIds, setUndoIds] = useState<number[]>([]);
+	const [loaded] = useState(loadState);
+	const [state, setState] = useState(loaded.state);
+	// Event handlers and delayed launches read the latest state, not the one they closed over.
+	const current = useRef(state);
+	const [dialog, setDialog] = useState<ShellDialog | null>(() => loaded.error ? { title: "Desktop storage", message: loaded.error } : null);
 	const drag = useRef<ShellDrag | null>(null);
 
-	function publish(next: ShellSnapshot) {
-		current.current = next;
-		setSnapshot(next);
-	}
-
-	useEffect(() => {
-		const refresh = (event: StorageEvent) => {
-			if (event.key !== STORAGE_KEY && event.key !== null) return;
-			const loaded = loadSnapshot();
-			// A damaged cross-tab update must not replace the last good desktop.
-			const next = loaded.error ? { ...loaded, state: current.current.state } : loaded;
-			publish(next);
-			setUndoIds([]);
-			if (next.error) setDialog({ kind: "message", title: "Desktop storage", message: next.error });
-		};
-		window.addEventListener("storage", refresh);
-		return () => window.removeEventListener("storage", refresh);
-	}, []);
-
 	function notice(message: string, title = "Recycle Bin") {
-		setDialog({ kind: "message", title, message });
+		setDialog({ title, message });
 	}
 
 	function confirm(message: string, action: () => void, title = "Confirm File Delete") {
-		setDialog({ kind: "message", title, message, accept: () => { setDialog(null); action(); } });
+		setDialog({ title, message, accept: () => { setDialog(null); action(); } });
 	}
 
-	async function commit(next: ShellState, expected: ShellSnapshot, undo?: number[], reset = false) {
-		setSaving(true);
+	function save(next: ShellState) {
+		current.current = next;
+		setState(next);
 		try {
-			if (expected.error && !reset) throw new Error(expected.error);
-			const write = () => {
-				const raw = saveShellState(window.localStorage, expected.raw, next);
-				publish({ state: next, raw });
-				if (undo) setUndoIds(undo);
-			};
-			// Serialize compare-and-write across tabs when the native Web Locks API is available.
-			if (navigator.locks) await navigator.locks.request(STORAGE_KEY, write);
-			else write();
-			return true;
-		} catch (error) {
-			const latest = loadSnapshot();
-			if (!latest.error) publish(latest);
-			notice(`${error instanceof Error ? error.message : "The desktop could not be saved."} No changes from this operation were saved.`, "Desktop storage");
-			return false;
-		} finally {
-			setSaving(false);
+			window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+		} catch {
+			notice("The desktop could not be saved, so this change lasts only until you leave the page.", "Desktop storage");
 		}
 	}
 
+	/** Commands confirm first; drags onto the bin do not. Permanent deletion always asks. */
 	function recycle(ids: readonly string[], permanent = false, source: "command" | "drag" = "command") {
-		const base = current.current;
-		const roots = selectedRoots(base.state, ids);
+		const roots = selectedRoots(current.current, ids);
 		if (!roots.length) return;
-		const bypass = permanent || driveSettings(base.state).bypass;
-		const oversized = !bypass && oversizedRoots(base.state, ids).length > 0;
 		const target = roots.length === 1 ? `"${itemOf(roots[0]).name}"` : `these ${roots.length} items`;
-		const run = () => {
-			const result = deleteNodes(base.state, ids, Date.now(), permanent, Boolean(oversized));
-			void commit(result.state, base, result.recycled);
-		};
-		if (oversized) confirm(`One or more selected items are too large for the Recycle Bin. Permanently delete those items and recycle the rest?`, run);
-		else if (bypass) confirm(`Are you sure you want to permanently delete ${target}?`, run);
-		else if (base.state.settings.confirm && source === "command") confirm(`Are you sure you want to send ${target} to the Recycle Bin?`, run);
+		const run = () => save(deleteNodes(current.current, ids, Date.now(), permanent));
+		if (permanent) confirm(`Are you sure you want to permanently delete ${target}?`, run);
+		else if (source === "command") confirm(`Are you sure you want to send ${target} to the Recycle Bin?`, run);
 		else run();
 	}
 
-	function purge(ids: readonly number[], empty = false) {
-		const base = current.current;
-		const selected = base.state.entries.filter((entry) => ids.includes(entry.id));
-		if (!selected.length) return;
-		confirm(`Are you sure you want to permanently delete ${selected.length === 1 ? "this item" : `these ${selected.length} items`}?`, () => {
-			void commit(purgeEntries(base.state, ids), base);
-		}, empty ? "Confirm Multiple File Delete" : "Confirm File Delete");
+	function purge(ids: readonly string[], title?: string) {
+		const count = current.current.entries.filter((entry) => ids.includes(entryId(entry))).length;
+		if (!count) return;
+		confirm(`Are you sure you want to permanently delete ${count === 1 ? "this item" : `these ${count} items`}?`, () => {
+			save(purgeEntries(current.current, ids));
+		}, title);
 	}
 
-	function restore(ids: readonly number[], destination?: string) {
-		const base = current.current;
-		const attempt = (merge = false) => {
-			try {
-				const next = restoreEntries(base.state, ids, destination, merge);
-				const recreated = next.nodes.some((node) => node.id.startsWith("restored-") && !base.state.nodes.some((old) => old.id === node.id));
-				if (recreated) confirm("The original folder no longer exists. Do you want to recreate it?", () => { void commit(next, base); }, "Restore File");
-				else void commit(next, base);
-			} catch (error) {
-				if (error instanceof RestoreConflict && error.folder) confirm(error.message, () => attempt(true), "Confirm Folder Replace");
-				else notice(error instanceof Error ? error.message : "The item could not be restored.");
-			}
-		};
-		attempt();
+	function restore(ids: readonly string[], destination?: string) {
+		save(restoreEntries(current.current, ids, destination));
 	}
 
 	function move(ids: readonly string[], destination: string) {
-		const base = current.current;
-		try { void commit(moveNodes(base.state, ids, destination), base); }
-		catch (error) { notice(error instanceof Error ? error.message : "The item could not be moved."); }
+		try {
+			save(moveNodes(current.current, ids, destination));
+		} catch (error) {
+			notice(error instanceof Error ? error.message : "The item could not be moved.");
+		}
 	}
 
 	function startDrag(event: DragEvent, payload: ShellDrag) {
 		drag.current = payload;
 		event.dataTransfer.setData(DRAG_TYPE, JSON.stringify(payload));
-		event.dataTransfer.setData("text/plain", String(payload.ids[0] ?? ""));
+		event.dataTransfer.setData("text/plain", payload.ids[0] ?? "");
 		event.dataTransfer.effectAllowed = "move";
 	}
 
+	/** Only this page's own drags drop; deleted items can leave the bin but not re-enter it. */
 	function canDrop(event: DragEvent, destination: string) {
 		return Boolean(drag.current && event.dataTransfer.types.includes(DRAG_TYPE) && (destination !== "bin" || drag.current.kind === "nodes"));
 	}
@@ -155,15 +97,11 @@ function useShellController() {
 	}
 
 	return {
-		state: snapshot.state, dialog, saving, closeDialog: () => setDialog(null),
-		getSnapshot: () => current.current, commit, notice, recycle, purge, restore, move,
-		canUndo: undoIds.some((id) => snapshot.state.entries.some((entry) => entry.id === id)),
-		undo: () => restore(undoIds),
-		empty: () => purge(current.current.state.entries.map((entry) => entry.id), true),
-		properties: () => setDialog({ kind: "settings", snapshot: current.current }),
-		itemProperties: (nodes?: string[], entries?: number[]) => setDialog({ kind: "items", nodes, entries, state: current.current.state }),
-		reset: () => confirm("Reset all portfolio files and Recycle Bin settings? This brings back permanently deleted items. Your icon arrangement will be kept.", () => {
-			void commit(initialShellState(), current.current, [], true);
+		state, dialog, closeDialog: () => setDialog(null),
+		getState: () => current.current, notice, recycle, purge, restore,
+		empty: () => purge(current.current.entries.map(entryId), "Confirm Multiple File Delete"),
+		reset: () => confirm("Reset all portfolio files? This brings back permanently deleted items. Your icon arrangement will be kept.", () => {
+			save(initialShellState());
 		}, "Reset portfolio"),
 		startDrag, endDrag: () => { drag.current = null; }, canDrop, drop,
 	};

@@ -1,4 +1,4 @@
-.recycle-bin { --bin-columns: 150px 200px 165px 110px 80px; }
+.recycle-bin { --bin-columns: 150px 200px 165px 110px; }
 .recycle-bin__columns { display: grid; grid-template-columns: var(--bin-columns); flex: none; overflow: hidden; }
 .recycle-bin__columns button { padding: 2px 5px; background: var(--chrome-btn); color: inherit; font: inherit; text-align: left; white-space: nowrap; }
 .recycle-bin__list--details { padding: 0; }

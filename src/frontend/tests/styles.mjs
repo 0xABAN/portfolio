@@ -144,8 +144,10 @@ try {
         await page.locator('#desktop-window-recycle-bin .win-min[aria-label="Minimize"]').click();
         await page.locator('[data-recycle-bin]').click({ button: 'right' });
         await capture('context-menu', '.shell-menu:popover-open');
-        await page.getByRole('menuitem', { name: 'Properties', exact: true }).click();
-        await capture('properties', '.shell-dialog[open]');
+        await page.keyboard.press('Escape');
+        await page.locator('[data-icon-id="roblox"]').click({ button: 'right' });
+        await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
+        await capture('confirm-dialog', '.shell-dialog[open]');
       }
     }
     assert.deepEqual(errors, [], `${name}: browser errors`);

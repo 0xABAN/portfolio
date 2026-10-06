@@ -1,141 +1,69 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-	capacity, entryBytes, deleteNodes, DRIVE_BYTES, initialShellState, moveNodes,
-	nodeBytes, originalLocation, oversizedRoots, parseShellState, purgeEntries,
-	restoreEntries, RestoreConflict, saveShellState, STORAGE_KEY,
-} from "@/components/desktop/files/state";
+import { deleteNodes, entryId, initialShellState, moveNodes, parseShellState, purgeEntries, restoreEntries, type ShellState } from "@/components/desktop/files/state";
 
-const remove = (state = initialShellState(), ids = ["experience"], now = 1000) => deleteNodes(state, ids, now).state;
+const remove = (state = initialShellState(), ids = ["experience"], now = 1000) => deleteNodes(state, ids, now);
+const parentOf = (state: ShellState, id: string) => state.nodes.find((node) => node.id === id)?.parentId;
 
-test("delete, hydrate, restore and permanent delete retain exact item identity", () => {
+test("delete, save, restore and permanent delete keep each item's identity", () => {
 	const initial = initialShellState();
 	const deleted = remove(initial);
-	assert.ok(initial.nodes.some((node) => node.id === "experience"));
 	assert.ok(!deleted.nodes.some((node) => node.id === "experience"));
-	assert.equal(originalLocation(deleted.entries[0]), "C:\\Windows\\Desktop\\secrets");
-	assert.equal(entryBytes(deleted.entries), 512 * 1024);
-	const restored = restoreEntries(parseShellState(JSON.stringify(deleted)), [1]);
-	assert.deepEqual(restored.nodes.find((node) => node.id === "experience"), initial.nodes.find((node) => node.id === "experience"));
-	assert.equal(restored.entries.length, 0);
-	const purged = parseShellState(JSON.stringify(purgeEntries(deleted, [1])));
+	assert.deepEqual(deleted.entries.map(entryId), ["experience"]);
+	assert.equal(deleted.entries[0].location, "C:\\Windows\\Desktop\\secrets");
+
+	const restored = restoreEntries(parseShellState(JSON.stringify(deleted)), ["experience"]);
+	assert.deepEqual(restored, initial);
+
+	const purged = parseShellState(JSON.stringify(purgeEntries(deleted, ["experience"])));
 	assert.ok(!purged.nodes.some((node) => node.id === "experience"));
-	assert.equal(restoreEntries(purged, [1]).nodes.length, purged.nodes.length);
+	assert.equal(purged.entries.length, 0);
+	assert.deepEqual(restoreEntries(purged, ["experience"]), purged);
 });
 
-test("folder deletion is one entry and never includes independently deleted children", () => {
-	const first = remove();
-	const state = remove(first, ["secrets", "resume", "secrets", "bogus", "recycle-bin"], 2000);
-	assert.equal(state.entries.length, 2);
-	assert.deepEqual(state.entries[1].nodes.map((node) => node.id), ["secrets", "resume"]);
-	const restored = restoreEntries(state, [2]);
-	assert.ok(restored.nodes.some((node) => node.id === "secrets"));
-	assert.ok(!restored.nodes.some((node) => node.id === "experience"));
-	assert.equal(restored.entries[0].rootId, "experience");
-	assert.deepEqual(deleteNodes(state, ["experience", "unknown"], 3000).state, state);
+test("a folder is one entry and never includes separately deleted children", () => {
+	const state = remove(remove(), ["secrets", "resume", "secrets", "bogus", "recycle-bin"], 2000);
+	assert.deepEqual(state.entries.map((entry) => entry.nodes.map((node) => node.id)), [["experience"], ["secrets", "resume"]]);
+	assert.deepEqual(remove(state, ["experience", "unknown"], 3000), state);
 });
 
-test("restoring a child recreates only its missing parent; original folder can subsequently merge", () => {
+test("restoring a child whose folder is gone puts it on the desktop", () => {
 	const state = remove(remove(), ["secrets"], 2000);
-	const child = restoreEntries(state, [1]);
-	const parent = child.nodes.find((node) => node.catalogId === "secrets")!;
-	assert.match(parent.id, /^restored-/);
-	assert.equal(child.nodes.find((node) => node.id === "experience")?.parentId, parent.id);
+	const child = restoreEntries(state, ["experience"]);
+	assert.equal(parentOf(child, "experience"), "desktop");
 	assert.ok(!child.nodes.some((node) => node.id === "resume"));
-	assert.throws(() => restoreEntries(child, [2]), RestoreConflict);
-	const merged = restoreEntries(child, [2], undefined, true);
-	assert.equal(merged.nodes.filter((node) => node.catalogId === "secrets").length, 1);
-	assert.ok(merged.nodes.filter((node) => ["resume", "experience"].includes(node.id)).every((node) => node.parentId === parent.id));
-	assert.deepEqual(parseShellState(JSON.stringify(merged)), merged);
 });
 
-test("restoring a whole selection restores parents before their separately deleted children", () => {
-	const state = remove(remove(), ["secrets"], 2000);
-	const restored = restoreEntries(state, [1, 2]);
+test("restoring a folder with its separately deleted child puts the child back inside", () => {
+	const restored = restoreEntries(remove(remove(), ["secrets"], 2000), ["experience", "secrets"]);
 	assert.equal(restored.entries.length, 0);
-	assert.equal(restored.nodes.find((node) => node.id === "experience")?.parentId, "secrets");
+	assert.equal(parentOf(restored, "experience"), "secrets");
 	assert.equal(restored.nodes.length, initialShellState().nodes.length);
 });
 
-test("drag-out uses chosen destination and folders cannot move into descendants", () => {
-	const state = restoreEntries(remove(), [1], "desktop");
-	assert.equal(state.nodes.find((node) => node.id === "experience")?.parentId, "desktop");
-	assert.equal(moveNodes(state, ["experience"], "secrets").nodes.find((node) => node.id === "experience")?.parentId, "secrets");
+test("drag-out uses the chosen destination and folders cannot move into themselves", () => {
+	const state = restoreEntries(remove(), ["experience"], "desktop");
+	assert.equal(parentOf(state, "experience"), "desktop");
+	assert.equal(parentOf(moveNodes(state, ["experience"], "secrets"), "experience"), "secrets");
 	assert.throws(() => moveNodes(state, ["secrets"], "secrets"), /itself/);
-	assert.throws(() => restoreEntries(remove(), [1], "missing"), /no longer exists/);
 });
 
-test("permanent deletion, bypass and emptying do not resurrect or free space on restore", () => {
-	let state = initialShellState();
-	const used = nodeBytes(state.nodes);
-	state = remove(state);
-	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used);
-	state = purgeEntries(state, [1]);
-	assert.equal(nodeBytes(state.nodes) + entryBytes(state.entries), used - 512 * 1024);
-	state.settings.global.bypass = true;
-	assert.equal(remove(state, ["resume"]).entries.length, 0);
-	assert.equal(deleteNodes(initialShellState(), ["secrets"], 1000, true).state.entries.length, 0);
-});
-
-test("capacity evicts oldest entries on insertion and refuses oversized items without consent", () => {
-	let state = initialShellState();
-	assert.equal(capacity(state), Math.floor(DRIVE_BYTES / 10));
-	state.settings.global.percent = 3;
-	state = remove(state, ["resume"]);
-	state = remove(state, ["experience"], 2000);
-	assert.deepEqual(state.entries.map((entry) => entry.rootId), ["experience"]);
-	assert.equal(restoreEntries(state, [1]).nodes.length, state.nodes.length);
-	state.settings.global.percent = 1;
-	assert.equal(oversizedRoots(state, ["secrets"]).length, 0); // secrets is now empty.
-	const small = initialShellState();
-	small.settings.global.percent = 2; // Fits experience.exe but not resume.doc.
-	assert.throws(() => remove(small, ["resume"]), /too large/);
-	const consented = deleteNodes(small, ["resume", "experience"], 3000, false, true);
-	assert.deepEqual(consented.state.entries.map((entry) => entry.rootId), ["experience"]);
-	assert.ok(!consented.state.nodes.some((node) => node.id === "resume"));
-});
-
-test("zero capacity and independent drive settings are functional, including empty folders", () => {
-	let state = deleteNodes(initialShellState(), ["resume", "experience"], 1000, true).state;
-	state.settings.independent = true;
-	state.settings.drive.percent = 0;
-	assert.equal(capacity(state), 0);
-	assert.throws(() => remove(state, ["secrets"]), /too large/);
-	state = deleteNodes(state, ["secrets"], 2000, false, true).state;
+test("permanent deletion leaves nothing to restore", () => {
+	const state = deleteNodes(initialShellState(), ["secrets"], 1000, true);
 	assert.equal(state.entries.length, 0);
-	assert.ok(!state.nodes.some((node) => node.id === "secrets"));
+	assert.ok(!state.nodes.some((node) => ["secrets", "resume", "experience"].includes(node.id)));
 });
 
-test("hydration rejects damaged graphs, duplicate records and untrusted catalog entries", () => {
-	assert.equal(parseShellState(null).nodes.length, initialShellState().nodes.length);
+test("loading rejects damaged data and items the catalog no longer has", () => {
+	assert.deepEqual(parseShellState(null), initialShellState());
+	assert.throws(() => parseShellState("{"));
 	for (const mutate of [
-		(s: ReturnType<typeof initialShellState>) => { s.version = 9 as 1; },
-		(s: ReturnType<typeof initialShellState>) => { s.nodes[0].catalogId = "javascript:alert(1)"; },
-		(s: ReturnType<typeof initialShellState>) => { s.nodes.push(s.nodes[0]); },
-		(s: ReturnType<typeof initialShellState>) => { s.nodes.find((node) => node.id === "secrets")!.parentId = "secrets"; },
-		(s: ReturnType<typeof initialShellState>) => { s.settings.drive.percent = -1; },
-		(s: ReturnType<typeof initialShellState>) => { s.nodes[0].parentId = "missing"; },
+		(s: ShellState) => { s.nodes[0].id = "javascript:alert(1)"; },
+		(s: ShellState) => { (s as Partial<ShellState>).entries = undefined; },
+		(s: ShellState) => { s.entries.push({ nodes: [], location: "", deletedAt: 0 }); },
 	]) {
 		const state = initialShellState();
 		mutate(state);
 		assert.throws(() => parseShellState(JSON.stringify(state)));
 	}
-	const state = remove();
-	state.entries[0].rootId = "bogus";
-	assert.throws(() => parseShellState(JSON.stringify(state)));
-});
-
-test("persistence refuses stale writes and propagates storage failures before publication", () => {
-	let raw: string | null = null;
-	const storage = {
-		getItem(key: string) { assert.equal(key, STORAGE_KEY); return raw; },
-		setItem(key: string, value: string) { assert.equal(key, STORAGE_KEY); raw = value; },
-	};
-	const next = remove();
-	const saved = saveShellState(storage, null, next);
-	assert.deepEqual(parseShellState(saved), next);
-	assert.throws(() => saveShellState(storage, null, initialShellState()), /another tab/);
-	assert.equal(raw, saved);
-	assert.throws(() => saveShellState({ ...storage, setItem() { throw new Error("quota"); } }, saved, initialShellState()), /quota/);
-	assert.equal(raw, saved);
 });

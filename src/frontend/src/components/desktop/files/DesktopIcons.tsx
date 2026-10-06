@@ -8,7 +8,7 @@ import { itemOf, type ShellNode } from "./state";
 import { useDesktopSelection } from "./useDesktopSelection";
 import { TASKBAR_H } from "../window/layout";
 
-type DeskIcon = CatalogIcon & { catalogId: string; recycle?: boolean };
+type DeskIcon = CatalogIcon & { recycle?: boolean };
 type DeskIconPosition = { col: number; row: number };
 type DeskIconPositions = Record<string, DeskIconPosition>;
 
@@ -22,7 +22,6 @@ type Props = {
 
 const RECYCLE_BIN: DeskIcon = {
 	id: "recycle-bin",
-	catalogId: "recycle-bin",
 	label: "Recycle Bin",
 	src: BIN_ICON.empty,
 	recycle: true,
@@ -39,12 +38,12 @@ const ATTENTION_DELAY_MS = 1000;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	const order = (node: ShellNode) => {
-		const index = FILE_ICONS.findIndex((icon) => icon.id === node.catalogId);
+		const index = FILE_ICONS.findIndex((icon) => icon.id === node.id);
 		return index < 0 ? FILE_ICONS.length : index;
 	};
 	return [...nodes.filter((node) => node.parentId === "desktop").sort((a, b) => order(a) - order(b)).map((node) => {
 		const item = itemOf(node);
-		return { id: node.id, catalogId: node.catalogId, label: item.name, src: item.icon, open: item.open, href: item.href };
+		return { id: node.id, label: item.name, src: item.icon, open: item.open, href: item.href };
 	}), RECYCLE_BIN];
 }
 
@@ -75,7 +74,7 @@ function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: 
 
 	for (const [index, icon] of icons.entries()) {
 		const fallback = { col: Math.floor(index / rows), row: index % rows };
-		const source = current[icon.id] ?? current[icon.catalogId] ?? fallback;
+		const source = current[icon.id] ?? fallback;
 		const startCol = Math.min(Math.max(source.col, 0), cols - 1);
 		const startRow = Math.min(Math.max(source.row, 0), rows - 1);
 		let cell = startRow * cols + startCol;
@@ -113,7 +112,7 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 
 export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
 	const shell = useShell();
-	const { getSnapshot } = shell;
+	const { getState } = shell;
 	const [deskIconPositions, setDeskIconPositions] = useState(() =>
 		defaultDeskIconPositions(window.innerWidth, window.innerHeight),
 	);
@@ -132,26 +131,25 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 			const { innerWidth: width, innerHeight: height } = window;
 			setDeskIconPositions((current) => ({
 				...current,
-				...normalizeDeskIconPositions(current, width, height, shellDeskIcons(getSnapshot().state.nodes)),
+				...normalizeDeskIconPositions(current, width, height, shellDeskIcons(getState().nodes)),
 			}));
 		};
 		window.addEventListener("resize", resize);
 		return () => window.removeEventListener("resize", resize);
-	}, [getSnapshot]);
+	}, [getState]);
 
-	const hasNotification = (id: string) =>
-		shell.state.nodes.find((node) => node.id === id)?.catalogId === "secrets" && !secretsOpened;
+	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
 	const bounceSecrets = attention && !secretsOpened && !explorerOpen;
 	const deskIcons = shellDeskIcons(shell.state.nodes);
 	// Icons the desktop starts with wait for the boot reveal; moved and restored items do not.
 	const visibleDeskIcons = deskIcons.filter((icon) =>
-		!DESK_ICONS.some((original) => original.id === icon.catalogId) || revealed.has(icon.catalogId),
+		!DESK_ICONS.some((original) => original.id === icon.id) || revealed.has(icon.id),
 	);
 	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
 
 	function markDeskIconInteraction(icon: DeskIcon) {
-		if (!secretsOpened && icon.catalogId === "secrets") onSecretsOpenedAction();
+		if (!secretsOpened && icon.id === "secrets") onSecretsOpenedAction();
 	}
 
 	function swapDeskIcons(sourceId: string, targetId: string) {
@@ -229,7 +227,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 							type="button"
 							className={[
 								"desk-icon shell-desktop-item",
-								icon.catalogId === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
+								icon.id === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
 								icon.recycle && binHot ? "desk-icon--drop-hot" : "",
 								draggingId === icon.id ? "desk-icon--dragging" : "",
 							].filter(Boolean).join(" ")}

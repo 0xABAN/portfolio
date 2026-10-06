@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import "./controls.css";
 
 /** One selection contract for Desktop, Explorer and the Recycle Bin. */
@@ -162,29 +162,4 @@ export function menuShortcut(event: KeyboardEvent<HTMLElement>) {
 	event.preventDefault();
 	button.click();
 	return true;
-}
-
-export function ShellDialogFrame({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-	const ref = useRef<HTMLDialogElement>(null);
-	const titleId = useId();
-	useEffect(() => {
-		const dialog = ref.current!;
-		const previous = document.activeElement as HTMLElement | null;
-		const surface = previous?.closest<HTMLElement>("[data-shell-surface]");
-		dialog.showModal();
-		return () => {
-			dialog.close();
-			// React removes the dialog before passive cleanup; native focus restoration
-			// alone would leave keyboard users on <body> after Cancel.
-			const target = previous?.isConnected ? previous : surface?.querySelector<HTMLElement>("[data-shell-item]");
-			target?.focus({ preventScroll: true });
-		};
-	}, []);
-	return <dialog ref={ref} className="shell-dialog chrome-raised" aria-labelledby={titleId} data-shell-surface=""
-		onCancel={(event) => { event.preventDefault(); onClose(); }}>
-		<header className="win-titlebar"><span id={titleId} className="win-titlebar__text">{title}</span>
-			<button type="button" className="win-min win-close chrome-raised" aria-label={`Close ${title}`} onClick={onClose}>×</button>
-		</header>
-		{children}
-	</dialog>;
 }

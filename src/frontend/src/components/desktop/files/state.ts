@@ -1,96 +1,41 @@
 import { DESKTOP_PATH, ITEM_BY_ID, SHELL_ITEMS, type ShellItem } from "./catalog";
 
 /**
- * Bump when a catalog item is retired: hydration rejects unknown catalog IDs,
- * so older saved desktops would otherwise fail to load.
+ * Bump when a catalog item is retired or the saved shape changes: loading
+ * rejects unknown catalog IDs, so older saved desktops would fail to load.
  */
-export const STORAGE_KEY = "portfolio.shell.v2";
-export const DRIVE_BYTES = 32 * 1024 * 1024;
-export const SYSTEM_BYTES = 8 * 1024 * 1024;
+export const STORAGE_KEY = "portfolio.shell.v3";
 
-/** Instance identity is separate from content: restoring a missing parent creates a new folder. */
-export type ShellNode = { id: string; catalogId: string; parentId: string };
-export type RecycledEntry = {
-	id: number;
-	rootId: string;
-	nodes: ShellNode[];
-	/** Original parent chain, from Desktop down, survives deletion of those folders. */
-	ancestors: ShellNode[];
-	deletedAt: number;
-};
-type DriveSettings = { percent: number; bypass: boolean };
-export type BinSettings = {
-	independent: boolean;
-	confirm: boolean;
-	global: DriveSettings;
-	drive: DriveSettings;
-};
-export type ShellState = {
-	version: 1;
-	nextId: number;
-	nodes: ShellNode[];
-	entries: RecycledEntry[];
-	settings: BinSettings;
-};
+/**
+ * A catalog item and the folder it sits in. Each item exists once: on the
+ * desktop, in a folder, or in the Recycle Bin. Its id is its catalog id.
+ */
+export type ShellNode = { id: string; parentId: string };
+
+/** A deleted item and everything inside it, root first. Its id is the root's. */
+export type RecycledEntry = { nodes: ShellNode[]; location: string; deletedAt: number };
+
+export type ShellState = { nodes: ShellNode[]; entries: RecycledEntry[] };
 
 export function initialShellState(): ShellState {
 	return {
-		version: 1, nextId: 1,
 		// Documents start inside the secrets folder; everything else sits on the desktop.
-		nodes: SHELL_ITEMS.map((item) => ({ id: item.id, catalogId: item.id, parentId: item.kind === "file" ? "secrets" : "desktop" })),
+		nodes: SHELL_ITEMS.map((item) => ({ id: item.id, parentId: item.kind === "file" ? "secrets" : "desktop" })),
 		entries: [],
-		settings: { independent: false, confirm: true, global: { percent: 10, bypass: false }, drive: { percent: 10, bypass: false } },
 	};
 }
 
 export function itemOf(node: ShellNode): ShellItem {
-	return ITEM_BY_ID.get(node.catalogId)!;
+	return ITEM_BY_ID.get(node.id)!;
 }
 
-export function driveSettings(state: ShellState) {
-	return state.settings.independent ? state.settings.drive : state.settings.global;
-}
-
-/** Bytes of C: the Recycle Bin may use at this percentage. */
-export function reservedBytes(percent: number) {
-	return Math.floor(DRIVE_BYTES * percent / 100);
-}
-
-export function capacity(state: ShellState) {
-	return reservedBytes(driveSettings(state).percent);
-}
-
-export function nodeBytes(nodes: readonly ShellNode[]) {
-	return nodes.reduce((total, node) => total + itemOf(node).bytes, 0);
-}
-
-export function entryBytes(entries: readonly RecycledEntry[]) {
-	return entries.reduce((total, entry) => total + nodeBytes(entry.nodes), 0);
-}
-
-export function entryRoot(entry: RecycledEntry) {
-	return entry.nodes.find((node) => node.id === entry.rootId)!;
+export function entryId(entry: RecycledEntry) {
+	return entry.nodes[0].id;
 }
 
 /** The Windows path of a folder chain, from Desktop down. */
 export function shellPath(folders: readonly ShellNode[]) {
 	return [DESKTOP_PATH, ...folders.map((node) => itemOf(node).name)].join("\\");
-}
-
-export function originalLocation(entry: RecycledEntry) {
-	return shellPath(entry.ancestors);
-}
-
-/** Windows file names are case-insensitive. */
-function sameName(a: ShellNode, b: ShellNode) {
-	return itemOf(a).name.toLowerCase() === itemOf(b).name.toLowerCase();
-}
-
-/** Mutations re-check their destination: it may have been deleted while a dialog was open. */
-function assertFolder(nodes: readonly ShellNode[], id: string) {
-	if (id !== "desktop" && !nodes.some((node) => node.id === id && itemOf(node).kind === "folder")) {
-		throw new Error("The destination folder no longer exists.");
-	}
 }
 
 export function ancestorsOf(nodes: readonly ShellNode[], node: ShellNode): ShellNode[] {
@@ -103,169 +48,66 @@ export function ancestorsOf(nodes: readonly ShellNode[], node: ShellNode): Shell
 	return ancestors;
 }
 
-export function subtree(nodes: readonly ShellNode[], id: string) {
-	return nodes.filter((node) => node.id === id || ancestorsOf(nodes, node).some((parent) => parent.id === id));
+/** A node and everything inside it, the node first. */
+function subtree(nodes: readonly ShellNode[], root: ShellNode) {
+	return [root, ...nodes.filter((node) => ancestorsOf(nodes, node).includes(root))];
 }
 
-/** Parent selections absorb their descendants; invalid/system IDs never reach a mutation. */
+/** Parent selections absorb their descendants; unknown IDs are ignored. */
 export function selectedRoots(state: ShellState, ids: readonly string[]) {
 	const selected = new Set(ids);
 	return state.nodes.filter((node) => selected.has(node.id) && !ancestorsOf(state.nodes, node).some((parent) => selected.has(parent.id)));
 }
 
-export function oversizedRoots(state: ShellState, ids: readonly string[]) {
-	return selectedRoots(state, ids).filter((node) => capacity(state) === 0 || nodeBytes(subtree(state.nodes, node.id)) > capacity(state));
-}
-
-/** Compute the whole operation first. Callers persist it before publishing any UI changes. */
-export function deleteNodes(state: ShellState, ids: readonly string[], now: number, permanent = false, allowOversize = false): { state: ShellState; recycled: number[] } {
-	const roots = selectedRoots(state, ids);
-	if (!roots.length) return { state, recycled: [] };
-	const bypass = permanent || driveSettings(state).bypass;
-	const oversized = new Set(oversizedRoots(state, ids).map((node) => node.id));
-	if (!bypass && oversized.size && !allowOversize) throw new Error("An item is too large for the Recycle Bin.");
-
-	let nextId = state.nextId;
-	const entries = [...state.entries];
-	const removed = new Set<string>();
-	const recycled: number[] = [];
-	for (const root of roots) {
-		const nodes = subtree(state.nodes, root.id);
-		nodes.forEach((node) => removed.add(node.id));
-		if (bypass || oversized.has(root.id)) continue;
-		const entry = { id: nextId++, rootId: root.id, nodes, ancestors: ancestorsOf(state.nodes, root), deletedAt: now };
-		entries.push(entry);
-		recycled.push(entry.id);
-
-		// Win95 makes room when recycling new items, not when changing the slider.
-		entries.sort((a, b) => a.deletedAt - b.deletedAt || a.id - b.id);
-		let bytes = entryBytes(entries);
-		while (bytes > capacity(state) && entries.length) bytes -= nodeBytes(entries.shift()!.nodes);
-	}
+/** Moves the selection to the Recycle Bin, or deletes it outright when `permanent`. */
+export function deleteNodes(state: ShellState, ids: readonly string[], now: number, permanent = false): ShellState {
+	const entries = selectedRoots(state, ids).map((root) => ({
+		nodes: subtree(state.nodes, root),
+		location: shellPath(ancestorsOf(state.nodes, root)),
+		deletedAt: now,
+	}));
+	const removed = new Set(entries.flatMap((entry) => entry.nodes.map((node) => node.id)));
 	return {
-		state: { ...state, nextId, nodes: state.nodes.filter((node) => !removed.has(node.id)), entries },
-		recycled: recycled.filter((id) => entries.some((entry) => entry.id === id)),
+		nodes: state.nodes.filter((node) => !removed.has(node.id)),
+		entries: permanent ? state.entries : [...state.entries, ...entries],
 	};
 }
 
-export function purgeEntries(state: ShellState, ids: readonly number[]) {
-	const selected = new Set(ids);
-	return { ...state, entries: state.entries.filter((entry) => !selected.has(entry.id)) };
+export function purgeEntries(state: ShellState, ids: readonly string[]): ShellState {
+	return { ...state, entries: state.entries.filter((entry) => !ids.includes(entryId(entry))) };
 }
 
-export class RestoreConflict extends Error {
-	constructor(public readonly folder: boolean, name: string) {
-		super(`A ${folder ? "folder" : "file"} named "${name}" already exists in this location.${folder ? " Combine the folders?" : " Restore to another folder instead."}`);
-	}
-}
-
-/** Restoring a missing parent recreates only its directory, never its deleted siblings. */
-export function restoreEntries(state: ShellState, ids: readonly number[], destination?: string, mergeFolders = false): ShellState {
-	const entries = state.entries.filter((entry) => ids.includes(entry.id))
-		.sort((a, b) => a.ancestors.length - b.ancestors.length);
-	if (!entries.length) return state;
-	const nodes = [...state.nodes];
-	let nextId = state.nextId;
-	if (destination) assertFolder(nodes, destination);
-	const namesake = (node: ShellNode, parentId: string) => nodes.find((other) => other.parentId === parentId && sameName(other, node));
-
-	for (const entry of entries) {
-		let parentId = destination ?? "desktop";
-		if (!destination) {
-			for (const ancestor of entry.ancestors) {
-				const existing = namesake(ancestor, parentId);
-				if (existing && itemOf(existing).kind !== "folder") throw new RestoreConflict(false, itemOf(existing).name);
-				if (existing) parentId = existing.id;
-				else {
-					const recreated = { ...ancestor, id: `restored-${nextId++}`, parentId };
-					nodes.push(recreated);
-					parentId = recreated.id;
-				}
-			}
-		}
-
-		const addTree = (source: ShellNode, targetParent: string) => {
-			const existing = namesake(source, targetParent);
-			const folder = itemOf(source).kind === "folder";
-			if (existing && (!folder || itemOf(existing).kind !== "folder" || !mergeFolders)) throw new RestoreConflict(folder && itemOf(existing).kind === "folder", itemOf(source).name);
-			const restored = existing ?? { ...source, parentId: targetParent };
-			if (!existing) nodes.push(restored);
-			for (const child of entry.nodes.filter((node) => node.parentId === source.id)) addTree(child, restored.id);
-		};
-		addTree(entryRoot(entry), parentId);
-	}
-	return { ...purgeEntries(state, ids), nextId, nodes };
+/**
+ * Restores entries into `destination`, or else into their original folder,
+ * or onto the desktop if that folder is gone. Folders restored together
+ * count as present, so a file returns into its folder from the same batch.
+ */
+export function restoreEntries(state: ShellState, ids: readonly string[], destination?: string): ShellState {
+	const restored = state.entries.filter((entry) => ids.includes(entryId(entry)));
+	const roots = new Set(restored.map(entryId));
+	const nodes = restored.flatMap((entry) => entry.nodes);
+	const present = new Set(["desktop", ...state.nodes.map((node) => node.id), ...nodes.map((node) => node.id)]);
+	const place = (node: ShellNode) => roots.has(node.id)
+		? { ...node, parentId: destination ?? (present.has(node.parentId) ? node.parentId : "desktop") }
+		: node;
+	return { nodes: [...state.nodes, ...nodes.map(place)], entries: purgeEntries(state, ids).entries };
 }
 
 export function moveNodes(state: ShellState, ids: readonly string[], destination: string): ShellState {
-	assertFolder(state.nodes, destination);
 	const roots = selectedRoots(state, ids);
-	for (const root of roots) {
-		if (subtree(state.nodes, root.id).some((node) => node.id === destination)) throw new Error("A folder cannot be moved into itself.");
-		if (state.nodes.some((other) => other.id !== root.id && other.parentId === destination && sameName(other, root))) throw new Error(`"${itemOf(root).name}" already exists in this location.`);
+	if (roots.some((root) => subtree(state.nodes, root).some((node) => node.id === destination))) {
+		throw new Error("A folder cannot be moved into itself.");
 	}
-	const selected = new Set(roots.map((node) => node.id));
-	return { ...state, nodes: state.nodes.map((node) => selected.has(node.id) ? { ...node, parentId: destination } : node) };
+	return { ...state, nodes: state.nodes.map((node) => roots.includes(node) ? { ...node, parentId: destination } : node) };
 }
 
-/** Strict hydration: never execute stored URLs or silently replace a damaged desktop. */
+/** Reads a saved desktop. Throws if it is damaged or names items the catalog no longer has. */
 export function parseShellState(raw: string | null): ShellState {
 	if (raw === null) return initialShellState();
-	if (raw.length > 256_000) throw new Error("The saved desktop is too large.");
 	const state = JSON.parse(raw) as ShellState;
-	const fail = () => { throw new Error("The saved desktop could not be read. Reset the portfolio to start again."); };
-	if (!state || state.version !== 1 || !Number.isSafeInteger(state.nextId) || state.nextId < 1 || !Array.isArray(state.nodes) || !Array.isArray(state.entries)) return fail();
-	const settings = state.settings;
-	if (!settings || typeof settings.confirm !== "boolean" || typeof settings.independent !== "boolean") return fail();
-	for (const drive of [settings.global, settings.drive]) {
-		if (!drive || typeof drive.bypass !== "boolean" || !Number.isInteger(drive.percent) || drive.percent < 0 || drive.percent > 100) return fail();
-	}
-	const validNode = (node: ShellNode) => node && typeof node.id === "string" && typeof node.parentId === "string" && ITEM_BY_ID.has(node.catalogId) && (node.id === node.catalogId || (itemOf(node).kind === "folder" && /^restored-\d+$/.test(node.id) && Number(node.id.slice(9)) < state.nextId));
-	const seenIds = new Set<string>();
-	const leaves = new Set<string>();
-	const checkTree = (nodes: ShellNode[], externalParent: string) => {
-		if (nodes.length > 1000 || !nodes.every(validNode)) return fail();
-		for (const node of nodes) {
-			if (seenIds.has(node.id)) return fail();
-			seenIds.add(node.id);
-			if (itemOf(node).kind !== "folder") {
-				if (leaves.has(node.catalogId)) return fail();
-				leaves.add(node.catalogId);
-			}
-			const visited = new Set([node.id]);
-			let parentId = node.parentId;
-			while (parentId !== externalParent) {
-				const parent = nodes.find((candidate) => candidate.id === parentId);
-				if (!parent || itemOf(parent).kind !== "folder" || visited.has(parentId)) return fail();
-				visited.add(parentId);
-				parentId = parent.parentId;
-			}
-			if (nodes.some((other) => other.id !== node.id && other.parentId === node.parentId && sameName(other, node))) return fail();
-		}
-	};
-	checkTree(state.nodes, "desktop");
-	const entryIds = new Set<number>();
-	for (const entry of state.entries) {
-		if (!entry || !Number.isSafeInteger(entry.id) || entry.id < 1 || entry.id >= state.nextId || entryIds.has(entry.id) || !Number.isFinite(entry.deletedAt) || entry.deletedAt < 0 || entry.deletedAt > 8.64e15 || !Array.isArray(entry.nodes) || !entry.nodes.length || !Array.isArray(entry.ancestors) || entry.ancestors.length > 100) return fail();
-		entryIds.add(entry.id);
-		let parentId = "desktop";
-		const ancestorIds = new Set<string>();
-		for (const ancestor of entry.ancestors) {
-			if (!validNode(ancestor) || itemOf(ancestor).kind !== "folder" || ancestor.parentId !== parentId || ancestorIds.has(ancestor.id)) return fail();
-			ancestorIds.add(ancestor.id);
-			parentId = ancestor.id;
-		}
-		if (entry.nodes.some((node) => ancestorIds.has(node.id))) return fail();
-		checkTree(entry.nodes, parentId);
-		if (entry.nodes.filter((node) => node.parentId === parentId).length !== 1 || !entry.nodes.some((node) => node.id === entry.rootId && node.parentId === parentId)) return fail();
+	const known = (nodes: unknown) => Array.isArray(nodes) && nodes.every((node: ShellNode) => ITEM_BY_ID.has(node?.id) && typeof node.parentId === "string");
+	if (!known(state?.nodes) || !Array.isArray(state.entries) || !state.entries.every((entry) => known(entry?.nodes) && entry.nodes.length > 0)) {
+		throw new Error("The saved desktop is damaged.");
 	}
 	return state;
-}
-
-/** A stale confirmation must never delete items changed by another tab. */
-export function saveShellState(storage: Pick<Storage, "getItem" | "setItem">, expectedRaw: string | null, next: ShellState) {
-	if (storage.getItem(STORAGE_KEY) !== expectedRaw) throw new Error("The desktop changed in another tab. Please try again.");
-	const raw = JSON.stringify(next);
-	storage.setItem(STORAGE_KEY, raw);
-	return raw;
 }

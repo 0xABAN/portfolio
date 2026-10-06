@@ -65,7 +65,7 @@ export function Desktop() {
 
 function DesktopWorkspace() {
 	const shell = useShell();
-	const { getSnapshot, notice } = shell;
+	const { getState, notice } = shell;
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
 	// Boot mounts this client-only, so window is available on first paint
 	const [windows, setWindows] = useState<DesktopWindow[]>(() =>
@@ -186,13 +186,11 @@ function DesktopWorkspace() {
 	/** All launchers share the wait; taskbar restores deliberately bypass it. */
 	const launchApp = useCallback((id: AppId, sourceId?: string) => {
 		if (launchTimer.current !== null) return;
-		const nodes = () => getSnapshot().state.nodes;
-		const catalogId = APP_FILES[id];
-		const required = sourceId ?? (catalogId ? nodes().find((node) => node.catalogId === catalogId)?.id : undefined);
+		const required = sourceId ?? APP_FILES[id];
 		// The desktop always exists; any other source can be deleted, even mid-launch.
-		const missing = () => required !== undefined && required !== "desktop" && !nodes().some((node) => node.id === required);
+		const missing = () => required !== undefined && required !== "desktop" && !getState().nodes.some((node) => node.id === required);
 
-		if ((catalogId && !required) || missing()) {
+		if (missing()) {
 			notice(FILE_NOT_FOUND, "File not found");
 			return;
 		}
@@ -211,24 +209,23 @@ function DesktopWorkspace() {
 			setBusy(false);
 			focusWindow(id);
 		}, id === "explorer" || id === "recycle-bin" ? FOLDER_LOAD_MS : APP_LOAD_MS);
-	}, [focusWindow, getSnapshot, notice]);
+	}, [focusWindow, getState, notice]);
 
 	const openShell = useCallback((id: string) => {
 		if (id === "desktop") { launchApp("explorer", "desktop"); return; }
 		if (id === "recycle-bin") { launchApp("recycle-bin"); return; }
-		const node = getSnapshot().state.nodes.find((node) => node.id === id);
+		const node = getState().nodes.find((node) => node.id === id);
 		if (!node) { notice("This item is no longer available.", "File not found"); return; }
 		const item = itemOf(node);
 		if (item.open) launchApp(item.open, node.id);
 		else if (item.href) window.open(item.href, "_blank", "noopener,noreferrer");
-	}, [launchApp, getSnapshot, notice]);
+	}, [launchApp, getState, notice]);
 
 	/** Start opens a document through its shell file, so a deleted file stays unavailable. */
-	const openFile = useCallback((catalogId: string) => {
-		const node = getSnapshot().state.nodes.find((node) => node.catalogId === catalogId);
-		if (node) openShell(node.id);
+	const openFile = useCallback((id: string) => {
+		if (getState().nodes.some((node) => node.id === id)) openShell(id);
 		else notice(FILE_NOT_FOUND, "File not found");
-	}, [openShell, getSnapshot, notice]);
+	}, [openShell, getState, notice]);
 
 	const moveWindow = useCallback((id: string, x: number, y: number) => {
 		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
