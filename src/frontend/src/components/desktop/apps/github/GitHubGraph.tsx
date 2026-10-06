@@ -3,30 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
 import { GITHUB_USER } from "../../files/catalog";
-import { runCellPops } from "./cellPops";
 import "./github-graph.css";
 
 const API = "https://github-contributions-api.jogruber.de/v4/";
-const THEME = {
-	dark: ["#1a1a1a", "#3d1515", "#6b1c1c", "#9a2222", "#af0000"],
-};
+const THEME = { dark: ["#1a1a1a", "#3d1515", "#6b1c1c", "#9a2222", "#af0000"] };
 
-/** One fetch per page load — avoids AbortError from Strict Mode remount. */
+/** One fetch per page load, so Strict Mode's remount does not abort it. A failure retries on the next mount. */
 let contributionsRequest: Promise<Activity[]> | null = null;
 
-function loadContributions(): Promise<Activity[]> {
+function loadContributions() {
 	contributionsRequest ??= fetch(`${API}${GITHUB_USER}?y=last`)
 		.then(async (res) => {
-			const data = (await res.json()) as {
-				contributions?: Activity[];
-				error?: string;
-			};
+			const data = (await res.json()) as { contributions?: Activity[]; error?: string };
 			if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 			return data.contributions ?? [];
 		})
-		.catch((err: unknown) => {
+		.catch((error: unknown) => {
 			contributionsRequest = null;
-			throw err;
+			throw error;
 		});
 	return contributionsRequest;
 }
@@ -38,27 +32,17 @@ export function GitHubGraph() {
 
 	useEffect(() => {
 		let alive = true;
-		void loadContributions()
-			.then((rows) => {
-				if (alive) setData(rows);
-			})
-			.catch(() => {
-				if (alive) setFailed(true);
-			});
-		return () => {
-			alive = false;
-		};
+		loadContributions().then(
+			(rows) => { if (alive) setData(rows); },
+			() => { if (alive) setFailed(true); },
+		);
+		return () => { alive = false; };
 	}, []);
 
+	// Open on the latest weeks. The calendar renders its scroll container once it has data.
 	useEffect(() => {
-		const root = rootRef.current;
-		if (!root || !data) return;
-
-		// With loading=false the calendar commits its scroll container with data.
-		const scroller = root.querySelector<HTMLElement>(".react-activity-calendar__scroll-container");
-		if (!scroller) return;
-		scroller.scrollLeft = scroller.scrollWidth;
-		return runCellPops(scroller);
+		const scroller = rootRef.current?.querySelector(".react-activity-calendar__scroll-container");
+		if (data && scroller) scroller.scrollLeft = scroller.scrollWidth;
 	}, [data]);
 
 	return (
