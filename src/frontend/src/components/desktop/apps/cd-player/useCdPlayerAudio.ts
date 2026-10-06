@@ -81,7 +81,7 @@ let shuffle: Shuffle = { order: [], position: 0 };
 let trackIdx = 0;
 /** The way the listener last moved through the shuffle. */
 let lastDirection: 1 | -1 = 1;
-/** The sound the widget is on; it opens on the first one. */
+/** The sound the widget is on: it opens on the first one, and -1 once it moves on by itself. */
 let widgetIdx = 0;
 let currentTrack: Track | null = null;
 
@@ -278,6 +278,7 @@ function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
 	});
 	// The widget moves on to the next sound of the playlist by itself; follow the shuffle instead.
 	widget.bind(events.FINISH, () => {
+		widgetIdx = -1;
 		if (mediaStarted) step(1);
 	});
 	widget.bind(events.PLAY_PROGRESS, (data) => {
