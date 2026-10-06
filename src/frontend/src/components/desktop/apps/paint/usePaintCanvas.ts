@@ -1,294 +1,155 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
-import { UNDO_LIMIT, type Coords, type ToolId } from "./paintModel";
+import { useEffect, useRef, type RefObject } from "react";
+import { UNDO_LIMIT, type ToolId } from "./paintModel";
 import { paintSegment, resolveStrokeStyle, type FreehandStyle } from "./tools/freehand";
 
-type Props = {
+type Options = {
 	src: string;
 	active: boolean;
 	tool: ToolId;
 	fg: string;
 	bg: string;
-	/** Status bar coords node — written imperatively (no React paint thrash). */
+	/** The status bar's coordinates, written directly so strokes do not render. */
 	coordsEl: RefObject<HTMLElement | null>;
 };
 
-type StrokeCfg = Pick<Props, "tool" | "fg" | "bg" | "active">;
-
-type Stroke = {
-	lastX: number;
-	lastY: number;
-	style: FreehandStyle;
-};
-
-function isLoaded(img: HTMLImageElement | null): img is HTMLImageElement {
-	return Boolean(img && img.complete && img.naturalWidth > 0);
-}
-
-function canvasPoint(
-	canvas: HTMLCanvasElement,
-	clientX: number,
-	clientY: number,
-	rect: DOMRect,
-): Coords {
-	const x = Math.floor(((clientX - rect.left) * canvas.width) / rect.width);
-	const y = Math.floor(((clientY - rect.top) * canvas.height) / rect.height);
-	return {
-		x: Math.max(0, Math.min(canvas.width - 1, x)),
-		y: Math.max(0, Math.min(canvas.height - 1, y)),
-	};
-}
-
-export function usePaintCanvas({
-	src,
-	active,
-	tool,
-	fg,
-	bg,
-	coordsEl,
-}: Props): {
-	canvasRef: RefObject<HTMLCanvasElement | null>;
-	wrapRef: RefObject<HTMLDivElement | null>;
-} {
+/**
+ * Draws on a canvas that starts out as the `src` image. The bitmap is sized
+ * once, to the canvas's first laid-out size; after that CSS scales it, so
+ * resizing the window keeps the drawing and its undo history.
+ */
+export function usePaintCanvas(options: Options) {
+	const { src } = options;
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
-	const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-	const cfg = useRef<StrokeCfg>({ tool, fg, bg, active });
-	const strokeRef = useRef<Stroke | null>(null);
-	const undoStack = useRef<ImageData[]>([]);
-	const readyRef = useRef(false);
-	const lastCoords = useRef<Coords | null>(null);
-	const rectRef = useRef<DOMRect | null>(null);
-	// Props are immutable to the React lint rules; writing the status text goes through an owned ref.
-	const coordsElRef = useRef(coordsEl);
-	const imgRef = useRef<HTMLImageElement | null>(null);
+	// The listeners are attached once and read the latest tool, colours and activity.
+	const latest = useRef(options);
 
 	useEffect(() => {
-		cfg.current = { tool, fg, bg, active };
-		coordsElRef.current = coordsEl;
-	}, [tool, fg, bg, coordsEl, active]);
-
-	function emitCoords(c: Coords | null) {
-		const prev = lastCoords.current;
-		if (c === null) {
-			if (prev === null) return;
-		} else if (prev && prev.x === c.x && prev.y === c.y) {
-			return;
-		}
-		lastCoords.current = c;
-		const el = coordsElRef.current.current;
-		if (el) el.textContent = c ? `${c.x}, ${c.y}` : "";
-	}
-
-	function pushUndo(ctx: CanvasRenderingContext2D) {
-		const { width, height } = ctx.canvas;
-		undoStack.current.push(ctx.getImageData(0, 0, width, height));
-		if (undoStack.current.length > UNDO_LIMIT) undoStack.current.shift();
-	}
-
-	function undo() {
-		const ctx = ctxRef.current;
-		const snap = undoStack.current.pop();
-		if (!ctx || !snap || strokeRef.current) return;
-		ctx.putImageData(snap, 0, 0);
-	}
-
-	useLayoutEffect(() => {
-		const canvasEl = canvasRef.current;
-		const wrapEl = wrapRef.current;
-		if (!canvasEl || !wrapEl) return;
-		const canvas = canvasEl;
-		const wrap = wrapEl;
-
-		function paintBase(ctx: CanvasRenderingContext2D, w: number, h: number) {
-			const img = imgRef.current;
-			if (isLoaded(img)) {
-				ctx.drawImage(img, 0, 0, w, h);
-			} else {
-				ctx.fillStyle = "#ffffff";
-				ctx.fillRect(0, 0, w, h);
-			}
-		}
-
-		/** CSS scales the initialized bitmap without discarding drawings or undo. */
-		function syncSize() {
-			rectRef.current = canvas.getBoundingClientRect();
-			const w = Math.max(1, Math.round(wrap.clientWidth));
-			const h = Math.max(1, Math.round(wrap.clientHeight));
-			// Keep the first bitmap: resizing it would erase the drawing and its undo history.
-			if (readyRef.current && canvas.width > 1 && canvas.height > 1) {
-				return;
-			}
-
-			canvas.width = w;
-			canvas.height = h;
-			const ctx = canvas.getContext("2d");
-			if (!ctx) return;
-			ctx.imageSmoothingEnabled = false;
-			ctxRef.current = ctx;
-			undoStack.current = [];
-			strokeRef.current = null;
-			lastCoords.current = null;
-
-			if (isLoaded(imgRef.current)) {
-				paintBase(ctx, w, h);
-				readyRef.current = true;
-			} else {
-				readyRef.current = false;
-			}
-		}
-
-		function finishLoad(minWidth = 0) {
-			syncSize();
-			const ctx = ctxRef.current;
-			if (ctx && canvas.width > minWidth) {
-				paintBase(ctx, canvas.width, canvas.height);
-				readyRef.current = true;
-			}
-		}
-
-		readyRef.current = false;
-
-		const img = new Image();
-		imgRef.current = img;
-		img.decoding = "async";
-		img.onload = () => {
-			if (imgRef.current !== img) return;
-			// image may finish after first 0× layout — force paint once sized
-			finishLoad(1);
-		};
-		img.onerror = () => {
-			if (imgRef.current !== img) return;
-			imgRef.current = null;
-			finishLoad();
-		};
-		img.src = src;
-		if (isLoaded(img)) {
-			finishLoad();
-		} else {
-			syncSize();
-		}
-
-		// boot reveal / window layout often mounts paint before final size
-		const ro = new ResizeObserver(() => syncSize());
-		ro.observe(wrap);
-
-		return () => {
-			ro.disconnect();
-			imgRef.current = null;
-			img.onload = null;
-			img.onerror = null;
-		};
-	}, [src]);
+		latest.current = options;
+	});
 
 	useEffect(() => {
-		const el = canvasRef.current;
-		if (!el) return;
-		const canvas: HTMLCanvasElement = el;
+		const canvas = canvasRef.current!;
+		const wrap = wrapRef.current!;
+		const undo: ImageData[] = [];
+		/** Set once the bitmap is sized and painted; strokes wait for it. */
+		let ctx: CanvasRenderingContext2D | null = null;
+		/** The starting image: undefined while it loads, null if it failed and the canvas starts white. */
+		let base: HTMLImageElement | null | undefined;
+		let rect = canvas.getBoundingClientRect();
+		let stroke: { x: number; y: number; style: FreehandStyle } | null = null;
+		let coords = "";
 
-		const refreshRect = () => {
-			rectRef.current = canvas.getBoundingClientRect();
-		};
-		refreshRect();
-
-		function point(e: PointerEvent): Coords {
-			const r = rectRef.current ?? canvas.getBoundingClientRect();
-			return canvasPoint(canvas, e.clientX, e.clientY, r);
+		function initialize() {
+			const width = Math.round(wrap.clientWidth);
+			const height = Math.round(wrap.clientHeight);
+			if (ctx || base === undefined || width < 2 || height < 2) return;
+			canvas.width = width;
+			canvas.height = height;
+			const context = canvas.getContext("2d")!;
+			context.imageSmoothingEnabled = false;
+			if (base) {
+				context.drawImage(base, 0, 0, width, height);
+			} else {
+				context.fillStyle = "#ffffff";
+				context.fillRect(0, 0, width, height);
+			}
+			ctx = context;
 		}
 
-		function onPointerDown(e: PointerEvent) {
-			if (e.button !== 0 && e.button !== 2) return;
-			if (!readyRef.current) return;
-			const { tool: t, fg: f, bg: b } = cfg.current;
-			const style = resolveStrokeStyle(t, f, b, e.button === 2);
+		/** The bitmap pixel under the pointer, clamped to the canvas. */
+		function pixel(event: PointerEvent) {
+			const clamp = (value: number, size: number) => Math.max(0, Math.min(size - 1, Math.floor(value)));
+			return {
+				x: clamp(((event.clientX - rect.left) * canvas.width) / rect.width, canvas.width),
+				y: clamp(((event.clientY - rect.top) * canvas.height) / rect.height, canvas.height),
+			};
+		}
+
+		function showCoords(text: string) {
+			if (text === coords) return;
+			coords = text;
+			const el = latest.current.coordsEl.current;
+			if (el) el.textContent = text;
+		}
+
+		function onPointerDown(event: PointerEvent) {
+			if (!ctx || (event.button !== 0 && event.button !== 2)) return;
+			const { tool, fg, bg } = latest.current;
+			const style = resolveStrokeStyle(tool, fg, bg, event.button === 2);
 			if (!style) return;
 
-			const ctx = ctxRef.current;
-			if (!ctx) return;
-
-			e.preventDefault();
+			event.preventDefault();
 			canvas.focus({ preventScroll: true });
-			refreshRect();
-			canvas.setPointerCapture(e.pointerId);
-			pushUndo(ctx);
+			rect = canvas.getBoundingClientRect();
+			canvas.setPointerCapture(event.pointerId);
+			undo.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+			if (undo.length > UNDO_LIMIT) undo.shift();
 
-			const { x, y } = point(e);
+			const { x, y } = pixel(event);
 			paintSegment(ctx, x, y, x, y, style);
-			strokeRef.current = { lastX: x, lastY: y, style };
-			emitCoords({ x, y });
+			stroke = { x, y, style };
+			showCoords(`${x}, ${y}`);
 		}
 
-		function onPointerMove(e: PointerEvent) {
-			const { x, y } = point(e);
-			emitCoords({ x, y });
-
-			const stroke = strokeRef.current;
-			const ctx = ctxRef.current;
-			if (!stroke || !ctx) return;
-			if (x === stroke.lastX && y === stroke.lastY) return;
-			paintSegment(ctx, stroke.lastX, stroke.lastY, x, y, stroke.style);
-			stroke.lastX = x;
-			stroke.lastY = y;
+		function onPointerMove(event: PointerEvent) {
+			const { x, y } = pixel(event);
+			showCoords(`${x}, ${y}`);
+			if (!ctx || !stroke || (x === stroke.x && y === stroke.y)) return;
+			paintSegment(ctx, stroke.x, stroke.y, x, y, stroke.style);
+			stroke.x = x;
+			stroke.y = y;
 		}
 
-		function endStroke(e: PointerEvent) {
-			if (!strokeRef.current) return;
-			strokeRef.current = null;
-			if (canvas.hasPointerCapture(e.pointerId)) {
-				canvas.releasePointerCapture(e.pointerId);
-			}
+		function onPointerUp(event: PointerEvent) {
+			if (!stroke) return;
+			stroke = null;
+			if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 		}
 
-		function onContextMenu(e: Event) {
-			e.preventDefault();
+		/** Ctrl+Z undoes the last stroke while this Paint window has focus, but not in text fields. */
+		function onKeyDown(event: KeyboardEvent) {
+			if (!latest.current.active || !canvas.closest(".win")?.contains(document.activeElement)) return;
+			if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
+			const target = event.target as HTMLElement;
+			if (target.isContentEditable || target.matches("input, textarea")) return;
+			event.preventDefault();
+			const snapshot = undo.pop();
+			if (ctx && snapshot && !stroke) ctx.putImageData(snapshot, 0, 0);
 		}
 
-		function onPointerLeave() {
-			if (!strokeRef.current) emitCoords(null);
-		}
+		const image = new Image();
+		image.decoding = "async";
+		image.onload = () => { base = image; initialize(); };
+		image.onerror = () => { base = null; initialize(); };
+		image.src = src;
 
-		function onKey(e: KeyboardEvent) {
-			if (!cfg.current.active || !canvas.closest(".win")?.contains(document.activeElement)) return;
-			if (
-				!(e.metaKey || e.ctrlKey) ||
-				e.key.toLowerCase() !== "z" ||
-				e.shiftKey
-			) {
-				return;
-			}
-			const t = e.target;
-			if (
-				t instanceof HTMLInputElement ||
-				t instanceof HTMLTextAreaElement ||
-				(t instanceof HTMLElement && t.isContentEditable)
-			) {
-				return;
-			}
-			e.preventDefault();
-			undo();
-		}
+		// The boot reveal and window layout often mount Paint before its final size.
+		const observer = new ResizeObserver(() => {
+			rect = canvas.getBoundingClientRect();
+			initialize();
+		});
+		observer.observe(wrap);
 
-		canvas.addEventListener("pointerdown", onPointerDown);
-		canvas.addEventListener("pointermove", onPointerMove);
-		canvas.addEventListener("pointerup", endStroke);
-		canvas.addEventListener("pointercancel", endStroke);
-		canvas.addEventListener("pointerleave", onPointerLeave);
-		canvas.addEventListener("contextmenu", onContextMenu);
-		window.addEventListener("keydown", onKey);
-		window.addEventListener("resize", refreshRect);
+		const listeners = new AbortController();
+		const signal = listeners.signal;
+		canvas.addEventListener("pointerdown", onPointerDown, { signal });
+		canvas.addEventListener("pointermove", onPointerMove, { signal });
+		canvas.addEventListener("pointerup", onPointerUp, { signal });
+		canvas.addEventListener("pointercancel", onPointerUp, { signal });
+		canvas.addEventListener("pointerleave", () => { if (!stroke) showCoords(""); }, { signal });
+		canvas.addEventListener("contextmenu", (event) => event.preventDefault(), { signal });
+		window.addEventListener("keydown", onKeyDown, { signal });
+		window.addEventListener("resize", () => { rect = canvas.getBoundingClientRect(); }, { signal });
 
 		return () => {
-			canvas.removeEventListener("pointerdown", onPointerDown);
-			canvas.removeEventListener("pointermove", onPointerMove);
-			canvas.removeEventListener("pointerup", endStroke);
-			canvas.removeEventListener("pointercancel", endStroke);
-			canvas.removeEventListener("pointerleave", onPointerLeave);
-			canvas.removeEventListener("contextmenu", onContextMenu);
-			window.removeEventListener("keydown", onKey);
-			window.removeEventListener("resize", refreshRect);
+			image.onload = image.onerror = null;
+			observer.disconnect();
+			listeners.abort();
 		};
-	}, []);
+	}, [src]);
 
 	return { canvasRef, wrapRef };
 }

@@ -69,5 +69,3 @@ export const MENUS = [
 ] as const;
 
 export const UNDO_LIMIT = 20;
-
-export type Coords = { x: number; y: number };
