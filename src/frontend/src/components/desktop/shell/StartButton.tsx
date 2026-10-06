@@ -4,21 +4,23 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { AppId } from "../window/state";
 import "./start-menu.css";
 
+/** Items launch an app, or open a shell file by catalog ID. */
 const GROUPS = [
 	{ label: "Programs", icon: "/icons/computer.png", items: [
-		{ id: "me", label: "Paint", icon: "/paint/icon-16.png" },
-		{ id: "terminal", label: "MS-DOS Prompt", icon: "/icons/terminal.svg" },
-		{ id: "github", label: "Activity", icon: "/icons/code.svg" },
-		{ id: "cd-player", label: "CD Player", icon: "/icons/cd.png" },
+		{ app: "me", label: "Paint", icon: "/paint/icon-16.png" },
+		{ app: "terminal", label: "MS-DOS Prompt", icon: "/icons/terminal.svg" },
+		{ app: "github", label: "Activity", icon: "/icons/code.svg" },
+		{ app: "cd-player", label: "CD Player", icon: "/icons/cd.png" },
 	] },
 	{ label: "Documents", icon: "/icons/folder.png", items: [
-		{ id: "explorer", label: "secrets", icon: "/icons/folder.png" },
-		{ id: "word", label: "resume.doc", icon: "/icons/notepad.svg" },
+		{ app: "explorer", label: "secrets", icon: "/icons/folder.png" },
+		{ file: "resume", label: "resume.doc", icon: "/icons/notepad.svg" },
 	] },
 ] as const;
 
 type Props = {
 	onLaunchAction: (id: AppId) => void;
+	onOpenFileAction: (catalogId: string) => void;
 	onRestoreDecorationsAction: () => void;
 	onResetAction: () => void;
 	canRestoreDecorations: boolean;
@@ -30,7 +32,7 @@ function menuItems(scope: Element) {
 }
 
 /** Native light-dismiss owns opening/closing; only menu navigation needs JavaScript. */
-export function StartButton({ onLaunchAction, onRestoreDecorationsAction, onResetAction, canRestoreDecorations }: Props) {
+export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAction, onResetAction, canRestoreDecorations }: Props) {
 	const menu = useRef<HTMLDivElement>(null);
 	const [open, setOpen] = useState(false);
 	const [group, setGroup] = useState<string | null>(null);
@@ -127,7 +129,8 @@ export function StartButton({ onLaunchAction, onRestoreDecorationsAction, onRese
 							{group === entry.label && (
 								<div className="start-menu__submenu" role="menu" aria-label={entry.label}>
 									{entry.items.map((item) => (
-										<button key={item.id} type="button" role="menuitem" onClick={() => run(() => onLaunchAction(item.id))}>
+										<button key={item.label} type="button" role="menuitem"
+											onClick={() => run(() => "file" in item ? onOpenFileAction(item.file) : onLaunchAction(item.app))}>
 											{/* eslint-disable-next-line @next/next/no-img-element */}
 											<img src={item.icon} alt="" width={16} height={16} /><span>{item.label}</span>
 										</button>

@@ -2,9 +2,10 @@ import type { AppId } from "../window/state";
 
 export const GITHUB_USER = "0xABAN";
 export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
+const RESUME_URL = `${GITHUB_URL}/jobs/blob/main/resumes/default/Adam_Torres_Encarnacion_Resume.pdf`;
 
 const DOCUMENTS = [
-	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", open: "word", type: "Microsoft Word Document", bytes: 768 * 1024 },
+	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", href: RESUME_URL, type: "Microsoft Word Document", bytes: 768 * 1024 },
 	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application", bytes: 512 * 1024 },
 ] as const;
 

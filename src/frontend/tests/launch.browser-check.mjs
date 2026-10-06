@@ -80,8 +80,12 @@ async function checkLaunches(page) {
 	await win("explorer").getByRole("button", { name: "Minimize", exact: true }).click();
 	await task("explorer").click();
 	check(await win("explorer").isVisible() && !(await busy()), "Taskbar restoration should remain immediate");
-	await delayed("word", 1500, () => win("explorer").getByRole("option", { name: "resume.doc", exact: true }).dblclick());
-	check(await page.evaluate(() => window.openedLinks.length) === 0, "Resume opened an external link");
+	const resume = "https://github.com/0xABAN/jobs/blob/main/resumes/default/Adam_Torres_Encarnacion_Resume.pdf";
+	await win("explorer").getByRole("option", { name: "resume.doc", exact: true }).dblclick();
+	await fromStart("resume.doc", "Documents");
+	check(!(await busy()), "Opening resume.doc used the launch delay");
+	const opened = await page.evaluate(() => window.openedLinks.map(([url]) => url));
+	check(opened.length === 2 && opened.every((url) => url === resume), "resume.doc did not link to the resume on GitHub");
 
 	// playwright-cli waits on a page timer after run-code returns.
 	await page.clock.resume();

@@ -1,6 +1,6 @@
-import { TASKBAR_H, layoutDesktop, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, makeWordWindow, type DesktopWindow } from "./layout";
+import { layoutDesktop, makeExperienceWindow, makeExplorerWindow, makeRecycleBinWindow, type DesktopWindow } from "./layout";
 
-export type AppId = "me" | "terminal" | "github" | "explorer" | "experience" | "cd-player" | "recycle-bin" | "word";
+export type AppId = "me" | "terminal" | "github" | "explorer" | "experience" | "cd-player" | "recycle-bin";
 
 export function isDecoration(w: DesktopWindow) {
 	return w.kind === "error" || w.id === "new";
@@ -17,7 +17,6 @@ export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: num
 	if (!windows.some((w) => w.id === id)) {
 		const z = nextZ(windows);
 		const created = id === "recycle-bin" ? [makeRecycleBinWindow(z, vw, vh)]
-			: id === "word" ? [makeWordWindow(z, vw, vh)]
 			: id === "experience" ? [makeExperienceWindow(z, vw, vh)]
 			: id === "explorer" ? [makeExplorerWindow(z, windows.find((w) => w.id === "me"), vw, vh)]
 			: layoutDesktop(vw, vh).filter((w) => w.id === id || w.parentId === id);
@@ -55,20 +54,6 @@ export function activateWindow(windows: DesktopWindow[], id: string): DesktopWin
 	const z = nextZ(windows);
 	const ranks = new Map(family.map((w, i) => [w.id, z + i]));
 	return windows.map((w) => ranks.has(w.id) ? { ...w, minimized: false, z: ranks.get(w.id)! } : w);
-}
-
-/** Maximize a standalone app without losing its prior position or size. */
-export function toggleMaximizeWindow(windows: DesktopWindow[], id: string, vw: number, vh: number): DesktopWindow[] {
-	return windows.map((w) => {
-		if (w.id !== id || w.parentId) return w;
-		if (w.restoreBounds) {
-			const saved = w.restoreBounds;
-			const width = Math.min(saved.w, vw);
-			const height = Math.min(saved.h, vh - TASKBAR_H);
-			return { ...w, w: width, h: height, x: Math.max(0, Math.min(saved.x, vw - width)), y: Math.max(0, Math.min(saved.y, vh - TASKBAR_H - height)), restoreBounds: undefined };
-		}
-		return { ...w, restoreBounds: { x: w.x, y: w.y, w: w.w, h: w.h }, x: 0, y: 0, w: vw, h: vh - TASKBAR_H };
-	});
 }
 
 export function minimizeWindowTree(windows: DesktopWindow[], id: string): DesktopWindow[] {

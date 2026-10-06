@@ -16,7 +16,7 @@ import { Neko } from "./effects/neko/Neko";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";
-import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "./window/state";
+import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "./window/state";
 import {
 	TASKBAR_H,
 	altCropStyle,
@@ -30,7 +30,8 @@ import {
 import "./desktop.css";
 
 /** Apps that open a shell file; launching fails while that file is deleted. */
-const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", word: "resume", experience: "experience" };
+const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", experience: "experience" };
+const FILE_NOT_FOUND = "The file or folder could not be found. Restore it from the Recycle Bin before opening it.";
 
 /** Fake load times, like a slow 90s PC; folders open faster than programs. */
 const FOLDER_LOAD_MS = 500;
@@ -163,10 +164,6 @@ function DesktopWorkspace() {
 		setWindows((prev) => minimizeWindowTree(prev, id));
 	}, []);
 
-	const maximizeWindow = useCallback((id: string) => {
-		setWindows((prev) => toggleMaximizeWindow(prev, id, window.innerWidth, window.innerHeight));
-	}, []);
-
 	/** Measure after the task exists, including launches after a full quit. */
 	const focusWindow = useCallback((id: string) => {
 		requestAnimationFrame(() => {
@@ -196,7 +193,7 @@ function DesktopWorkspace() {
 		const missing = () => required !== undefined && required !== "desktop" && !nodes().some((node) => node.id === required);
 
 		if ((catalogId && !required) || missing()) {
-			notice("The file or folder could not be found. Restore it from the Recycle Bin before opening it.", "File not found");
+			notice(FILE_NOT_FOUND, "File not found");
 			return;
 		}
 		if (id === "explorer") setExplorerFolder(required ?? "desktop");
@@ -225,6 +222,13 @@ function DesktopWorkspace() {
 		if (item.open) launchApp(item.open, node.id);
 		else if (item.href) window.open(item.href, "_blank", "noopener,noreferrer");
 	}, [launchApp, getSnapshot, notice]);
+
+	/** Start opens a document through its shell file, so a deleted file stays unavailable. */
+	const openFile = useCallback((catalogId: string) => {
+		const node = getSnapshot().state.nodes.find((node) => node.catalogId === catalogId);
+		if (node) openShell(node.id);
+		else notice(FILE_NOT_FOUND, "File not found");
+	}, [openShell, getSnapshot, notice]);
 
 	const moveWindow = useCallback((id: string, x: number, y: number) => {
 		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
@@ -294,15 +298,13 @@ function DesktopWorkspace() {
 			minimizable={w.id !== "alt"}
 			onMinimizeAction={minimizeWindow}
 			onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
-			onMaximizeAction={w.kind === "word" ? maximizeWindow : undefined}
-			maximized={Boolean(w.restoreBounds)}
 			frameless={w.kind === "experience"}
 			onMoveAction={moveWindow}
 		>
 			<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
 				audio={w.kind === "cd-player" ? audio : undefined}
 				cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
-				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} onNoticeAction={notice} folderId={explorerFolder} />
+				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
 		</Window>;
 	};
 	const pspWindow = visibleWindows.find((w) => w.kind === "experience");
@@ -347,6 +349,7 @@ function DesktopWorkspace() {
 				activeId={activeId}
 				onActivateAction={restoreWindow}
 				onLaunchAction={launchApp}
+				onOpenFileAction={openFile}
 				onRestoreDecorationsAction={() => setWindows(restoreDecorations)}
 				onResetAction={shell.reset}
 				canRestoreDecorations={windows.some((w) => isDecoration(w) && w.minimized)}

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { layoutDesktop, makeExperienceWindow, reflowDesktop, TASKBAR_H } from "@/components/desktop/window/layout";
-import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDecorations, taskWindows, toggleMaximizeWindow, type AppId } from "@/components/desktop/window/state";
+import { layoutDesktop, makeExperienceWindow, TASKBAR_H } from "@/components/desktop/window/layout";
+import { activateWindow, activeWindowId, minimizeWindowTree, openApp, restoreDecorations, taskWindows, type AppId } from "@/components/desktop/window/state";
 
 test("task order survives switching, minimizing and restoring", () => {
 	let windows = layoutDesktop(1440, 900);
@@ -38,7 +38,7 @@ test("PSP fits narrow viewports and stays above previously open windows only whe
 
 test("launching opens missing apps once and restores without resetting geometry", () => {
 	let windows = layoutDesktop(1440, 900).filter((w) => w.id !== "me" && w.id !== "alt");
-	for (const id of ["me", "terminal", "github", "explorer", "experience", "cd-player", "word", "recycle-bin"] as AppId[]) {
+	for (const id of ["me", "terminal", "github", "explorer", "experience", "cd-player", "recycle-bin"] as AppId[]) {
 		windows = openApp(windows, id, 1440, 900);
 		const opened = windows.find((w) => w.id === id)!;
 		windows = minimizeWindowTree(windows.map((w) => w.id === id ? { ...w, x: w.x + 17 } : w), id);
@@ -49,25 +49,6 @@ test("launching opens missing apps once and restores without resetting geometry"
 		assert.equal(activeWindowId(windows), id);
 	}
 	assert.equal(windows.filter((w) => w.id === "alt").length, 1);
-});
-
-test("Word maximizes, survives viewport changes and restores its saved geometry", () => {
-	const layout = layoutDesktop(1440, 900);
-	let windows = openApp(layout, "word", 1440, 900);
-	const original = windows.find((w) => w.id === "word")!;
-	windows = toggleMaximizeWindow(windows, "word", 1440, 900);
-	assert.equal(windows.find((w) => w.id === "word")?.w, 1440);
-	windows = toggleMaximizeWindow(windows, "word", 1440, 900);
-	const restored = windows.find((w) => w.id === "word")!;
-	for (const key of ["x", "y", "w", "h"] as const) assert.equal(restored[key], original[key]);
-	windows = toggleMaximizeWindow(windows, "word", 1440, 900);
-	windows = reflowDesktop(windows, layout, layoutDesktop(390, 844), 390, 844);
-	const maximized = windows.find((w) => w.id === "word")!;
-	assert.deepEqual([maximized.x, maximized.y, maximized.w, maximized.h], [0, 0, 390, 844 - TASKBAR_H]);
-	windows = toggleMaximizeWindow(windows, "word", 390, 844);
-	const mobile = windows.find((w) => w.id === "word")!;
-	assert.ok(mobile.x >= 0 && mobile.x + mobile.w <= 390);
-	assert.equal(mobile.restoreBounds, undefined);
 });
 
 test("CD Player starts minimized and can be fully removed and relaunched", () => {

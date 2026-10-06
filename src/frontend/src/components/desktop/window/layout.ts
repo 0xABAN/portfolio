@@ -15,8 +15,7 @@ export type DesktopWindow = {
 		| "terminal"
 		| "explorer"
 		| "cd-player"
-		| "recycle-bin"
-		| "word";
+		| "recycle-bin";
 	icon?: string;
 	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
@@ -24,8 +23,6 @@ export type DesktopWindow = {
 	minimized?: boolean;
 	/** An explicit launch bypasses the initial boot reveal schedule. */
 	launched?: boolean;
-	/** Geometry to return to after maximizing an independent app window. */
-	restoreBounds?: Rect;
 };
 
 /** Shared with the desktop CSS variable so bounds and chrome cannot drift. */
@@ -249,7 +246,6 @@ export function reflowDesktop(
 
 	const resized = current.map((w) => {
 		if (w.parentId) return w;
-		if (w.restoreBounds) return { ...w, x: 0, y: 0, w: vw, h: vh - TASKBAR_H };
 		const old = oldLayout.get(w.id);
 		const target = newLayout.get(w.id);
 		const width = target?.w ?? w.w;
@@ -320,19 +316,6 @@ export function makeRecycleBinWindow(z: number, vw: number, vh: number): Desktop
 	return {
 		id: "recycle-bin", title: "Recycle Bin", kind: "recycle-bin",
 		icon: "/icons/recycle-bin-empty.png", z,
-		...layoutCentered(w, h, vw, vh),
-	};
-}
-
-export function makeWordWindow(z: number, vw: number, vh: number): DesktopWindow {
-	const w = Math.min(880, Math.max(260, vw - 24));
-	const h = Math.min(700, Math.max(240, vh - TASKBAR_H - 48));
-	return {
-		id: "word",
-		title: "Microsoft Word - resume.doc",
-		kind: "word",
-		icon: "/icons/word/app.png",
-		z,
 		...layoutCentered(w, h, vw, vh),
 	};
 }

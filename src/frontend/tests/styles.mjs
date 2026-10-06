@@ -42,14 +42,6 @@ try {
       })),
     } }));
     await context.route('**/photos/beep-boop.webp', route => route.fulfill({ contentType: 'image/png', body: beepBoopFrame }));
-    await context.route('**/api/resume', route => route.fulfill({ body: String.raw`
-      \begin{document}
-      \begin{center}Adam Example \\ \href{https://example.com}{Portfolio}\end{center}
-      \section{Experience}
-      \resumeSubheading{Example Company}{2024--2026}{Software Engineer}{Remote}
-      \resumeItem{Built accessible interfaces with \textbf{TypeScript}.}
-      \end{document}
-    ` }));
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -141,9 +133,6 @@ try {
         await capture('psp', '#desktop-window-experience');
         await page.getByRole('button', { name: 'Close Experience', exact: true }).click();
 
-        await launch('Documents', 'resume.doc', '#desktop-window-word');
-        await page.locator('.word__scroll[aria-busy="false"]').waitFor();
-        await capture('word', '#desktop-window-word');
         await launch('Programs', 'CD Player', '#desktop-window-cd-player');
         const cd = page.locator('#desktop-window-cd-player');
         for (let i = 0; i < 20 && !(await cd.innerText()).includes('Fallen Down'); i++) {

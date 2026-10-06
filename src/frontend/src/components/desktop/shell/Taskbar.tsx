@@ -72,6 +72,7 @@ type Props = {
 	activeId?: string;
 	onActivateAction: (id: string) => void;
 	onLaunchAction: (id: AppId) => void;
+	onOpenFileAction: (catalogId: string) => void;
 	onRestoreDecorationsAction: () => void;
 	onResetAction: () => void;
 	canRestoreDecorations: boolean;
@@ -155,6 +156,7 @@ export function Taskbar({
 	activeId,
 	onActivateAction,
 	onLaunchAction,
+	onOpenFileAction,
 	onRestoreDecorationsAction,
 	onResetAction,
 	canRestoreDecorations,
@@ -175,7 +177,7 @@ export function Taskbar({
 		<footer className="taskbar" role="contentinfo" aria-label="Taskbar">
 			<div className="taskbar__left">
 				{show("tb:start") && (
-					<StartButton onLaunchAction={onLaunchAction} onRestoreDecorationsAction={onRestoreDecorationsAction} onResetAction={onResetAction} canRestoreDecorations={canRestoreDecorations} />
+					<StartButton onLaunchAction={onLaunchAction} onOpenFileAction={onOpenFileAction} onRestoreDecorationsAction={onRestoreDecorationsAction} onResetAction={onResetAction} canRestoreDecorations={canRestoreDecorations} />
 				)}
 				<WindowTasks tasks={tasks} activeId={activeId} onActivateAction={onActivateAction} trackLabel={trackLabel} bindElapsed={bindElapsed} />
 			</div>

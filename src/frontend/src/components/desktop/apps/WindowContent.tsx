@@ -8,7 +8,6 @@ import { Paint } from "./paint/Paint";
 import { Experience } from "./experience/Experience";
 import { SystemMessage } from "../window/SystemMessage";
 import { Terminal } from "./terminal/Terminal";
-import { Word } from "./word/Word";
 import type { DesktopWindow } from "../window/layout";
 
 type Props = {
@@ -21,7 +20,6 @@ type Props = {
 	onMinimize: (id: string) => void;
 	onClose: (id: string) => void;
 	onOpenShell: (id: string) => void;
-	onNoticeAction: (message: string, title?: string) => void;
 	folderId: string;
 };
 
@@ -36,7 +34,6 @@ export const WindowContent = memo(function WindowContent({
 	onMinimize,
 	onClose,
 	onOpenShell,
-	onNoticeAction,
 	folderId,
 }: Props) {
 	switch (kind) {
@@ -52,8 +49,6 @@ export const WindowContent = memo(function WindowContent({
 			return <Experience onClose={() => onClose(id)} />;
 		case "terminal":
 			return <Terminal />;
-		case "word":
-			return <Word onCloseAction={() => onClose(id)} onMinimizeAction={() => onMinimize(id)} onNoticeAction={onNoticeAction} />;
 		case "recycle-bin":
 			return <RecycleBin onCloseAction={() => onClose(id)} />;
 		case "explorer":
