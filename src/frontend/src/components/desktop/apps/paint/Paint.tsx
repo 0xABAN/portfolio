@@ -1,16 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-	DEFAULT_SIZE_INDEX,
-	DRAWABLE_TOOLS,
-	MENUS,
-	PALETTE,
-	SIZE_DOT,
-	TOOLS,
-	type SizeIndex,
-	type ToolId,
-} from "./paintModel";
+import { MENUS, PALETTE, TOOLS, isDrawable, type ToolId } from "./paintModel";
 import { usePaintCanvas } from "./usePaintCanvas";
 import "./paint.css";
 
@@ -23,18 +14,9 @@ export function Paint({ src, active }: Props) {
 	const [tool, setTool] = useState<ToolId>("pencil");
 	const [fg, setFg] = useState<string>(PALETTE[0]);
 	const [bg, setBg] = useState<string>(PALETTE[14]);
-	const [sizeIndex, setSizeIndex] = useState<SizeIndex>(DEFAULT_SIZE_INDEX);
 	const coordsRef = useRef<HTMLSpanElement>(null);
 
-	const { canvasRef, wrapRef } = usePaintCanvas({
-		src,
-		active,
-		tool,
-		fg,
-		bg,
-		sizeIndex,
-		coordsEl: coordsRef,
-	});
+	const { canvasRef, wrapRef } = usePaintCanvas({ src, active, tool, fg, bg, coordsEl: coordsRef });
 
 	return (
 		<div className="paint">
@@ -51,7 +33,7 @@ export function Paint({ src, active }: Props) {
 				<div className="paint__tools-col">
 					<div className="paint__tools" role="toolbar" aria-label="Tools">
 						{TOOLS.map((t, i) => {
-							const drawable = DRAWABLE_TOOLS.has(t.id);
+							const drawable = isDrawable(t.id);
 							const selected = tool === t.id;
 							return (
 								<button
@@ -73,18 +55,6 @@ export function Paint({ src, active }: Props) {
 								</button>
 							);
 						})}
-					</div>
-					<div className="paint__tool-options" role="group" aria-label="Size">
-						{SIZE_DOT.map((cls, idx) => (
-							<button
-								key={cls}
-								type="button"
-								className={`paint__pen-dot paint__pen-dot--${cls}${sizeIndex === idx ? " paint__pen-dot--on" : ""}`}
-								aria-label={`Size ${idx + 1}`}
-								aria-pressed={sizeIndex === idx}
-								onClick={() => setSizeIndex(idx as SizeIndex)}
-							/>
-						))}
 					</div>
 				</div>
 

@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
-import {
-	UNDO_LIMIT,
-	type Coords,
-	type SizeIndex,
-	type ToolId,
-} from "./paintModel";
-import {
-	paintSegment,
-	resolveStrokeStyle,
-	type FreehandStyle,
-} from "./tools/freehand";
+import { UNDO_LIMIT, type Coords, type ToolId } from "./paintModel";
+import { paintSegment, resolveStrokeStyle, type FreehandStyle } from "./tools/freehand";
 
 type Props = {
 	src: string;
@@ -19,12 +10,11 @@ type Props = {
 	tool: ToolId;
 	fg: string;
 	bg: string;
-	sizeIndex: SizeIndex;
 	/** Status bar coords node — written imperatively (no React paint thrash). */
 	coordsEl: RefObject<HTMLElement | null>;
 };
 
-type StrokeCfg = Pick<Props, "tool" | "fg" | "bg" | "sizeIndex" | "active">;
+type StrokeCfg = Pick<Props, "tool" | "fg" | "bg" | "active">;
 
 type Stroke = {
 	lastX: number;
@@ -56,7 +46,6 @@ export function usePaintCanvas({
 	tool,
 	fg,
 	bg,
-	sizeIndex,
 	coordsEl,
 }: Props): {
 	canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -65,7 +54,7 @@ export function usePaintCanvas({
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-	const cfg = useRef<StrokeCfg>({ tool, fg, bg, sizeIndex, active });
+	const cfg = useRef<StrokeCfg>({ tool, fg, bg, active });
 	const strokeRef = useRef<Stroke | null>(null);
 	const undoStack = useRef<ImageData[]>([]);
 	const readyRef = useRef(false);
@@ -76,9 +65,9 @@ export function usePaintCanvas({
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
 	useEffect(() => {
-		cfg.current = { tool, fg, bg, sizeIndex, active };
+		cfg.current = { tool, fg, bg, active };
 		coordsElRef.current = coordsEl;
-	}, [tool, fg, bg, sizeIndex, coordsEl, active]);
+	}, [tool, fg, bg, coordsEl, active]);
 
 	function emitCoords(c: Coords | null) {
 		const prev = lastCoords.current;
@@ -211,8 +200,8 @@ export function usePaintCanvas({
 		function onPointerDown(e: PointerEvent) {
 			if (e.button !== 0 && e.button !== 2) return;
 			if (!readyRef.current) return;
-			const { tool: t, fg: f, bg: b, sizeIndex: s } = cfg.current;
-			const style = resolveStrokeStyle(t, f, b, s, e.button === 2);
+			const { tool: t, fg: f, bg: b } = cfg.current;
+			const style = resolveStrokeStyle(t, f, b, e.button === 2);
 			if (!style) return;
 
 			const ctx = ctxRef.current;

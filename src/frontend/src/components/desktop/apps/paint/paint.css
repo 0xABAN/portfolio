@@ -124,57 +124,6 @@
 	top: 5px;
 }
 
-.paint__tool-options {
-	display: flex;
-	align-items: center;
-	justify-content: space-evenly;
-	width: 41px;
-	height: 66px;
-	margin-top: 3px;
-	box-sizing: border-box;
-	border: 1px solid var(--chrome-hi);
-	border-top-color: var(--chrome-lo);
-	border-left-color: var(--chrome-lo);
-}
-
-.paint__pen-dot {
-	display: block;
-	margin: 0;
-	padding: 4px;
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	cursor: var(--cursor-arrow);
-	box-sizing: content-box;
-}
-
-.paint__pen-dot::before {
-	content: "";
-	display: block;
-	border-radius: 50%;
-	background: var(--chrome-text);
-}
-
-.paint__pen-dot--sm::before {
-	width: 1px;
-	height: 1px;
-}
-
-.paint__pen-dot--md::before {
-	width: 3px;
-	height: 3px;
-}
-
-.paint__pen-dot--lg::before {
-	width: 5px;
-	height: 5px;
-}
-
-.paint__pen-dot--on {
-	outline: 1px dotted var(--chrome-text);
-	outline-offset: 0;
-}
-
 /* 1px sunken bevel: canvas, swatches, status, selected tool */
 .paint__sunken,
 .paint__tool--selected {

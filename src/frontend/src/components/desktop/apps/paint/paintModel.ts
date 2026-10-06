@@ -2,7 +2,7 @@
 export const TOOLS = [
 	{ id: "free-form-select", name: "Free-Form Select" },
 	{ id: "select", name: "Select" },
-	{ id: "eraser", name: "Eraser/Color Eraser" },
+	{ id: "eraser", name: "Eraser" },
 	{ id: "fill", name: "Fill With Color" },
 	{ id: "pick-color", name: "Pick Color" },
 	{ id: "magnifier", name: "Magnifier" },
@@ -20,8 +20,12 @@ export const TOOLS = [
 
 export type ToolId = (typeof TOOLS)[number]["id"];
 
-/** Phase 1 drawable tools */
-export const DRAWABLE_TOOLS = new Set<ToolId>(["pencil", "brush", "eraser"]);
+/** The tools that draw; the rest are shown for the classic toolbox. */
+export type DrawableTool = Extract<ToolId, "pencil" | "brush" | "eraser">;
+
+export function isDrawable(tool: ToolId): tool is DrawableTool {
+	return tool === "pencil" || tool === "brush" || tool === "eraser";
+}
 
 /** jspaint color-data.js default palette — 2×14 */
 export const PALETTE = [
@@ -64,13 +68,6 @@ export const MENUS = [
 	"Help",
 ] as const;
 
-/** jspaint circular brush sizes ascending; eraser subset of [4,6,8,10] */
-export const BRUSH_SIZES = [1, 4, 7] as const;
-export const ERASER_SIZES = [4, 6, 8] as const;
-export const DEFAULT_SIZE_INDEX = 1;
 export const UNDO_LIMIT = 20;
 
-export type SizeIndex = 0 | 1 | 2;
 export type Coords = { x: number; y: number };
-
-export const SIZE_DOT = ["sm", "md", "lg"] as const;
