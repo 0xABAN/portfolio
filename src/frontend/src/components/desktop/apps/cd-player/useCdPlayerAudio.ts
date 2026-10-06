@@ -79,6 +79,8 @@ let playlistReady = false;
 const readyWaiters: Array<() => void> = [];
 let shuffle: Shuffle = { order: [], position: 0 };
 let trackIdx = 0;
+/** The way the listener last moved through the shuffle. */
+let lastDirection: 1 | -1 = 1;
 /** The sound the widget is on; it opens on the first one. */
 let widgetIdx = 0;
 let currentTrack: Track | null = null;
@@ -231,6 +233,7 @@ function showTrack(index: number) {
 function step(direction: 1 | -1) {
 	if (!playlistReady) return;
 	++switchGen;
+	lastDirection = direction;
 	shuffle = stepShuffle(shuffle, direction);
 	trackIdx = shuffle.order[shuffle.position];
 	autoplayBlocked = false;
@@ -239,14 +242,17 @@ function step(direction: 1 | -1) {
 	void startPlayback();
 }
 
-/** Skips an upload whose stream will not play, giving up after several in a row. */
+/**
+ * Skips an upload whose stream will not play, giving up after several in a row.
+ * It keeps going the listener's way, so Previous does not bounce back off it.
+ */
 function skipUnplayable() {
 	if (++unplayableInARow > MAX_UNPLAYABLE) {
 		wantPlaying = false;
 		console.error(`CD Player stopped: ${MAX_UNPLAYABLE} tracks in a row would not play.`);
 		return;
 	}
-	step(1);
+	step(lastDirection);
 }
 
 function bindWidget(widget: ScWidget, events: ScApi["Widget"]["Events"]) {
@@ -469,6 +475,7 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 			playlistReady = false;
 			readyWaiters.length = 0;
 			shuffle = { order: [], position: 0 };
+			lastDirection = 1;
 			widgetIdx = 0;
 			showTrack(-1);
 		};
