@@ -78,39 +78,23 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 
 	return (
 		<>
-			<button
-				type="button"
-				className="start-btn chrome-raised"
-				aria-label="Start"
-				aria-haspopup="menu"
-				aria-expanded={open}
-				popoverTarget="start-menu"
+			<button type="button" className="start-btn chrome-raised" aria-label="Start" aria-haspopup="menu" aria-expanded={open} popoverTarget="start-menu"
 				onKeyDown={(event) => {
+					// Up and Down open the menu on its last or first item.
 					if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
 					event.preventDefault();
-					menu.current?.showPopover();
-					if (!menu.current) return;
-					const items = menuItems(menu.current);
-					items.at(event.key === "ArrowUp" ? -1 : 0)?.focus();
-				}}
-			>
+					menu.current!.showPopover();
+					menuItems(menu.current!).at(event.key === "ArrowUp" ? -1 : 0)?.focus();
+				}}>
 				{/* eslint-disable-next-line @next/next/no-img-element -- small static brand mark */}
 				<img className="start-btn__logo" src="/windows-flag.svg" alt="" width={16} height={14} draggable={false} />
 				<span className="start-btn__label">Start</span>
 			</button>
-			<div
-				ref={menu}
-				id="start-menu"
-				className="start-menu"
-				popover="auto"
-				role="menu"
-				aria-label="Start menu"
-				onKeyDown={onKey}
+			<div ref={menu} id="start-menu" className="start-menu" popover="auto" role="menu" aria-label="Start menu" onKeyDown={onKey}
 				onToggle={(event) => {
 					setOpen(event.newState === "open");
 					if (event.newState === "closed") setGroup(null);
-				}}
-			>
+				}}>
 				<div className="start-menu__brand" aria-hidden="true">Windows<strong>95</strong></div>
 				<div className="start-menu__items">
 					{/* Only actual mouse movement changes groups: opening under a parked
@@ -149,8 +133,7 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 						<span className="start-menu__arrow" aria-hidden="true" /><span>Reset portfolio</span>
 					</button>
 					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"
-						onPointerMove={closeGroupOnHover}
-						onClick={() => menu.current?.hidePopover()}>
+						onPointerMove={closeGroupOnHover} onClick={() => menu.current?.hidePopover()}>
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/notepad.svg" alt="" width={32} height={32} /><span>Font credits</span>
 					</a>

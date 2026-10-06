@@ -24,18 +24,7 @@ type Props = {
 };
 
 /** Maps a desktop window kind to its app content; window chrome stays in the host. */
-export const WindowContent = memo(function WindowContent({
-	id,
-	kind,
-	src,
-	active,
-	cropStyle,
-	audio,
-	onMinimize,
-	onClose,
-	onOpenShell,
-	folderId,
-}: Props) {
+export const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onClose, onOpenShell, folderId }: Props) {
 	switch (kind) {
 		case "cd-player":
 			return audio ? <CdPlayer {...audio} /> : null;
@@ -55,25 +44,10 @@ export const WindowContent = memo(function WindowContent({
 			return <Explorer folderId={folderId} onOpenAction={onOpenShell} />;
 	}
 
-	if (src) {
-		return (
-			// eslint-disable-next-line @next/next/no-img-element
-			<img className="win-fill" src={src} alt="" draggable={false} />
-		);
-	}
-
-	if (cropStyle) {
-		return (
-			// eslint-disable-next-line @next/next/no-img-element
-			<img
-				className="win-fill-crop"
-				src="/photos/overlay.webp"
-				alt=""
-				draggable={false}
-				style={cropStyle}
-			/>
-		);
-	}
-
+	// Plain picture windows: the beep boop GIF, and the magnifying glass's crop of the overlay photo.
+	/* eslint-disable @next/next/no-img-element */
+	if (src) return <img className="win-fill" src={src} alt="" draggable={false} />;
+	if (cropStyle) return <img className="win-fill-crop" src="/photos/overlay.webp" alt="" draggable={false} style={cropStyle} />;
+	/* eslint-enable @next/next/no-img-element */
 	return null;
 });
