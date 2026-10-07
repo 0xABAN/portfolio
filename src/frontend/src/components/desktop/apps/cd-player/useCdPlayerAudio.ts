@@ -166,8 +166,9 @@ function ensureSession(): Promise<Session> {
 		const iframe = document.createElement("iframe");
 		Object.assign(iframe, { id: "sc-cd-player", title: "SoundCloud", allow: "autoplay; encrypted-media", tabIndex: -1 });
 		iframe.setAttribute("aria-hidden", "true");
-		// Keep the iframe paintable; display:none often suspends media.
-		iframe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;overflow:hidden";
+		// Invisible but still painted, since display:none often suspends media. It keeps the
+		// player's own size: at 1px, SoundCloud draws its waveform at zero size and throws.
+		iframe.style.cssText = "position:fixed;left:0;top:0;width:300px;height:166px;opacity:0;pointer-events:none;border:0;overflow:hidden";
 		// Widget() reads iframe.src and throws on a blank frame. The browser checks stub SC without api.js.
 		if (document.querySelector(`script[src="${API_SRC}"]`)) {
 			iframe.src = `https://w.soundcloud.com/player/?${new URLSearchParams({ url: PLAYLIST_URL, auto_play: "false" })}`;
