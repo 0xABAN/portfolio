@@ -509,6 +509,8 @@ async function checkTaskbar(page) {
 	check(await player.count() === 0 && await music.count() === 0, "Close did not remove the app and its task");
 	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Close did not quit the audio transport");
 	await page.waitForFunction(() => !document.getElementById("desktop-window-cd-player") && document.activeElement?.getAttribute("data-app-id") !== "cd-player");
+	// Closing focuses the frontmost window on the next frame; let that land before typing elsewhere.
+	await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
 	for (const editable of ["textarea", "contenteditable"]) {
 		await page.evaluate((kind) => {
