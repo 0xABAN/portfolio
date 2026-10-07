@@ -29,7 +29,7 @@ try {
 		const xmb = page.locator(".psp-xmb");
 		const screen = page.locator(".psp__screen");
 		const initialCategory = await xmb.getAttribute("data-category");
-		const initialBackground = await xmb.evaluate((element) => getComputedStyle(element).backgroundImage);
+		const initialBackground = await xmb.evaluate((element) => element.querySelector(".psp-xmb__artwork.is-current").getAttribute("src"));
 		const titlebars = await psp.locator(".win-titlebar").count();
 		const beforeScreenClick = await psp.boundingBox();
 		const screenBox = await screen.boundingBox();
@@ -54,7 +54,7 @@ try {
 		await page.keyboard.press("Escape");
 		await page.keyboard.press("ArrowRight");
 		const nextCategory = await xmb.getAttribute("data-category");
-		const projectBackground = await xmb.evaluate((element) => getComputedStyle(element).backgroundImage);
+		const projectBackground = await xmb.evaluate((element) => element.querySelector(".psp-xmb__artwork.is-current").getAttribute("src"));
 		const projectItems = await psp.locator(".psp-xmb__item-content strong").allTextContents();
 		const openPopup = async (action) => {
 			const popupPromise = page.waitForEvent("popup");

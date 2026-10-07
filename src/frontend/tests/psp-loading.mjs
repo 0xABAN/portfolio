@@ -12,7 +12,9 @@ const url = process.argv[2] ?? 'http://localhost:3000';
 const artwork = '**/icons/psp.png?v=current';
 
 try {
-  for (const scenario of ['active', 'background', 'failed']) {
+  // The console artwork arrives last, or the screen's background does; either way the PSP appears in one piece.
+  for (const scenario of ['active', 'background', 'failed', 'slow-screen']) {
+    const gated = scenario === 'slow-screen' ? '**/photos/jobs-image.png' : artwork;
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
     await context.addInitScript(mockSoundCloud);
     await context.addInitScript(() => {
@@ -25,7 +27,7 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     let releaseArtwork;
     const gate = new Promise(resolve => { releaseArtwork = resolve; });
-    await page.route(artwork, async route => {
+    await page.route(gated, async route => {
       await gate;
       if (scenario === 'failed') await route.abort();
       else await route.continue();
@@ -52,8 +54,13 @@ try {
     await open();
     await xmb.waitFor({ state: 'attached' });
     await backgroundRequested;
-    assert.equal(await art.evaluate(image => image.complete), false);
-    assert.equal(await screen.isVisible(), false, 'Screen appeared before console artwork loaded');
+    if (scenario === 'slow-screen') {
+      await page.waitForFunction(() => document.querySelector('.psp__art').naturalWidth > 0);
+    } else {
+      assert.equal(await art.evaluate(image => image.complete), false);
+    }
+    assert.equal(await art.isVisible(), false, 'Console appeared before its screen was ready');
+    assert.equal(await screen.isVisible(), false, 'Screen appeared before the console and its artwork loaded');
     assert.equal(await screen.evaluate(element => element.inert), true, 'Pending screen accepts input');
     assert.equal(await xmb.evaluate(element => element.contains(document.activeElement)), false);
     const before = await geometry();
@@ -71,9 +78,11 @@ try {
         return image.complete && image.naturalWidth === 0;
       });
       assert.equal(await screen.isVisible(), false, 'Failed artwork exposed a floating screen');
+      assert.equal(await art.isVisible(), false, 'Failed artwork exposed half a PSP');
       assert.equal(await screen.evaluate(element => element.inert), true);
     } else {
       await screen.waitFor({ state: 'visible' });
+      assert.equal(await art.isVisible(), true, 'Console and screen did not appear together');
       assert.equal(await art.evaluate(image => image.complete && image.naturalWidth > 0), true);
       assert.equal(await screen.evaluate(element => element.inert), false);
       assert.deepEqual(await geometry(), before, 'Readiness changed the screen layout');
@@ -88,7 +97,7 @@ try {
 
     await psp.getByRole('button', { name: 'Close Experience', exact: true }).click();
     await psp.waitFor({ state: 'detached' });
-    await page.unroute(artwork);
+    await page.unroute(gated);
 
     if (scenario === 'active') {
       // No routes remain: allow normal caching and retain a decoded image while

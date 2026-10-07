@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { flushSync } from "react-dom";
 import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
+import { preloadExperience } from "./apps/experience/Experience";
 import { DesktopSparks } from "./effects/sparks/DesktopSparks";
 import { FractureBackground } from "./effects/fracture/FractureBackground";
 import { BIN_ICON } from "./files/catalog";
@@ -161,6 +162,7 @@ function DesktopWorkspace() {
 			return;
 		}
 		if (id === "explorer") setExplorerFolder(required ?? "desktop");
+		if (id === "experience") preloadExperience();
 		setBusy(true);
 		launchTimer.current = window.setTimeout(() => {
 			launchTimer.current = null;

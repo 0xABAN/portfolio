@@ -129,7 +129,6 @@ export function PspXmb({ ready }: { ready: boolean }) {
 	const selectedItemRef = useRef<HTMLButtonElement>(null);
 	const category = CATEGORIES[state.categoryIndex];
 	const project = category.items[state.itemIndex];
-	const screenArtwork = category.artwork;
 	function focusRoot() {
 		rootRef.current?.focus({ preventScroll: true });
 	}
@@ -183,11 +182,6 @@ export function PspXmb({ ready }: { ready: boolean }) {
 		<div
 			ref={rootRef}
 			className="psp-xmb"
-			style={screenArtwork ? {
-				backgroundImage: `linear-gradient(90deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.2) 48%, transparent 78%), linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 48%), linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72)), url("${screenArtwork}")`,
-				backgroundPosition: "center",
-				backgroundSize: "cover",
-			} : undefined}
 			data-category={category.id}
 			data-window-focus
 			data-no-window-drag
@@ -198,6 +192,12 @@ export function PspXmb({ ready }: { ready: boolean }) {
 			onClickCapture={() => focusRoot()}
 			onKeyDown={onKeyDown}
 		>
+			{/* Every category's artwork stays rendered, so switching categories never waits for a load. */}
+			{CATEGORIES.map((entry) => entry.artwork && (
+				// eslint-disable-next-line @next/next/no-img-element
+				<img key={entry.id} className={entry === category ? "psp-xmb__artwork is-current" : "psp-xmb__artwork"} src={entry.artwork} alt="" draggable={false} />
+			))}
+			{category.artwork && <div className="psp-xmb__shade" aria-hidden="true" />}
 			<div className="psp-xmb__wave" aria-hidden="true" />
 			<StatusBar />
 			<div className="psp-xmb__categories" role="tablist" aria-label="Categories">

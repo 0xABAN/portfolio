@@ -92,6 +92,31 @@
 	}
 }
 
+/* The current category's artwork, under shades that keep the menu legible. */
+.psp-xmb__artwork,
+.psp-xmb__shade {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.psp-xmb__artwork {
+	object-fit: cover;
+	opacity: 0;
+}
+
+.psp-xmb__artwork.is-current {
+	opacity: 1;
+}
+
+.psp-xmb__shade {
+	background: linear-gradient(90deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.2) 48%, transparent 78%),
+		linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 48%),
+		linear-gradient(rgba(9, 19, 30, 0.2), rgba(2, 6, 11, 0.72));
+}
+
 .psp-xmb__wave,
 .psp-xmb__wave::before,
 .psp-xmb__wave::after {
