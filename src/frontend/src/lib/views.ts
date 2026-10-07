@@ -4,6 +4,8 @@ import { Redis } from "@upstash/redis";
 // same key/logic as main branch — keep incrementing the live portfolio counter
 const KEY = "portfolio:views";
 const BOT_PATTERN = /bot|crawl|spider|curl|wget|python|go-http/i;
+/** An IP counts as one view per this many seconds. */
+const DEDUP_SECONDS = 24 * 60 * 60;
 /** production site still on main — same Upstash DB behind /api/views */
 const PROD_VIEWS = "https://advm.dev/api/views";
 
@@ -70,7 +72,7 @@ export async function recordView({
 
 	try {
 		const dedupKey = `portfolio:views:seen:${ip}`;
-		const isNew = await redis.set(dedupKey, 1, { nx: true, ex: 3600 });
+		const isNew = await redis.set(dedupKey, 1, { nx: true, ex: DEDUP_SECONDS });
 
 		if (isNew !== null) {
 			return redis.incr(KEY);
