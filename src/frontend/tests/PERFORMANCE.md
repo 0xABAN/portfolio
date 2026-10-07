@@ -42,6 +42,28 @@ animation keeps its 54 frames at 100 ms, its loop and its transparency.
 It ships as the delivered 179,199-byte `overlay.jpg`: its halftone texture
 made the `-q 90` WebP larger (211,786 bytes) than the JPEG itself.
 
+## Later: PSP images sized for its screen
+
+The PSP appears only once every image on it has decoded, so its 10.5 MB of
+images kept it hidden for about 7.5 s on a 10 Mbps connection. The screen is
+at most about 705 CSS px wide (1,410 device px at 2×) and thumbnails 84 CSS
+px, so the work artwork was resized to 1440 px wide and the thumbnails to
+256 px squares (their `object-fit: cover` crop), encoded with sharp's WebP
+encoder at quality 85 and 88, effort 6.
+
+| Asset | Before bytes | After bytes |
+| --- | ---: | ---: |
+| photos/jobs-image.png → jobs-image.webp (2560×1440 → 1440×810) | 7,274,413 | 471,562 |
+| photos/ibm.png → ibm.webp (1008×1040 → 256²) | 1,316,124 | 18,348 |
+| photos/amazon.png → amazon.webp (640² → 256²) | 499,973 | 12,396 |
+| photos/definitive-multiplayer.png → .webp (640² → 256²) | 403,053 | 10,396 |
+| **Total** | **9,493,563** | **512,702** |
+
+The work artwork's halftone dots hold the PSNR at display size to 31.6 dB;
+quality 94 reached only 32.3 dB at 634 KB, so 85 was kept. Side by side at
+display size the dots stay crisp. `projects-image.png` (54 KB saved as WebP)
+and the console's `psp.png` (236 KB saved as lossless WebP) were left as PNGs.
+
 ## Measurements
 
 Production Chrome, 1440×900 at DPR 1, normal motion, 6× CPU throttling,

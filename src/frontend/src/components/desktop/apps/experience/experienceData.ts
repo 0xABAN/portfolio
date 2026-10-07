@@ -9,13 +9,13 @@ export type Project = {
 };
 
 export const WORK: readonly Project[] = [
-	{ id: "amazon", title: "amazon", blurb: "swe intern @ amazon summer 2026", src: "/photos/amazon.png" },
-	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/photos/ibm.png" },
+	{ id: "amazon", title: "amazon", blurb: "swe intern @ amazon summer 2026", src: "/photos/amazon.webp" },
+	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/photos/ibm.webp" },
 ];
 
 export const PROJECTS: readonly Project[] = [
 	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/photos/yadl.webp", href: `${GITHUB_URL}/YADL` },
-	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/photos/definitive-multiplayer.png", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
+	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/photos/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
 	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/photos/maestro.jpg", href: `${GITHUB_URL}/maestro` },
 	{ id: "github", title: "github", blurb: "everything else i've built", src: "/photos/github.svg", href: GITHUB_URL },
 ];

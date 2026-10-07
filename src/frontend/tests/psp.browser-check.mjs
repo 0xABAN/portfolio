@@ -113,7 +113,7 @@ try {
 
 	assert.match(result, /"initialPspVisible":0/);
 	assert.match(result, /"initialCategory":"jobs"/);
-	assert.match(result, /"initialBackground".*jobs-image\.png/);
+	assert.match(result, /"initialBackground".*jobs-image\.webp/);
 	assert.match(result, /"tabFocusPreserved":true/);
 	assert.match(result, /"nextCategory":"projects"/);
 	assert.match(result, /"projectBackground".*projects-image\.png/);

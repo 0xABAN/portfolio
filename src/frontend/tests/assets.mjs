@@ -4,17 +4,18 @@ import { stat } from 'node:fs/promises';
 import sharp from 'sharp';
 
 // Decoded RGB(A) baselines captured before re-encoding; psp.png is the new
-// pixel-art console, the other PNGs are from 826ac95. Do not refresh for
-// compression. The street and overlay photos are lossy: street.webp replaced
-// street.png (PSNR 41.7 dB against the original) and overlay.jpg ships as
-// delivered, so only their geometry is pinned: lossy decoders may differ in
-// the last bit.
+// pixel-art console, projects-image.png is from 826ac95. Do not refresh for
+// compression. The lossy images pin only their geometry, since lossy decoders
+// may differ in the last bit: street.webp replaced street.png (PSNR 41.7 dB
+// against the original), overlay.jpg ships as delivered, and the PSP's work
+// artwork and thumbnails are WebPs sized for the screen (see PERFORMANCE.md).
 const assets = [
   ['public/icons/psp.png', 1840, 855, 4, '21f26aab62c77254e0fc8cf8d83f26e2a7b2104268ef9dd99096de0ca2b4991c'],
-  ['public/photos/jobs-image.png', 2560, 1440, 4, 'd4b0cb89fd727a6dd33e5b7269ed59ee2dde3e3102c4afe9a6b545d5c51a98b7'],
   ['public/photos/projects-image.png', 1548, 869, 4, 'f3d2799be0191a0859d324056d7dcafcdfdfd7d068b6aafd3dc0dee42a209036'],
-  ['public/photos/amazon.png', 640, 640, 3, '98086ce1642ce435b3c50c156fcd41b839f327428096321b8c5d6102685324cf'],
-  ['public/photos/ibm.png', 1008, 1040, 3, '2308705a281e5e44e12ed52920d38a221f42a5f72bca8fc424368540405ed51a'],
+  ['public/photos/jobs-image.webp', 1440, 810, 4],
+  ['public/photos/amazon.webp', 256, 256, 3],
+  ['public/photos/ibm.webp', 256, 256, 3],
+  ['public/photos/definitive-multiplayer.webp', 256, 256, 3],
   ['public/photos/street.webp', 768, 1360, 3],
   ['public/photos/overlay.jpg', 768, 1360, 3],
 ];

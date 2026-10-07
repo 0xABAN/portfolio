@@ -33,7 +33,7 @@ type ViewAction =
 const EMPTY_ITEMS: readonly Project[] = [];
 
 export const CATEGORIES: readonly PspCategory[] = [
-	{ id: "jobs", label: "Work", icon: "jobs", items: WORK, artwork: "/photos/jobs-image.png" },
+	{ id: "jobs", label: "Work", icon: "jobs", items: WORK, artwork: "/photos/jobs-image.webp" },
 	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS, artwork: "/photos/projects-image.png" },
 	{ id: "settings", label: "Settings", icon: "settings", items: EMPTY_ITEMS, disabled: true },
 	{ id: "photo", label: "Photo", icon: "photo", items: EMPTY_ITEMS, disabled: true },
