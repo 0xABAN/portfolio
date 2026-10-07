@@ -152,7 +152,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	const terminal = { id: "terminal", title: "MS-DOS Prompt", z: 12, kind: "terminal" as const, icon: "/icons/terminal.svg", ...layoutTerminalWindow(me, vw, vh) };
 	const windows: DesktopWindow[] = [
 		me,
-		{ id: "alt", title: "magnifying glass", z: 3, parentId: "me", ...layoutAltOnParent(me) },
+		{ id: "alt", title: "Move me", z: 3, parentId: "me", ...layoutAltOnParent(me) },
 		{ id: "new", title: "beep boop", z: 4, src: "/photos/beep-boop.webp", ...layoutBeepBoop(me) },
 		terminal,
 		{ id: "github", title: "Activity", icon: "/icons/code.svg", z: 13, kind: "github", ...layoutGitHubWindow(terminal) },
