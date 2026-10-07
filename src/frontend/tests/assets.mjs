@@ -4,9 +4,9 @@ import { stat } from 'node:fs/promises';
 import sharp from 'sharp';
 
 // Decoded RGB(A) baselines captured before re-encoding; PSP assets are from
-// 826ac95. Do not refresh for compression. The WebPs are lossy: street.webp
-// replaced street.png (PSNR 41.7 dB against the original) and overlay.webp is
-// encoded from new JPEG artwork, so only their geometry is pinned: lossy
+// 826ac95. Do not refresh for compression. The street and overlay photos are
+// lossy: street.webp replaced street.png (PSNR 41.7 dB against the original)
+// and overlay.jpg ships as delivered, so only their geometry is pinned: lossy
 // decoders may differ in the last bit.
 const assets = [
   ['public/icons/psp.png', 1839, 855, 4, '9c1622a00b97486866db8864494c4e63928064efc70f6210f5c9b8045eadd56f'],
@@ -15,7 +15,7 @@ const assets = [
   ['public/photos/amazon.png', 640, 640, 3, '98086ce1642ce435b3c50c156fcd41b839f327428096321b8c5d6102685324cf'],
   ['public/photos/ibm.png', 1008, 1040, 3, '2308705a281e5e44e12ed52920d38a221f42a5f72bca8fc424368540405ed51a'],
   ['public/photos/street.webp', 768, 1360, 3],
-  ['public/photos/overlay.webp', 768, 1360, 3],
+  ['public/photos/overlay.jpg', 768, 1360, 3],
 ];
 
 for (const [file, width, height, channels, expectedHash] of assets) {
