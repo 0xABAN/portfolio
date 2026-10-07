@@ -117,8 +117,8 @@ try {
 	assert.match(result, /"tabFocusPreserved":true/);
 	assert.match(result, /"nextCategory":"projects"/);
 	assert.match(result, /"projectBackground".*projects-image\.png/);
-	assert.match(result, /"categoryLabels":\["Work","Projects","Settings","Photo","Music","Video","Game","Network","PlayStation Network"\]/);
-	assert.match(result, /"disabledCategories":7/);
+	assert.match(result, /"categoryLabels":\["Work","Projects","Settings","Photo","Music"\]/);
+	assert.match(result, /"disabledCategories":3/);
 	assert.match(result, /"initialItems":\["amazon","ibm"\]/);
 	assert.match(result, /"initialCardDescription":"swe intern @ amazon summer 2026"/);
 	assert.match(result, /"selectedItem":"ibm"/);
