@@ -36,6 +36,9 @@ PSNR against the originals is 41.7 dB (street) and 43.8 dB (overlay). The
 animation keeps its 54 frames at 100 ms, its loop and its transparency.
 `tests/assets.mjs` now pins the WebPs' geometry rather than their pixels.
 
+`overlay.webp` was later replaced with new artwork at street's 768×1360,
+encoded the same way from a 297,556-byte JPEG to 135,210 bytes.
+
 ## Measurements
 
 Production Chrome, 1440×900 at DPR 1, normal motion, 6× CPU throttling,
