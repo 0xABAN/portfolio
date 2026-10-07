@@ -72,8 +72,14 @@ const transport = {
 	volume: 0,
 	paused: true,
 	currentTime: 0,
-	src: "",
-	readyState: 0,
+	/** The playlist while the player is loaded, empty once it quits. */
+	get src() {
+		return session ? PLAYLIST_URL : "";
+	},
+	/** 4 once SoundCloud has described the playlist, as a ready media element reports. */
+	get readyState() {
+		return session?.isReady ? 4 : 0;
+	},
 	async play() {
 		if (!session) return;
 		applyVolume(true);
@@ -100,7 +106,10 @@ let view: View = { playing: false, track: null, muted: false, volume: userVolume
 const viewers = new Set<() => void>();
 
 function publish() {
-	view = { playing: !transport.paused, track, muted: transport.muted, volume: userVolume };
+	const next: View = { playing: !transport.paused, track, muted: transport.muted, volume: userVolume };
+	// The widget echoes changes the player already made, such as the PAUSE after a pause; skip those re-renders.
+	if (next.playing === view.playing && next.track === view.track && next.muted === view.muted && next.volume === view.volume) return;
+	view = next;
 	for (const notify of viewers) notify();
 }
 
@@ -163,7 +172,6 @@ function ensureSession(): Promise<Session> {
 		if (document.querySelector(`script[src="${API_SRC}"]`)) {
 			iframe.src = `https://w.soundcloud.com/player/?${new URLSearchParams({ url: PLAYLIST_URL, auto_play: "false" })}`;
 		}
-		transport.src = PLAYLIST_URL;
 		document.body.append(iframe);
 		session = {
 			widget: api.Widget(iframe), iframe, events: api.Widget.Events,
@@ -212,7 +220,6 @@ async function loadPlaylist(s: Session) {
 			s.sounds = sounds;
 			s.shuffle = { order: shuffledOrder(sounds.length), position: 0 };
 			s.isReady = true;
-			transport.readyState = 4;
 			showTrack();
 			s.ready.resolve();
 			return;
@@ -313,7 +320,7 @@ function quit() {
 	mediaStarted = false;
 	fadeProgress = 0;
 	lastWidgetVolume = -1;
-	Object.assign(transport, { volume: 0, src: "", readyState: 0 });
+	transport.volume = 0;
 	if (session) {
 		for (const name of Object.values(session.events)) session.widget.unbind(name);
 		session.iframe.remove();
@@ -329,7 +336,11 @@ function setVolume(value: number) {
 	publish();
 }
 
-/** Desktop owns the transport so minimizing the app does not stop its music. */
+/**
+ * Desktop owns the transport so minimizing the app does not stop its music.
+ * `running` is whether the CD Player's window exists: the player loads while
+ * it does and quits when it closes.
+ */
 export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 	const { playing, track, muted, volume } = useSyncExternalStore(subscribe, () => view, () => view);
 
@@ -346,7 +357,8 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 	}, []);
 
 	useEffect(() => {
-		if (running && !mediaStarted) void startPlayback();
+		if (!running) quit();
+		else if (!mediaStarted) void startPlayback();
 	}, [running]);
 
 	// Once the desktop has booted, the music fades in over FADE_MS, resuming where an interrupted fade stopped.
@@ -387,7 +399,6 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 		playPrev: () => step(-1),
 		playNext: () => step(1),
 		stop,
-		quit,
 		setVolume,
 	}), [muted, playing, track, volume]);
 }

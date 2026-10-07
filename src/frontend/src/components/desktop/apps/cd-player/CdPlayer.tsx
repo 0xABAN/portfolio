@@ -25,7 +25,7 @@ function Field({ label, value, onPrev, onNext }: { label: string; value: string;
 
 /** Window positioning, activation, minimization and closing belong to Desktop. */
 export function CdPlayer({ track, playing, volume, bindElapsed, togglePlay, playPrev, playNext, setVolume, stop }: ReturnType<typeof useCdPlayerAudio>) {
-	const transport: [label: string, action: () => void, glyph: string][] = [
+	const controls: [label: string, action: () => void, glyph: string][] = [
 		["Previous track", playPrev, "prev"],
 		["Next track", playNext, "next"],
 		[playing ? "Pause" : "Play", togglePlay, playing ? "pause" : "play"],
@@ -47,7 +47,7 @@ export function CdPlayer({ track, playing, volume, bindElapsed, togglePlay, play
 
 					<div className="cd-player__transport" role="toolbar" aria-label="Playback">
 						{/* Keyed by position, so toggling Play and Pause keeps the same, focused button. */}
-						{transport.map(([label, action, glyph], index) => (
+						{controls.map(([label, action, glyph], index) => (
 							<button key={index} type="button" className="cd-player__tbtn chrome-raised" aria-label={label} onClick={action}>
 								<span className={`cd-player__glyph cd-player__glyph--${glyph}`} />
 							</button>

@@ -125,11 +125,10 @@ function DesktopWorkspace() {
 		return () => window.removeEventListener("keydown", onTyping);
 	}, []);
 
+	// Closing the CD Player quits its music: the player follows whether its window exists.
 	const closeWindow = useCallback((id: string) => {
-		if (id === "cd-player") {
-			audio.quit();
-			cdDragged.current = false;
-		}
+		// A relaunched CD Player opens above its task button again until it is moved.
+		if (id === "cd-player") cdDragged.current = false;
 		setWindows((prev) => {
 			const next = prev.filter((w) => w.id !== id && w.parentId !== id);
 			const front = activeWindowId(next);
@@ -138,7 +137,7 @@ function DesktopWorkspace() {
 			});
 			return next;
 		});
-	}, [audio]);
+	}, []);
 
 	function isBootVisible(w: DesktopWindow) {
 		return w.launched || revealed(w.id);
