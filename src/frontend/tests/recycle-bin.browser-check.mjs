@@ -110,7 +110,7 @@ async function checkRecycling(page) {
 	await openIcon("secrets");
 	await win("explorer").getByRole("button", { name: "Up", exact: true }).click();
 	await page.clock.runFor(516);
-	check(await win("explorer").getAttribute("aria-label") === "Desktop", "Explorer title did not follow navigation");
+	check(await win("explorer").getAttribute("aria-label") === "desktop", "Explorer title did not follow navigation");
 	await row("secrets").dblclick();
 	await page.clock.runFor(516);
 	check(await win("explorer").getAttribute("aria-label") === "secrets", "Explorer title did not return to the folder");

@@ -157,7 +157,7 @@ function DesktopWorkspace() {
 		const missing = () => required !== undefined && required !== "desktop" && !getState().nodes.some((node) => node.id === required);
 
 		if (missing()) {
-			notice(FILE_NOT_FOUND, "File not found");
+			notice(FILE_NOT_FOUND, "file not found");
 			return;
 		}
 		if (id === "explorer") setExplorerFolder(required ?? "desktop");
@@ -166,7 +166,7 @@ function DesktopWorkspace() {
 			launchTimer.current = null;
 			if (missing()) {
 				setBusy(false);
-				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "File not found");
+				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "file not found");
 				return;
 			}
 			const { innerWidth, innerHeight } = window;
@@ -181,7 +181,7 @@ function DesktopWorkspace() {
 		if (id === "desktop") { launchApp("explorer", "desktop"); return; }
 		if (id === "recycle-bin") { launchApp("recycle-bin"); return; }
 		const node = getState().nodes.find((node) => node.id === id);
-		if (!node) { notice("This item is no longer available.", "File not found"); return; }
+		if (!node) { notice("This item is no longer available.", "file not found"); return; }
 		const item = itemOf(node);
 		if (item.open) launchApp(item.open, node.id);
 		else if (item.href) window.open(item.href, "_blank", "noopener,noreferrer");
@@ -190,7 +190,7 @@ function DesktopWorkspace() {
 	/** Start opens a document through its shell file, so a deleted file stays unavailable. */
 	const openFile = useCallback((id: string) => {
 		if (getState().nodes.some((node) => node.id === id)) openShell(id);
-		else notice(FILE_NOT_FOUND, "File not found");
+		else notice(FILE_NOT_FOUND, "file not found");
 	}, [openShell, getState, notice]);
 
 	const move = useCallback((id: string, x: number, y: number) => {
@@ -200,7 +200,7 @@ function DesktopWorkspace() {
 	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
 	const visibleWindows = windows.filter(isBootVisible).map((w) => {
 		if (w.kind === "recycle-bin") return { ...w, icon: binFull ? BIN_ICON.full : BIN_ICON.empty };
-		if (w.kind === "explorer") return { ...w, title: explorerFolder === "desktop" ? "Desktop" : explorerNode ? itemOf(explorerNode).name : w.title };
+		if (w.kind === "explorer") return { ...w, title: explorerFolder === "desktop" ? "desktop" : explorerNode ? itemOf(explorerNode).name : w.title };
 		return w;
 	});
 	const activeId = activeWindowId(visibleWindows);

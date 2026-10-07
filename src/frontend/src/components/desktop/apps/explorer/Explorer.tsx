@@ -48,7 +48,7 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 				{ label: "Invert Selection", disabled: !files.length, action: selection.invert },
 			]} />
 			<MenuButton label="View" commands={[{ label: "Up One Level", disabled: folderId === "desktop", action: up }]} />
-			<MenuButton label="Help" commands={[{ label: "About Explorer", action: () => shell.notice("Single-click to select, double-click or press Enter to open. Use Delete to recycle and Shift+Delete to delete permanently. Drag deleted items out of the Recycle Bin to recover them here.", "About Explorer") }]} />
+			<MenuButton label="Help" commands={[{ label: "About Explorer", action: () => shell.notice("Single-click to select, double-click or press Enter to open. Use Delete to recycle and Shift+Delete to delete permanently. Drag deleted items out of the Recycle Bin to recover them here.", "about explorer") }]} />
 		</div>
 		<div className="shell-toolbar" role="toolbar" aria-label="Explorer">
 			<button type="button" disabled={folderId === "desktop"} onClick={up}>Up</button>

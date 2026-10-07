@@ -69,7 +69,7 @@ export function RecycleBin({ onCloseAction }: { onCloseAction: () => void }) {
 				{ label: "Invert Selection", disabled: !entries.length, action: selection.invert },
 			]} />
 			<MenuButton label="View" commands={viewCommands} />
-			<MenuButton label="Help" commands={[{ label: "About Recycle Bin", action: () => shell.notice("Deleted files stay here until you restore them or empty the bin. Select an item and choose File → Restore, or drag it back out.", "About Recycle Bin") }]} />
+			<MenuButton label="Help" commands={[{ label: "About Recycle Bin", action: () => shell.notice("Deleted files stay here until you restore them or empty the bin. Select an item and choose File → Restore, or drag it back out.", "about recycle bin") }]} />
 		</div>
 		{toolbar && <div className="shell-toolbar" role="toolbar" aria-label="Recycle Bin">
 			<button type="button" disabled={!selected.length} onClick={() => shell.restore(selected)}>Restore</button>

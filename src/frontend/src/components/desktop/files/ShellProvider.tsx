@@ -21,14 +21,14 @@ function useShellController() {
 	const [state, setState] = useState(loaded.state);
 	// Event handlers and delayed launches read the latest state, not the one they closed over.
 	const current = useRef(state);
-	const [dialog, setDialog] = useState<ShellDialog | null>(() => loaded.error ? { title: "Desktop storage", message: loaded.error } : null);
+	const [dialog, setDialog] = useState<ShellDialog | null>(() => loaded.error ? { title: "desktop storage", message: loaded.error } : null);
 	const drag = useRef<ShellDrag | null>(null);
 
-	function notice(message: string, title = "Recycle Bin") {
+	function notice(message: string, title = "recycle bin") {
 		setDialog({ title, message });
 	}
 
-	function confirm(message: string, action: () => void, title = "Confirm File Delete") {
+	function confirm(message: string, action: () => void, title = "confirm file delete") {
 		setDialog({ title, message, accept: () => { setDialog(null); action(); } });
 	}
 
@@ -38,7 +38,7 @@ function useShellController() {
 		try {
 			window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 		} catch {
-			notice("The desktop could not be saved, so this change lasts only until you leave the page.", "Desktop storage");
+			notice("The desktop could not be saved, so this change lasts only until you leave the page.", "desktop storage");
 		}
 	}
 
@@ -99,10 +99,10 @@ function useShellController() {
 	return {
 		state, dialog, closeDialog: () => setDialog(null),
 		getState: () => current.current, notice, recycle, purge, restore,
-		empty: () => purge(current.current.entries.map(entryId), "Confirm Multiple File Delete"),
+		empty: () => purge(current.current.entries.map(entryId), "confirm multiple file delete"),
 		reset: () => confirm("Reset all portfolio files? This brings back permanently deleted items. Your icon arrangement will be kept.", () => {
 			save(initialShellState());
-		}, "Reset portfolio"),
+		}, "reset portfolio"),
 		startDrag, endDrag: () => { drag.current = null; }, canDrop, drop,
 	};
 }

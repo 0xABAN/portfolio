@@ -261,9 +261,9 @@ async function checkTaskbar(page) {
 	check(await win("cd-player").evaluate((el) => el.inert) && await task("cd-player").getAttribute("aria-pressed") === "false", "CD Player did not start minimized");
 
 	await task("github").click();
-	check(await task("github").innerText() === "Activity", "Activity task has the wrong name");
-	check(await win("github").getAttribute("aria-label") === "Activity", "Activity window has the wrong accessible name");
-	check(await win("github").locator(".win-titlebar__text").innerText() === "Activity", "Activity window title is missing");
+	check(await task("github").innerText() === "activity", "Activity task has the wrong name");
+	check(await win("github").getAttribute("aria-label") === "activity", "Activity window has the wrong accessible name");
+	check(await win("github").locator(".win-titlebar__text").innerText() === "activity", "Activity window title is missing");
 	check(await win("github").locator(".win-titlebar").evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(10, 10, 10)", "Activity did not use the standard black title bar");
 	for (const icon of [task("github").locator("img"), win("github").locator(".win-titlebar__icon")]) {
 		check(await icon.getAttribute("src") === "/icons/code.svg", "Activity still uses a GitHub icon");

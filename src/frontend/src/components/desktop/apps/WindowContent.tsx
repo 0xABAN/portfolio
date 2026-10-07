@@ -44,7 +44,7 @@ export const WindowContent = memo(function WindowContent({ id, kind, src, active
 			return <Explorer folderId={folderId} onOpenAction={onOpenShell} />;
 	}
 
-	// Plain picture windows: the beep boop GIF, and the magnifying glass's crop of the overlay photo.
+	// Plain picture windows: the beep boop GIF, and the "move me" window's crop of the overlay photo.
 	/* eslint-disable @next/next/no-img-element */
 	if (src) return <img className="win-fill" src={src} alt="" draggable={false} />;
 	if (cropStyle) return <img className="win-fill-crop" src="/photos/overlay.webp" alt="" draggable={false} style={cropStyle} />;

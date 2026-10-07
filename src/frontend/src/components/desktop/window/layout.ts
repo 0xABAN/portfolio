@@ -89,7 +89,7 @@ function layoutMeWindow(vw: number, vh: number): Rect {
 	return { w, h, x: Math.round((vw - w) / 2), y: Math.round(MARGIN + (vh - TASKBAR_H - MARGIN * 2 - h) / 2) };
 }
 
-/** The magnifying glass sits over the face in the photo, which lands at its lower right. */
+/** The "move me" window sits over the face in the photo, which lands at its lower right. */
 function layoutAltOnParent(parent: Rect): Rect {
 	const img = paintImageBounds(parent);
 	const side = Math.round(Math.min(img.w, img.h) * 0.42);
@@ -115,7 +115,7 @@ function layoutErrorStack(paint: Rect): DesktopWindow[] {
 	const baseY = Math.round(paint.y + paint.h * 0.86 - ERR_H / 2);
 	return Array.from({ length: ERR_COUNT }, (_, i) => ({
 		id: `sysmsg-${i}`,
-		title: "System message",
+		title: "system message",
 		kind: "error" as const,
 		x: Math.round(baseX - i * 24),
 		y: Math.round(baseY + Math.sin(Math.PI / 2 + (i / (ERR_COUNT - 1)) * Math.PI * 1.5) * 36),
@@ -144,18 +144,18 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 
 function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
 	// Desktop aligns this to the actual task button when the app is restored.
-	return { id: "cd-player", title: "CD Player", kind: "cd-player", icon: "/icons/cd.png", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
+	return { id: "cd-player", title: "cd player", kind: "cd-player", icon: "/icons/cd.png", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
 }
 
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
-	const me = { id: "me", title: "Adam-paint", z: 2, kind: "paint" as const, src: "/photos/street.webp", icon: "/paint/icon-16.png", ...layoutMeWindow(vw, vh) };
+	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/photos/street.webp", icon: "/paint/icon-16.png", ...layoutMeWindow(vw, vh) };
 	const terminal = { id: "terminal", title: "MS-DOS Prompt", z: 12, kind: "terminal" as const, icon: "/icons/terminal.svg", ...layoutTerminalWindow(me, vw, vh) };
 	const windows: DesktopWindow[] = [
 		me,
-		{ id: "alt", title: "Move me", z: 3, parentId: "me", ...layoutAltOnParent(me) },
+		{ id: "alt", title: "move me", z: 3, parentId: "me", ...layoutAltOnParent(me) },
 		{ id: "new", title: "beep boop", z: 4, src: "/photos/beep-boop.webp", ...layoutBeepBoop(me) },
 		terminal,
-		{ id: "github", title: "Activity", icon: "/icons/code.svg", z: 13, kind: "github", ...layoutGitHubWindow(terminal) },
+		{ id: "github", title: "activity", icon: "/icons/code.svg", z: 13, kind: "github", ...layoutGitHubWindow(terminal) },
 		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
 		...layoutErrorStack(me),
 	];
@@ -222,7 +222,7 @@ export function makeExperienceWindow(z: number, vw: number, vh: number): Desktop
 export function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const w = Math.min(760, Math.max(240, vw - 24));
 	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
-	return { id: "recycle-bin", title: "Recycle Bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.png", z, ...layoutCentered(w, h, vw, vh) };
+	return { id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.png", z, ...layoutCentered(w, h, vw, vh) };
 }
 
 /** Explorer opens left of the adam window with their bottoms aligned, or centred if there is no room. */
@@ -242,7 +242,7 @@ export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: numb
 	};
 }
 
-/** Places the overlay photo inside the magnifying glass so it lines up with the Paint photo below. */
+/** Places the overlay photo inside the "move me" window so it lines up with the Paint photo below. */
 export function altCropStyle(child: Pick<DesktopWindow, "x" | "y">, parent: Rect) {
 	const img = paintImageBounds(parent);
 	return { width: img.w, height: img.h, left: img.x - (child.x + FRAME_X), top: img.y - (child.y + FRAME_Y) };
