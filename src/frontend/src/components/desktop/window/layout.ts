@@ -210,7 +210,7 @@ export function reflowDesktop(current: DesktopWindow[], previous: DesktopWindow[
 
 /** The PSP, at its artwork's ratio and as large as the desktop allows. */
 export function makeExperienceWindow(z: number, vw: number, vh: number): DesktopWindow {
-	const ratio = 1839 / 855;
+	const ratio = 1840 / 855;
 	const maxW = Math.max(0, Math.min(1350, vw - 16));
 	const maxH = Math.max(0, vh - TASKBAR_H - 16);
 	const w = Math.max(1, Math.min(maxW, Math.floor(maxH * ratio)));
