@@ -10,7 +10,7 @@ import sharp from 'sharp';
 // delivered, so only their geometry is pinned: lossy decoders may differ in
 // the last bit.
 const assets = [
-  ['public/icons/psp.png', 1840, 855, 4, 'a5ddda82e94243b17c87f179c6d22b6034ee5d0bfb0a5c0d26d7d97e005340f9'],
+  ['public/icons/psp.png', 1840, 855, 4, '21f26aab62c77254e0fc8cf8d83f26e2a7b2104268ef9dd99096de0ca2b4991c'],
   ['public/photos/jobs-image.png', 2560, 1440, 4, 'd4b0cb89fd727a6dd33e5b7269ed59ee2dde3e3102c4afe9a6b545d5c51a98b7'],
   ['public/photos/projects-image.png', 1548, 869, 4, 'f3d2799be0191a0859d324056d7dcafcdfdfd7d068b6aafd3dc0dee42a209036'],
   ['public/photos/amazon.png', 640, 640, 3, '98086ce1642ce435b3c50c156fcd41b839f327428096321b8c5d6102685324cf'],

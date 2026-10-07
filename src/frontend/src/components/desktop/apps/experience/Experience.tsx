@@ -42,9 +42,9 @@ export function Experience({ onClose }: { onClose: () => void }) {
 			<div className="psp__screen" style={hidden} inert={!ready}>
 				<PspXmb ready={ready} />
 			</div>
-			{/* Invisible over the artwork's HOME button, so it closes the PSP even if the artwork fails. */}
+			{/* Invisible over the artwork's QUIT button, so it closes the PSP even if the artwork fails. */}
 			<button
-				className="psp__home-button"
+				className="psp__quit-button"
 				type="button"
 				aria-label="Close Experience"
 				data-no-window-drag

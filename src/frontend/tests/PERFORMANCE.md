@@ -19,7 +19,7 @@ application logic, CSS, playback, animation or timer changes.
 
 Paint's `street.png` remains untouched: the same encoding made it larger.
 `icons/psp.png` was later replaced with 1840×855 pixel-art artwork,
-re-encoded the same way from 1,054,248 to 855,139 bytes.
+re-encoded the same way from 1,025,498 to 815,129 bytes.
 The animated GIF and untracked alternate PSP artwork remain untouched too.
 
 ## Later: lossy WebP boot images
