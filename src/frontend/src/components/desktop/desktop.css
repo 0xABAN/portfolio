@@ -79,6 +79,11 @@
 	opacity: 1;
 }
 
+/* The PSP stays hidden until its images are ready; dim the desktop only once it shows. */
+.desktop__windows:has(.psp:not([data-ready])) > .desktop__psp-dimmer {
+	opacity: 0;
+}
+
 .desktop__icons {
 	position: absolute;
 	inset: 12px 0 calc(var(--taskbar-height) + 16px) 10px;

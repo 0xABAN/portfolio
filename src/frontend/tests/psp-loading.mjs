@@ -60,6 +60,8 @@ try {
       assert.equal(await art.evaluate(image => image.complete), false);
     }
     assert.equal(await art.isVisible(), false, 'Console appeared before its screen was ready');
+    const dimming = () => page.locator('.desktop__psp-dimmer').evaluate(element => getComputedStyle(element).opacity);
+    assert.equal(await dimming(), '0', 'The desktop dimmed around a PSP that had not appeared yet');
     assert.equal(await screen.isVisible(), false, 'Screen appeared before the console and its artwork loaded');
     assert.equal(await screen.evaluate(element => element.inert), true, 'Pending screen accepts input');
     assert.equal(await xmb.evaluate(element => element.contains(document.activeElement)), false);
@@ -83,6 +85,7 @@ try {
     } else {
       await screen.waitFor({ state: 'visible' });
       assert.equal(await art.isVisible(), true, 'Console and screen did not appear together');
+      if (scenario !== 'background') assert.equal(await dimming(), '1', 'The desktop did not dim once the PSP appeared');
       assert.equal(await art.evaluate(image => image.complete && image.naturalWidth > 0), true);
       assert.equal(await screen.evaluate(element => element.inert), false);
       assert.deepEqual(await geometry(), before, 'Readiness changed the screen layout');

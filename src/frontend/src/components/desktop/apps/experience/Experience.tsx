@@ -38,7 +38,7 @@ export function Experience({ onClose }: { onClose: () => void }) {
 	// Hidden rather than unmounted, so the images keep loading and the layout stays put.
 	const hidden = ready ? undefined : { visibility: "hidden" as const };
 	return (
-		<div ref={rootRef} className="psp" aria-label="PSP Projects">
+		<div ref={rootRef} className="psp" aria-label="PSP Projects" data-ready={ready || undefined}>
 			<div className="psp__screen" style={hidden} inert={!ready}>
 				<PspXmb ready={ready} />
 			</div>
