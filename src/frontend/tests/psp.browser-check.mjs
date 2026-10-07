@@ -72,7 +72,7 @@ try {
 		await page.keyboard.press("ArrowDown");
 		const selectedOption = await psp.locator(".psp-xmb__options .is-selected").innerText();
 		await page.keyboard.press("Enter");
-		for (let index = 0; index < 4; index += 1) await page.keyboard.press("ArrowDown");
+		for (let index = 0; index < 3; index += 1) await page.keyboard.press("ArrowDown");
 		await page.waitForTimeout(50);
 		const scrolledItem = await psp.locator(".psp-xmb__item.is-selected .psp-xmb__item-content strong").innerText();
 		const listScrollTop = await psp.locator(".psp-xmb__items").evaluate((element) => element.scrollTop);
@@ -125,11 +125,11 @@ try {
 	assert.match(result, /"selectedCardDescription":"ai eng co-op @ ibm 2025-2026"/);
 	assert.match(result, /"jobDetailVisible":0/);
 	assert.match(result, /"jobListVisible":1/);
-	assert.match(result, /"projectEnterTitle".*0xABAN\/copycat/);
-	assert.match(result, /"projectClickTitle".*0xABAN\/copycat/);
+	assert.match(result, /"projectEnterTitle".*0xABAN\/YADL/);
+	assert.match(result, /"projectClickTitle".*0xABAN\/YADL/);
 	assert.match(result, /"selectedOption":"Close"/);
-	assert.match(result, /"projectItems":\["copycat","definitive multiplayer","fit-check","maestro","simulacra","terrar.ai"\]/);
-	assert.match(result, /"scrolledItem":"simulacra"/);
+	assert.match(result, /"projectItems":\["yadl","definitive multiplayer","maestro","github"\]/);
+	assert.match(result, /"scrolledItem":"github"/);
 	assert.match(result, /"listScrollTop":[1-9]/);
 	assert.match(result, /"listVisible":1/);
 	assert.match(result, /"homeCursor".*hand\.svg/);

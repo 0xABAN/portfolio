@@ -7,7 +7,7 @@ test("XMB navigates the jobs and projects lists while PSP categories stay visual
 	assert.equal(CATEGORIES[state.categoryIndex].id, "jobs");
 	assert.equal(CATEGORIES[state.categoryIndex].label, "Work");
 	assert.deepEqual(CATEGORIES[state.categoryIndex].items.map((item) => item.id), ["amazon", "ibm"]);
-	assert.equal(CATEGORIES[1].items.length, 6);
+	assert.equal(CATEGORIES[1].items.length, 4);
 	assert.deepEqual(CATEGORIES.slice(2).map((category) => category.label), [
 		"Settings",
 		"Photo",
@@ -24,7 +24,7 @@ test("XMB navigates the jobs and projects lists while PSP categories stay visual
 	state = reducer(state, { type: "category", delta: 1 });
 	assert.equal(CATEGORIES[state.categoryIndex].id, "projects");
 	assert.equal(state.itemIndex, 0);
-	assert.equal(CATEGORIES[state.categoryIndex].items[state.itemIndex].id, "copycat");
+	assert.equal(CATEGORIES[state.categoryIndex].items[state.itemIndex].id, "yadl");
 
 	state = reducer(state, { type: "toggle-options" });
 	state = reducer(state, { type: "option", delta: 1 });
