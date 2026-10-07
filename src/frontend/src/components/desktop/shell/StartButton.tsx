@@ -133,11 +133,6 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/recycle-bin-empty.png" alt="" width={32} height={32} /><span>Reset portfolio</span>
 					</button>
-					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"
-						onPointerMove={closeGroupOnHover} onClick={() => menu.current?.hidePopover()}>
-						{/* eslint-disable-next-line @next/next/no-img-element */}
-						<img src="/icons/notepad.svg" alt="" width={32} height={32} /><span>Font credits</span>
-					</a>
 				</div>
 			</div>
 		</>

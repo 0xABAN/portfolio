@@ -45,7 +45,7 @@
 	position: relative;
 }
 
-.start-menu :is(button, a[role="menuitem"]) {
+.start-menu button[role="menuitem"] {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -58,23 +58,22 @@
 	color: inherit;
 	font: inherit;
 	text-align: left;
-	text-decoration: none;
 	white-space: nowrap;
 	cursor: var(--cursor-arrow);
 }
 
-.start-menu :is(button, a[role="menuitem"]) > span:not(.start-menu__arrow) {
+.start-menu button[role="menuitem"] > span:not(.start-menu__arrow) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.start-menu :is(button, a[role="menuitem"]):not(:disabled):is(:hover, :focus, [aria-expanded="true"]) {
+.start-menu button[role="menuitem"]:not(:disabled):is(:hover, :focus, [aria-expanded="true"]) {
 	background: var(--desktop-bg);
 	color: #fff;
 	outline: none;
 }
 
-.start-menu :is(button, a[role="menuitem"]):focus-visible {
+.start-menu button[role="menuitem"]:focus-visible {
 	outline: 1px dotted #fff;
 	outline-offset: -3px;
 }
