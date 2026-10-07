@@ -14,7 +14,7 @@ export const WORK: readonly Project[] = [
 ];
 
 export const PROJECTS: readonly Project[] = [
-	{ id: "yadl", title: "yadl", blurb: "yet another data labeler, but no clicking", src: "/photos/yadl.webp", href: `${GITHUB_URL}/YADL` },
+	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/photos/yadl.webp", href: `${GITHUB_URL}/YADL` },
 	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria multiplayer add-on i built in a week, 3k+ downloads", src: "/photos/definitive-multiplayer.png", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
 	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/photos/maestro.jpg", href: `${GITHUB_URL}/maestro` },
 	{ id: "github", title: "github", blurb: "everything else i've built", src: "/icons/social/github.svg", href: GITHUB_URL },
