@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { desktopViewport, toDesktop } from "../viewport";
 import "./controls.css";
 
 /** One selection contract for Desktop, Explorer and the Recycle Bin. */
@@ -84,14 +85,14 @@ export type MenuPosition = { x: number; y: number };
 export function menuPosition(event: MouseEvent<HTMLElement>): MenuPosition {
 	event.preventDefault();
 	const rect = event.currentTarget.getBoundingClientRect();
-	return { x: event.clientX || rect.left, y: event.clientY || rect.bottom };
+	return { x: toDesktop(event.clientX || rect.left), y: toDesktop(event.clientY || rect.bottom) };
 }
 
 /** Shift+F10 opens the context menu below the focused item. */
 export function keyboardMenuPosition(event: KeyboardEvent<HTMLElement>): MenuPosition {
 	event.preventDefault();
 	const rect = (event.target as HTMLElement).getBoundingClientRect();
-	return { x: rect.left, y: rect.bottom };
+	return { x: toDesktop(rect.left), y: toDesktop(rect.bottom) };
 }
 
 export function ShellMenu({ label, commands, position, onClose }: { label: string; commands: MenuCommand[]; position: MenuPosition; onClose: () => void }) {
@@ -102,9 +103,11 @@ export function ShellMenu({ label, commands, position, onClose }: { label: strin
 		const previous = document.activeElement as HTMLElement | null;
 		const menu = ref.current!;
 		menu.showPopover();
+		// The menu is zoomed with the desktop, so it is placed and kept on screen in desktop pixels.
+		const { width, height } = desktopViewport();
 		const bounds = menu.getBoundingClientRect();
-		menu.style.left = `${Math.max(2, Math.min(position.x, window.innerWidth - bounds.width - 2))}px`;
-		menu.style.top = `${Math.max(2, Math.min(position.y, window.innerHeight - bounds.height - 2))}px`;
+		menu.style.left = `${Math.max(2, Math.min(position.x, width - toDesktop(bounds.width) - 2))}px`;
+		menu.style.top = `${Math.max(2, Math.min(position.y, height - toDesktop(bounds.height) - 2))}px`;
 		menu.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
 		return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }); };
 	}, [position.x, position.y]);
@@ -149,7 +152,7 @@ export function MenuButton({ label, commands }: { label: string; commands: MenuC
 	return <>
 		<button type="button" role="menuitem" data-shell-menu={label[0].toLowerCase()} aria-haspopup="menu" aria-expanded={Boolean(position)} onClick={(event) => {
 			const rect = event.currentTarget.getBoundingClientRect();
-			setPosition({ x: rect.left, y: rect.bottom });
+			setPosition({ x: toDesktop(rect.left), y: toDesktop(rect.bottom) });
 		}}><u>{label[0]}</u>{label.slice(1)}</button>
 		{position && <ShellMenu label={label} commands={commands} position={position} onClose={() => setPosition(null)} />}
 	</>;

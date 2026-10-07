@@ -1,3 +1,5 @@
+import { desktopViewport, toDesktop } from "../../viewport";
+
 /** Sprite cells from crgimenes/neko (oneko.js 8×4 sheet layout), as [column, row] offsets. */
 const SPRITES: Record<string, readonly (readonly [number, number])[]> = {
 	idle: [[-3, -3]],
@@ -91,9 +93,11 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		const dy = nekoY - mouseY;
 		const dist = Math.hypot(dx, dy);
 
+		// The cat lives in desktop pixels, which the desktop's zoom can make larger than the screen's.
+		const { width, height } = desktopViewport();
 		// Close enough to the cursor: idle animations play in place.
 		if (dist < 48) {
-			paint(...stepIdle(idle, nekoX, nekoY, innerWidth, innerHeight));
+			paint(...stepIdle(idle, nekoX, nekoY, width, height));
 			return;
 		}
 
@@ -107,14 +111,14 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		}
 
 		paint(moveDir(dx, dy, dist), frameCount);
-		nekoX = Math.min(Math.max(16, nekoX - (dx / dist) * SPEED), innerWidth - 16);
-		nekoY = Math.min(Math.max(16, nekoY - (dy / dist) * SPEED), innerHeight - 16);
+		nekoX = Math.min(Math.max(16, nekoX - (dx / dist) * SPEED), width - 16);
+		nekoY = Math.min(Math.max(16, nekoY - (dy / dist) * SPEED), height - 16);
 		place();
 	};
 
 	const onMove = (event: MouseEvent) => {
-		mouseX = event.clientX;
-		mouseY = event.clientY;
+		mouseX = toDesktop(event.clientX);
+		mouseY = toDesktop(event.clientY);
 	};
 	// The timer keeps running; ticks do nothing while the page is hidden.
 	const onVisibility = () => {

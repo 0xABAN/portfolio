@@ -11,6 +11,7 @@ import {
 	TASKBAR_H,
 	type DesktopWindow,
 } from "@/components/desktop/window/layout";
+import { desktopScale } from "@/components/desktop/viewport";
 
 test("secrets opens left of the current adam window with aligned bottom borders", () => {
 	for (const [width, height] of [[1920, 1080], [1440, 900]]) {
@@ -104,9 +105,11 @@ test("resized parents stay reachable and nested windows stay inside their canvas
 	assert.deepEqual(clampWindowPos(-5000, -5000, 400, 960, 600), { x: -352, y: 0 });
 });
 
-test("every starting window fits on screen and clear of the icons", () => {
-	for (const [screenW, screenH] of [[3440, 1440], [2560, 1440], [1920, 1080], [1536, 864], [1440, 900], [1440, 810]]) {
-		const [width, height] = [screenW, screenH];
+test("every starting window fits on screen and clear of the icons, down to the zoomed canvas", () => {
+	// Real window sizes, laid out at the desktop size the zoom gives them.
+	for (const [screenW, screenH] of [[3440, 1440], [2560, 1440], [1920, 1080], [1536, 864], [1440, 900], [1366, 768], [1280, 800], [1280, 720], [1024, 768], [1024, 700], [800, 600], [690, 690]]) {
+		const scale = desktopScale(screenW, screenH);
+		const [width, height] = [screenW / scale, screenH / scale];
 		const iconsRight = 10 + Math.ceil(13 / iconGrid(width, height, 13).rows) * ICON_STEP_X - 8;
 		for (const w of layoutDesktop(width, height).filter((w) => !w.minimized && !w.parentId)) {
 			const where = `${w.id} at ${screenW}x${screenH}: ${w.x},${w.y} ${w.w}x${w.h}`;

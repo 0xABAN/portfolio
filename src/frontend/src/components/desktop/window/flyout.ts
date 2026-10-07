@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, type Dispatch, type SetStateAction } from "react";
 import type { DesktopWindow } from "./layout";
 import { minimizeWindowTree } from "./state";
+import { desktopViewport, toDesktop } from "../viewport";
 
 /** How far the mouse may stray from a flyout and its task button before the flyout hides, in px. */
 const HIDE_DISTANCE = 120;
@@ -29,13 +30,15 @@ export function useTaskFlyout(id: string, shown: boolean, taskOrder: string, set
 			const layer = document.querySelector(".desktop__windows");
 			if (!task || !layer) return;
 			task.scrollIntoView({ block: "nearest", inline: "nearest" });
+			// Rects are in screen pixels; window positions are in desktop pixels.
 			const anchor = task.getBoundingClientRect();
 			const origin = layer.getBoundingClientRect();
+			const { width } = desktopViewport();
 			setWindows((current) => {
 				const flyout = current.find((w) => w.id === id);
 				if (!flyout) return current;
-				const x = Math.max(4, Math.min(anchor.left, window.innerWidth - flyout.w - 4)) - origin.left;
-				const y = Math.max(0, anchor.top - flyout.h - 4) - origin.top;
+				const x = Math.max(4, Math.min(toDesktop(anchor.left), width - flyout.w - 4)) - toDesktop(origin.left);
+				const y = Math.max(0, toDesktop(anchor.top) - flyout.h - 4) - toDesktop(origin.top);
 				return x === flyout.x && y === flyout.y ? current : current.map((w) => (w === flyout ? { ...w, x, y } : w));
 			});
 		};

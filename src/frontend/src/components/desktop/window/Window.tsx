@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useLayoutEffect, useRef, type FocusEvent, type PointerEvent, type ReactNode } from "react";
+import { toDesktop } from "../viewport";
 import "./window.css";
 
 type Props = {
@@ -63,7 +64,7 @@ export const Window = memo(function Window({
 		// Gives the window a layer of its own while it moves (desktop.css).
 		el.toggleAttribute("data-dragging", true);
 		drag.current = {
-			offsetX: event.clientX - el.offsetLeft, offsetY: event.clientY - el.offsetTop,
+			offsetX: toDesktop(event.clientX) - el.offsetLeft, offsetY: toDesktop(event.clientY) - el.offsetTop,
 			x: el.offsetLeft, y: el.offsetTop, live: liveMove, frame: 0,
 		};
 	}
@@ -71,8 +72,8 @@ export const Window = memo(function Window({
 	function moveDrag(event: PointerEvent<HTMLElement>) {
 		const d = drag.current;
 		if (!d) return;
-		d.x = event.clientX - d.offsetX;
-		d.y = event.clientY - d.offsetY;
+		d.x = toDesktop(event.clientX) - d.offsetX;
+		d.y = toDesktop(event.clientY) - d.offsetY;
 		if (!d.live) {
 			// Most windows move on screen only, and report where they land on release.
 			Object.assign(rootRef.current!.style, { left: `${d.x}px`, top: `${d.y}px` });
