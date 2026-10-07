@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import sharp from 'sharp';
 
-// Decoded RGB(A) baselines captured before re-encoding; PSP assets are from
-// 826ac95. Do not refresh for compression. The street and overlay photos are
+// Decoded RGB(A) baselines captured before re-encoding; psp.png is the new
+// illustrated artwork, the other PNGs are from 826ac95. Do not refresh for
+// compression. The street and overlay photos are
 // lossy: street.webp replaced street.png (PSNR 41.7 dB against the original)
 // and overlay.jpg ships as delivered, so only their geometry is pinned: lossy
 // decoders may differ in the last bit.
 const assets = [
-  ['public/icons/psp.png', 1839, 855, 4, '9c1622a00b97486866db8864494c4e63928064efc70f6210f5c9b8045eadd56f'],
+  ['public/icons/psp.png', 1839, 855, 4, 'b621829999c350c10c9d2d460acd20d75407537636c8a4647672b28d6857ac44'],
   ['public/photos/jobs-image.png', 2560, 1440, 4, 'd4b0cb89fd727a6dd33e5b7269ed59ee2dde3e3102c4afe9a6b545d5c51a98b7'],
   ['public/photos/projects-image.png', 1548, 869, 4, 'f3d2799be0191a0859d324056d7dcafcdfdfd7d068b6aafd3dc0dee42a209036'],
   ['public/photos/amazon.png', 640, 640, 3, '98086ce1642ce435b3c50c156fcd41b839f327428096321b8c5d6102685324cf'],
