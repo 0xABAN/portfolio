@@ -407,6 +407,8 @@ async function checkTaskbar(page) {
 	check((await music.getAttribute("title")).includes(" - "), "CD task lost its artist and track label");
 	await page.waitForFunction((previous) => document.querySelector('[data-task-id="cd-player"] .task-btn__elapsed').textContent !== previous, firstElapsed);
 	check(await page.evaluate(() => document.querySelector('.task-btn__elapsed').textContent === document.querySelector('#desktop-window-cd-player [aria-label="Elapsed time"]').textContent), "Taskbar and player progress drifted apart");
+	// Secrets opens over the lower icon rows; clear it before using the CD Player icon.
+	await win("explorer").getByRole("button", { name: "Minimize", exact: true }).click();
 	await cdIcon.hover();
 	await cdIcon.focus();
 	await page.evaluate(() => new Promise(requestAnimationFrame));

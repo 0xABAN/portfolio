@@ -6,7 +6,7 @@ import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, type DeskIcon as Ca
 import { useShell } from "./ShellProvider";
 import { itemOf, type ShellNode } from "./state";
 import { useDesktopSelection } from "./useDesktopSelection";
-import { TASKBAR_H } from "../window/layout";
+import { ICON_H, ICON_STEP_X, ICON_STEP_Y, ICON_W, iconGrid } from "../window/layout";
 
 type DeskIcon = CatalogIcon & { recycle?: boolean };
 type DeskIconPosition = { col: number; row: number };
@@ -23,11 +23,6 @@ type Props = {
 const RECYCLE_BIN: DeskIcon = { id: "recycle-bin", label: "Recycle Bin", src: BIN_ICON.empty, recycle: true };
 const DESK_ICONS: CatalogIcon[] = [...FILE_ICONS, RECYCLE_BIN];
 
-/** Icon cells and the 8px gaps between them; keep in sync with desktop.css. */
-const CELL_W = 96;
-const CELL_H = 112;
-const STEP_X = CELL_W + 8;
-const STEP_Y = CELL_H + 8;
 /** The secrets folder starts bouncing this long after the desktop has finished revealing. */
 const ATTENTION_DELAY_MS = 1000;
 
@@ -38,24 +33,15 @@ function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	}), RECYCLE_BIN];
 }
 
-/** The desktop's grid, with enough rows for every icon even when the screen is short. */
-function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
-	const width = Math.max(CELL_W, vw - 10);
-	const height = Math.max(CELL_H, vh - TASKBAR_H - 28);
-	const cols = Math.max(1, Math.floor((width - CELL_W) / STEP_X) + 1);
-	const rows = Math.max(1, Math.floor((height - CELL_H) / STEP_Y) + 1, Math.ceil(count / cols));
-	return { cols, rows };
-}
-
 /** Icons fill the columns top to bottom, left to right. */
 function defaultDeskIconPositions(vw: number, vh: number): DeskIconPositions {
-	const { rows } = gridBounds(vw, vh);
+	const { rows } = iconGrid(vw, vh, DESK_ICONS.length);
 	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, { col: Math.floor(index / rows), row: index % rows }]));
 }
 
 /** Clamps every icon into the grid; an icon whose cell is taken moves to the next free one. */
 function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: number, icons: DeskIcon[]): DeskIconPositions {
-	const { cols, rows } = gridBounds(vw, vh, icons.length);
+	const { cols, rows } = iconGrid(vw, vh, icons.length);
 	const used = new Set<string>();
 	const next: DeskIconPositions = {};
 	const total = cols * rows;
@@ -138,7 +124,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 
 	/** Moves an icon to a cell, swapping with the icon already there; the Recycle Bin is never displaced. */
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
-		const { cols, rows } = gridBounds(window.innerWidth, window.innerHeight, deskIcons.length);
+		const { cols, rows } = iconGrid(window.innerWidth, window.innerHeight, deskIcons.length);
 		const cell = { col: Math.min(Math.max(col, 0), cols - 1), row: Math.min(Math.max(row, 0), rows - 1) };
 		setDeskIconPositions((current) => {
 			const source = current[sourceId] ?? positions[sourceId];
@@ -175,7 +161,9 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					event.preventDefault();
 					// The cell nearest the drop point.
 					const bounds = event.currentTarget.getBoundingClientRect();
-					moveDeskIconToCell(draggingId, Math.round((event.clientX - bounds.left - CELL_W / 2) / STEP_X), Math.round((event.clientY - bounds.top - CELL_H / 2) / STEP_Y));
+					const x = event.clientX - bounds.left;
+					const y = event.clientY - bounds.top;
+					moveDeskIconToCell(draggingId, Math.round((x - ICON_W / 2) / ICON_STEP_X), Math.round((y - ICON_H / 2) / ICON_STEP_Y));
 					shell.endDrag();
 					setDraggingId(null);
 				}}
@@ -184,7 +172,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					<li
 						key={icon.id}
 						role="presentation"
-						style={{ left: `${positions[icon.id].col * STEP_X}px`, top: `${positions[icon.id].row * STEP_Y}px` }}
+						style={{ left: `${positions[icon.id].col * ICON_STEP_X}px`, top: `${positions[icon.id].row * ICON_STEP_Y}px` }}
 					>
 						<button
 							type="button"
