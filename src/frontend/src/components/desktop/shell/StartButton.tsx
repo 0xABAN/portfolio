@@ -130,7 +130,8 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
 					</button>
 					<button type="button" role="menuitem" onPointerMove={closeGroupOnHover} onClick={() => run(onResetAction)}>
-						<span className="start-menu__arrow" aria-hidden="true" /><span>Reset portfolio</span>
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img src="/icons/recycle-bin-empty.png" alt="" width={32} height={32} /><span>Reset portfolio</span>
 					</button>
 					<a role="menuitem" href="/fonts/win95-ui-LICENSE.txt" target="_blank" rel="noopener noreferrer"
 						onPointerMove={closeGroupOnHover} onClick={() => menu.current?.hidePopover()}>
