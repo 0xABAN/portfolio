@@ -73,7 +73,9 @@ async function checkLaunches(page) {
 		["explorer", "secrets", "Documents"],
 	]) {
 		// Some initial windows extend offscreen; minimize without moving their layout.
-		await win(id).getByRole("button", { name: "Minimize", exact: true }).dispatchEvent("click");
+		// The CD Player may already have hidden itself when the mouse moved away.
+		const minimize = win(id).getByRole("button", { name: "Minimize", exact: true });
+		if (await minimize.count()) await minimize.dispatchEvent("click");
 		await delayed(id, id === "explorer" ? 500 : 1500, () => fromStart(label, group));
 	}
 

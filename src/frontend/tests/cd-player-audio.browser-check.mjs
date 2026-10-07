@@ -112,10 +112,13 @@ async function checkAudio(page) {
 	check((await state()).muted, "Fade or track change overrode mute");
 	await speaker.click();
 	check(!(await state()).muted, "Unmute stopped working");
+	// The tray is far from the player, which hides when the mouse strays; reopen it from its task.
+	await task.click();
 	await player.getByRole("button", { name: "Pause", exact: true }).click();
 	await page.locator(".taskbar__clock").click();
 	check((await state()).paused, "A later gesture resumed deliberately paused music");
 	await page.evaluate(() => { window.widgetPosition = 5000; });
+	await task.click();
 	await player.getByRole("button", { name: "Stop", exact: true }).click();
 	check(await page.evaluate(() => window.widgetPosition === 0), "Stop reset the display without rewinding the SoundCloud widget");
 

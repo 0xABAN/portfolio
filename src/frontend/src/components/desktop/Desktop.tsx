@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
@@ -15,6 +15,7 @@ import { Neko } from "./effects/neko/Neko";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";
+import { useTaskFlyout } from "./window/flyout";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, moveWindow, openApp, restoreDecorations, taskWindows, type AppId } from "./window/state";
 import { TASKBAR_H, altCropStyle, layoutDesktop, reflowDesktop, type DesktopWindow } from "./window/layout";
 import "./desktop.css";
@@ -32,23 +33,6 @@ function isDesktopSurface(target: EventTarget) {
 	return !(target as HTMLElement).closest(".win, .taskbar, dialog");
 }
 
-/** Moves a window to sit just above its taskbar button. */
-function placeAboveTask(id: string, setWindows: Dispatch<SetStateAction<DesktopWindow[]>>) {
-	const task = document.querySelector(`[data-task-id="${id}"]`);
-	const layer = document.querySelector(".desktop__windows");
-	if (!task || !layer) return;
-
-	task.scrollIntoView({ block: "nearest", inline: "nearest" });
-	const anchor = task.getBoundingClientRect();
-	const origin = layer.getBoundingClientRect();
-	// Account for incidental desktop scrolling while keeping the app above its task.
-	flushSync(() => setWindows((current) => current.map((w) => w.id === id ? {
-		...w,
-		x: Math.max(4, Math.min(anchor.left, window.innerWidth - w.w - 4)) - origin.left,
-		y: Math.max(0, anchor.top - w.h - 4) - origin.top,
-	} : w)));
-}
-
 export function Desktop() {
 	return <ShellProvider><DesktopWorkspace /></ShellProvider>;
 }
@@ -64,7 +48,6 @@ function DesktopWorkspace() {
 	const launchTimer = useRef<number | null>(null);
 	const binFull = shell.state.entries.length > 0;
 	const [secretsOpened, setSecretsOpened] = useState(false);
-	const cdDragged = useRef(false);
 	const revealed = useDesktopReveal();
 	// Sparks fly from the impact, so they wait for the wallpaper to show.
 	const [wallpaperShown, setWallpaperShown] = useState(false);
@@ -127,8 +110,6 @@ function DesktopWorkspace() {
 
 	// Closing the CD Player quits its music: the player follows whether its window exists.
 	const closeWindow = useCallback((id: string) => {
-		// A relaunched CD Player opens above its task button again until it is moved.
-		if (id === "cd-player") cdDragged.current = false;
 		setWindows((prev) => {
 			const next = prev.filter((w) => w.id !== id && w.parentId !== id);
 			const front = activeWindowId(next);
@@ -157,8 +138,6 @@ function DesktopWorkspace() {
 			const root = document.getElementById(`desktop-window-${id}`);
 			// Typing or another activation can win before this scheduled focus runs.
 			if (!root || root.dataset.active !== "true" || root.hasAttribute("inert")) return;
-			// Until the user moves it, the CD Player opens above its task button.
-			if (id === "cd-player" && !cdDragged.current) placeAboveTask(id, setWindows);
 			// Only explicit launches/restores may move keyboard focus.
 			root.focus({ preventScroll: true });
 			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
@@ -215,9 +194,8 @@ function DesktopWorkspace() {
 	}, [openShell, getState, notice]);
 
 	const move = useCallback((id: string, x: number, y: number) => {
-		if (id === "cd-player" && cdWindow && (cdWindow.x !== x || cdWindow.y !== y)) cdDragged.current = true;
 		setWindows((prev) => moveWindow(prev, id, x, y, window.innerWidth, window.innerHeight));
-	}, [cdWindow]);
+	}, []);
 
 	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
 	const visibleWindows = windows.filter(isBootVisible).map((w) => {
@@ -226,6 +204,9 @@ function DesktopWorkspace() {
 		return w;
 	});
 	const activeId = activeWindowId(visibleWindows);
+	const tasks = taskWindows(visibleWindows);
+	// The CD Player is a taskbar flyout: pinned above its task, and hidden when the mouse strays.
+	useTaskFlyout("cd-player", visibleWindows.some((w) => w.id === "cd-player" && !w.minimized), tasks.map((w) => w.id).join(), setWindows);
 	const renderWindow = (w: DesktopWindow) => {
 		const parent = windows.find((p) => p.id === w.parentId);
 		return <Window
@@ -240,7 +221,7 @@ function DesktopWorkspace() {
 			onActivateAction={activate}
 			onMinimizeAction={minimizeWindow}
 			onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
-			onMoveAction={move}
+			onMoveAction={w.id === "cd-player" ? undefined : move}
 		>
 			<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
 				audio={w.kind === "cd-player" ? audio : undefined}
@@ -281,7 +262,7 @@ function DesktopWorkspace() {
 				onToggleMuteAction={audio.toggleMute}
 				trackLabel={audio.trackLabel}
 				bindElapsed={audio.bindElapsed}
-				tasks={taskWindows(visibleWindows)}
+				tasks={tasks}
 				activeId={activeId}
 				onActivateAction={restoreWindow}
 				onLaunchAction={launchApp}

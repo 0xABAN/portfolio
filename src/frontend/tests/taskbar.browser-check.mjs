@@ -430,11 +430,13 @@ async function checkTaskbar(page) {
 	await page.mouse.down();
 	await page.mouse.move(playerBounds.x + 140, playerBounds.y - 38, { steps: 4 });
 	await page.mouse.up();
-	const movedPlayer = await player.boundingBox();
-	check(movedPlayer.x === playerBounds.x + 80 && movedPlayer.y === playerBounds.y - 50, "CD Player stopped being draggable");
-	await page.mouse.move(600, 40);
+	const draggedPlayer = await player.boundingBox();
+	check(draggedPlayer.x === playerBounds.x && draggedPlayer.y === playerBounds.y, "CD Player can be dragged off its task");
+	await page.mouse.move(playerBounds.x + playerBounds.width + 100, playerBounds.y, { steps: 2 });
+	check(await player.isVisible(), "CD Player hid while the mouse was still near it");
+	await page.mouse.move(600, 40, { steps: 2 });
 	await start.focus();
-	check(await player.isVisible(), "Leaving CD Player dismissed it");
+	check(!(await player.isVisible()), "CD Player stayed open after the mouse strayed far from it");
 	await music.press("Enter");
 	await page.waitForFunction(() => document.getElementById("desktop-window-cd-player").contains(document.activeElement));
 	await page.keyboard.press("Tab");
@@ -467,7 +469,7 @@ async function checkTaskbar(page) {
 	await player.waitFor();
 	check(await audioState() === pausedState, "Restoring CD Player resumed paused music");
 	const restoredPlayer = await player.boundingBox();
-	check(restoredPlayer.x === movedPlayer.x && restoredPlayer.y === movedPlayer.y, "Reopening CD Player reset its dragged position");
+	check(restoredPlayer.x === playerBounds.x && restoredPlayer.y === playerBounds.y, "Reopening CD Player left its task");
 	await player.getByRole("button", { name: "Play", exact: true }).click();
 	await player.getByRole("button", { name: "Pause", exact: true }).waitFor();
 	check(await page.evaluate(() => !window.taskbarAudio.paused), "Play control did not resume playback");

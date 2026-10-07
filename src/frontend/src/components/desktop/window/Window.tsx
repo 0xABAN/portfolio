@@ -23,7 +23,8 @@ type Props = {
 	onActivateAction: (id: string) => void;
 	onMinimizeAction: (id: string) => void;
 	onCloseAction?: (id: string) => void;
-	onMoveAction: (id: string, x: number, y: number) => void;
+	/** Without it, the window cannot be dragged. */
+	onMoveAction?: (id: string, x: number, y: number) => void;
 	children?: ReactNode;
 };
 
@@ -77,7 +78,7 @@ export const Window = memo(function Window({
 			// Live windows report once per frame, so their nested windows follow.
 			d.frame = requestAnimationFrame(() => {
 				d.frame = 0;
-				moveRef.current(id, d.x, d.y);
+				moveRef.current?.(id, d.x, d.y);
 			});
 		}
 	}
@@ -89,7 +90,7 @@ export const Window = memo(function Window({
 		drag.current = null;
 		rootRef.current!.removeAttribute("data-dragging");
 		if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-		moveRef.current(id, d.x, d.y);
+		moveRef.current?.(id, d.x, d.y);
 	}
 
 	function onFocusCapture(event: FocusEvent<HTMLElement>) {
@@ -103,7 +104,7 @@ export const Window = memo(function Window({
 		}
 	}
 
-	const dragHandlers = { onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag };
+	const dragHandlers = onMoveAction ? { onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag } : {};
 
 	return (
 		<section
