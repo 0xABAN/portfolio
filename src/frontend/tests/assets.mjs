@@ -5,10 +5,10 @@ import sharp from 'sharp';
 
 // Decoded RGB(A) baselines captured before re-encoding; psp.png is the new
 // illustrated artwork, the other PNGs are from 826ac95. Do not refresh for
-// compression. The street and overlay photos are
-// lossy: street.webp replaced street.png (PSNR 41.7 dB against the original)
-// and overlay.jpg ships as delivered, so only their geometry is pinned: lossy
-// decoders may differ in the last bit.
+// compression. The street and overlay photos are lossy: street.webp replaced
+// street.png (PSNR 41.7 dB against the original) and overlay.jpg ships as
+// delivered, so only their geometry is pinned: lossy decoders may differ in
+// the last bit.
 const assets = [
   ['public/icons/psp.png', 1839, 855, 4, 'b621829999c350c10c9d2d460acd20d75407537636c8a4647672b28d6857ac44'],
   ['public/photos/jobs-image.png', 2560, 1440, 4, 'd4b0cb89fd727a6dd33e5b7269ed59ee2dde3e3102c4afe9a6b545d5c51a98b7'],
