@@ -220,6 +220,7 @@ function DesktopWorkspace() {
 			liveMove={Boolean(w.parentId || windows.some((c) => c.parentId === w.id))}
 			minimizable={w.id !== "alt"}
 			frameless={w.kind === "experience"}
+			dragAnywhere={w.id === "alt"}
 			onActivateAction={activate}
 			onMinimizeAction={minimizeWindow}
 			onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}

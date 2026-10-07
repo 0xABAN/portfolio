@@ -20,6 +20,8 @@ type Props = {
 	minimizable?: boolean;
 	/** No title bar: the whole window drags, except elements marked data-no-window-drag. */
 	frameless?: boolean;
+	/** The whole window drags, not just its title bar. */
+	dragAnywhere?: boolean;
 	onActivateAction: (id: string) => void;
 	onMinimizeAction: (id: string) => void;
 	onCloseAction?: (id: string) => void;
@@ -33,7 +35,7 @@ type Drag = { offsetX: number; offsetY: number; x: number; y: number; live: bool
 
 export const Window = memo(function Window({
 	id, active, minimized, title, icon, x, y, w, h, z, variant,
-	liveMove = false, minimizable = true, frameless = false,
+	liveMove = false, minimizable = true, frameless = false, dragAnywhere = frameless,
 	onActivateAction, onMinimizeAction, onCloseAction, onMoveAction, children,
 }: Props) {
 	const rootRef = useRef<HTMLElement>(null);
@@ -121,10 +123,11 @@ export const Window = memo(function Window({
 			aria-label={title || id}
 			onPointerDownCapture={() => onActivateAction(id)}
 			onFocusCapture={onFocusCapture}
-			{...(frameless ? dragHandlers : {})}
+			data-drag-anywhere={dragAnywhere || undefined}
+			{...(dragAnywhere ? dragHandlers : {})}
 		>
 			{!frameless && (
-				<header className="win-titlebar" {...dragHandlers}>
+				<header className="win-titlebar" {...(dragAnywhere ? {} : dragHandlers)}>
 					{/* eslint-disable-next-line @next/next/no-img-element */}
 					{icon && <img className="win-titlebar__icon" src={icon} alt="" draggable={false} />}
 					<span className="win-titlebar__text">{title}</span>
