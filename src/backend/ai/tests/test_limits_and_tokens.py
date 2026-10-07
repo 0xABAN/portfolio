@@ -1,7 +1,8 @@
+import pytest
+from fastapi import HTTPException
+
 from portfolio_backend.chat import estimate_text_tokens, parse_messages
 from portfolio_backend.limits import remaining, try_consume
-from fastapi import HTTPException
-import pytest
 
 
 @pytest.mark.parametrize(
@@ -13,7 +14,7 @@ def test_estimate_text_tokens_roughly_chars_over_4(text, expected):
 
 
 def test_parse_messages_rejects_oversize(monkeypatch):
-    import portfolio_backend.chat as chat
+    from portfolio_backend import chat
 
     monkeypatch.setattr(chat, "MAX_MESSAGE_TOKENS", 2)
     with pytest.raises(HTTPException) as ei:
@@ -37,7 +38,7 @@ def test_parse_messages_ok():
     ],
 )
 def test_remaining_daily_counter(monkeypatch, entry, expected):
-    import portfolio_backend.limits as limits
+    from portfolio_backend import limits
 
     monkeypatch.setattr(limits, "DAILY_IP_LIMIT", 2)
     monkeypatch.setattr(limits, "_today", lambda: "today")
@@ -46,7 +47,7 @@ def test_remaining_daily_counter(monkeypatch, entry, expected):
 
 
 def test_try_consume_daily_cap(monkeypatch):
-    import portfolio_backend.limits as limits
+    from portfolio_backend import limits
 
     monkeypatch.setattr(limits, "DAILY_IP_LIMIT", 2)
     monkeypatch.setattr(limits, "RPM_LIMIT", 100)

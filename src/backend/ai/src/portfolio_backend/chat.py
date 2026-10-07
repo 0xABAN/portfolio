@@ -12,7 +12,6 @@ from fastapi import HTTPException
 
 from portfolio_backend.config import env_int
 
-
 MAX_MESSAGE_TOKENS = env_int("MAX_MESSAGE_TOKENS", 4096)
 MAX_OUTPUT_TOKENS = env_int("MAX_OUTPUT_TOKENS", 512)
 # keep portfolio chats short — full history is forwarded to xAI each turn

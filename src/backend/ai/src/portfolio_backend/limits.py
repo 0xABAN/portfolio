@@ -9,7 +9,6 @@ from threading import Lock
 
 from portfolio_backend.config import env_int
 
-
 # per visitor
 DAILY_IP_LIMIT = env_int("DAILY_IP_LIMIT", 10)
 
@@ -59,8 +58,7 @@ def try_consume(ip: str, est_tokens: int) -> tuple[bool, int, str | None]:
     error_code: daily | rpm | tpm | None
     """
     global _used_tpm
-    if est_tokens < 0:
-        est_tokens = 0
+    est_tokens = max(est_tokens, 0)
     day = _today()
     now = time.monotonic()
     with _lock:
