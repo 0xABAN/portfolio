@@ -100,6 +100,8 @@
 	flex: 1;
 	/* Adds nothing to the button's minimum width, so the label truncates first. */
 	contain: inline-size;
+	/* The label fills the button, which would otherwise centre it. */
+	text-align: left;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
