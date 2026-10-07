@@ -5,8 +5,8 @@ export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;
 const RESUME_URL = `${GITHUB_URL}/jobs/blob/main/resumes/default/Adam_Torres_Encarnacion_Resume.pdf`;
 
 const DOCUMENTS = [
-	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", href: RESUME_URL, type: "Microsoft Word Document" },
 	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application" },
+	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", href: RESUME_URL, type: "Microsoft Word Document" },
 ] as const;
 
 export type DeskIcon = {
@@ -60,5 +60,11 @@ export const SHELL_ITEMS: readonly ShellItem[] = [
 ];
 
 export const ITEM_BY_ID = new Map(SHELL_ITEMS.map((item) => [item.id, item]));
+const CATALOG_INDEX = new Map(SHELL_ITEMS.map((item, index) => [item.id, index]));
+
+/** Sorts shell items into catalog order, so a folder lists them the same way however they were moved, restored or saved. */
+export function byCatalogOrder(a: { id: string }, b: { id: string }) {
+	return CATALOG_INDEX.get(a.id)! - CATALOG_INDEX.get(b.id)!;
+}
 export const DESKTOP_PATH = "C:\\Windows\\Desktop";
 export const BIN_ICON = { empty: "/icons/recycle-bin-empty.png", full: "/icons/recycle-bin-full.png" };

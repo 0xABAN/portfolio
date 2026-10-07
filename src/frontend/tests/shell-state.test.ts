@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { byCatalogOrder } from "@/components/desktop/files/catalog";
 import { deleteNodes, entryId, initialShellState, moveNodes, parseShellState, purgeEntries, restoreEntries, type ShellState } from "@/components/desktop/files/state";
 
 const remove = (state = initialShellState(), ids = ["experience"], now = 1000) => deleteNodes(state, ids, now);
@@ -12,8 +13,9 @@ test("delete, save, restore and permanent delete keep each item's identity", () 
 	assert.deepEqual(deleted.entries.map(entryId), ["experience"]);
 	assert.equal(deleted.entries[0].location, "C:\\Windows\\Desktop\\secrets");
 
+	// A restored item rejoins the end of the list; folders show their items in catalog order.
 	const restored = restoreEntries(parseShellState(JSON.stringify(deleted)), ["experience"]);
-	assert.deepEqual(restored, initial);
+	assert.deepEqual({ ...restored, nodes: restored.nodes.toSorted(byCatalogOrder) }, initial);
 
 	const purged = parseShellState(JSON.stringify(purgeEntries(deleted, ["experience"])));
 	assert.ok(!purged.nodes.some((node) => node.id === "experience"));

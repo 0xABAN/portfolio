@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
+import { byCatalogOrder } from "../../files/catalog";
 import { ancestorsOf, itemOf, shellPath } from "../../files/state";
 import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/ShellControls";
 import { useShell } from "../../files/ShellProvider";
@@ -14,7 +15,7 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 	const shell = useShell();
 	const folder = shell.state.nodes.find((node) => node.id === folderId);
 	const missing = folderId !== "desktop" && !folder;
-	const files = missing ? [] : shell.state.nodes.filter((node) => node.parentId === folderId);
+	const files = missing ? [] : shell.state.nodes.filter((node) => node.parentId === folderId).sort(byCatalogOrder);
 	const selection = useShellSelection(files.map((node) => node.id), files.map((node) => itemOf(node).name));
 	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
 	const path = shellPath(folder ? [...ancestorsOf(shell.state.nodes, folder), folder] : []);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DESKTOP_REVEAL_MS } from "../effects/reveal/desktopReveal";
-import { BIN_ICON, DESK_ICONS as FILE_ICONS, type DeskIcon as CatalogIcon } from "./catalog";
+import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, type DeskIcon as CatalogIcon } from "./catalog";
 import { useShell } from "./ShellProvider";
 import { itemOf, type ShellNode } from "./state";
 import { useDesktopSelection } from "./useDesktopSelection";
@@ -32,11 +32,7 @@ const STEP_Y = CELL_H + 8;
 const ATTENTION_DELAY_MS = 1000;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
-	const order = (node: ShellNode) => {
-		const index = FILE_ICONS.findIndex((icon) => icon.id === node.id);
-		return index < 0 ? FILE_ICONS.length : index;
-	};
-	return [...nodes.filter((node) => node.parentId === "desktop").sort((a, b) => order(a) - order(b)).map((node) => {
+	return [...nodes.filter((node) => node.parentId === "desktop").sort(byCatalogOrder).map((node) => {
 		const item = itemOf(node);
 		return { id: node.id, label: item.name, src: item.icon, open: item.open, href: item.href };
 	}), RECYCLE_BIN];
