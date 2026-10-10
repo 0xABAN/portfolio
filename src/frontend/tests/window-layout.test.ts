@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-	ICON_STEP_X,
 	clampWindowPos,
-	iconGrid,
 	layoutDesktop,
 	makeExplorerWindow,
 	nestBounds,
@@ -75,13 +73,8 @@ test("reflow preserves dragged offsets, nested placement, and user window state"
 	}
 	assert.equal(result.find((w) => w.id === "terminal")?.minimized, true);
 	assert.equal(result.find((w) => w.id === "terminal")?.z, 88);
-	// A window without a default place follows the centre of the adam window.
-	const centre = (layout: DesktopWindow[]) => {
-		const adam = layout.find((w) => w.id === "me")!;
-		return { x: adam.x + adam.w / 2, y: adam.y + adam.h / 2 };
-	};
-	const shift = { x: centre(next).x - centre(previous).x, y: centre(next).y - centre(previous).y };
-	assert.deepEqual(result.find((w) => w.id === "explorer"), { ...current.at(-1), x: 460 + shift.x, y: 270 + shift.y });
+	// The 32px taskbar makes the resized Paint width odd; its center shifts by 0.5px.
+	assert.deepEqual(result.find((w) => w.id === "explorer"), { ...current.at(-1), x: 220.5, y: 120 });
 	const restored = reflowDesktop(result, next, previous, 1440, 900);
 	assert.deepEqual(restored, current);
 });
@@ -102,16 +95,4 @@ test("resized parents stay reachable and nested windows stay inside their canvas
 	assert.ok(child.x + child.w <= bounds.x + bounds.w);
 	assert.ok(child.y + child.h <= bounds.y + bounds.h);
 	assert.deepEqual(clampWindowPos(-5000, -5000, 400, 960, 600), { x: -352, y: 0 });
-});
-
-test("every starting window fits on screen and clear of the icons", () => {
-	for (const [screenW, screenH] of [[3440, 1440], [2560, 1440], [1920, 1080], [1536, 864], [1440, 900], [1440, 810]]) {
-		const [width, height] = [screenW, screenH];
-		const iconsRight = 10 + Math.ceil(13 / iconGrid(width, height, 13).rows) * ICON_STEP_X - 8;
-		for (const w of layoutDesktop(width, height).filter((w) => !w.minimized && !w.parentId)) {
-			const where = `${w.id} at ${screenW}x${screenH}: ${w.x},${w.y} ${w.w}x${w.h}`;
-			assert.ok(w.x > iconsRight && w.x + w.w <= width, `${where} is off screen or over the icons`);
-			assert.ok(w.y >= 0 && w.y + w.h <= height - TASKBAR_H, `${where} is off the top or behind the taskbar`);
-		}
-	}
 });

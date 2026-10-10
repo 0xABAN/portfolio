@@ -1,5 +1,3 @@
-import { DESK_ICONS } from "../files/catalog";
-
 export type DesktopWindow = {
 	id: string;
 	title: string;
@@ -39,30 +37,6 @@ const PAINT_INNER_BOTTOM = 70;
 
 const STREET_RATIO = 1360 / 768; // street.webp
 const MARGIN = 24;
-/** Space kept clear beside the icon columns and at the right edge when fitting the windows in. */
-const FIT_GAP = 16;
-/** The smallest Paint window the arrangement shrinks to; below that, the desktop zooms instead. */
-const MIN_PAINT_H = 360;
-
-/** Desktop icon cells and the 8px gaps between them; keep in sync with desktop.css. */
-export const ICON_W = 96;
-export const ICON_H = 112;
-export const ICON_STEP_X = ICON_W + 8;
-export const ICON_STEP_Y = ICON_H + 8;
-/** The icon list's insets in desktop.css: 10px from the left, 12px from the top, 16px above the taskbar. */
-const ICONS_LEFT = 10;
-const ICONS_INSET_Y = 12 + 16;
-/** Every icon the desktop starts with, the Recycle Bin included. */
-const START_ICONS = DESK_ICONS.length + 1;
-
-/** The desktop's icon grid, with enough rows for every icon even when the screen is short. */
-export function iconGrid(vw: number, vh: number, count: number) {
-	const width = Math.max(ICON_W, vw - ICONS_LEFT);
-	const height = Math.max(ICON_H, vh - TASKBAR_H - ICONS_INSET_Y);
-	const cols = Math.max(1, Math.floor((width - ICON_W) / ICON_STEP_X) + 1);
-	const rows = Math.max(1, Math.floor((height - ICON_H) / ICON_STEP_Y) + 1, Math.ceil(count / cols));
-	return { cols, rows };
-}
 
 function layoutCentered(w: number, h: number, vw: number, vh: number): Rect {
 	return { w, h, x: Math.round((vw - w) / 2), y: Math.round((vh - TASKBAR_H - h) / 2) };
@@ -100,11 +74,11 @@ export function clampWindowPos(x: number, y: number, w: number, vw: number, vh: 
 	};
 }
 
-/** The adam Paint window: up to `maxH` tall and centred, its canvas at the photo's ratio. */
-function layoutMeWindow(vw: number, vh: number, maxH: number): Rect {
+/** The adam Paint window: as tall as the desktop allows, its canvas at the photo's ratio. */
+function layoutMeWindow(vw: number, vh: number): Rect {
 	const chromeX = CHROME_X + PAINT_INNER_X;
 	const chromeY = CHROME_Y + PAINT_INNER_Y + PAINT_INNER_BOTTOM;
-	let canvasH = maxH - chromeY;
+	let canvasH = vh - TASKBAR_H - MARGIN * 2 - chromeY;
 	let canvasW = canvasH / STREET_RATIO;
 	if (canvasW + chromeX > vw - MARGIN * 2) {
 		canvasW = vw - MARGIN * 2 - chromeX;
@@ -173,9 +147,8 @@ function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
 	return { id: "cd-player", title: "cd player", kind: "cd-player", icon: "/icons/cd.png", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
 }
 
-/** The starting windows, arranged around a Paint window up to `paintH` tall. */
-function arrangeDesktop(vw: number, vh: number, paintH: number): DesktopWindow[] {
-	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/photos/street.webp", icon: "/paint/icon-16.png", ...layoutMeWindow(vw, vh, paintH) };
+export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
+	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/photos/street.webp", icon: "/paint/icon-16.png", ...layoutMeWindow(vw, vh) };
 	const terminal = { id: "terminal", title: "MS-DOS Prompt", z: 12, kind: "terminal" as const, icon: "/icons/terminal.svg", ...layoutTerminalWindow(me, vw, vh) };
 	const windows: DesktopWindow[] = [
 		me,
@@ -186,36 +159,7 @@ function arrangeDesktop(vw: number, vh: number, paintH: number): DesktopWindow[]
 		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
 		...layoutErrorStack(me),
 	];
-	return windows;
-}
-
-/**
- * The starting desktop. Every window is placed around Paint, which stays
- * centred; Paint is as tall as the screen allows while every window that
- * opens at startup still fits between the icon columns and the right edge.
- */
-export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
-	// Icons fill each column top to bottom before starting the next.
-	const iconColumns = Math.ceil(START_ICONS / iconGrid(vw, vh, START_ICONS).rows);
-	const left = ICONS_LEFT + iconColumns * ICON_STEP_X - 8 + FIT_GAP;
-	const right = vw - FIT_GAP;
-	const fits = (paintH: number) => arrangeDesktop(vw, vh, paintH).every((w) =>
-		w.minimized || w.parentId || (w.x >= left && w.x + w.w <= right));
-
-	// The arrangement widens as Paint grows, so search for the tallest Paint that fits.
-	let paintH = vh - TASKBAR_H - MARGIN * 2;
-	if (!fits(paintH)) {
-		// The floor gives way on screens too short for even the smallest Paint.
-		let fitting = Math.min(MIN_PAINT_H, paintH);
-		let tooTall = paintH;
-		while (tooTall - fitting > 1) {
-			const middle = Math.floor((fitting + tooTall) / 2);
-			if (fits(middle)) fitting = middle;
-			else tooTall = middle;
-		}
-		paintH = fitting;
-	}
-	return arrangeDesktop(vw, vh, paintH).map((w) => w.parentId ? w : { ...w, ...clampWindowPos(w.x, w.y, w.w, vw, vh) });
+	return windows.map((w) => w.parentId ? w : { ...w, ...clampWindowPos(w.x, w.y, w.w, vw, vh) });
 }
 
 /**
