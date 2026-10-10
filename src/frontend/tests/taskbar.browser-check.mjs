@@ -11,8 +11,6 @@ function browser(...args) {
 
 async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
-	// Below 1440 × 810 the desktop zooms; the new zoom lands a frame after a viewport change.
-	const nextFrames = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 	const waitForLaunch = () => page.locator(".desktop--busy").waitFor({ state: "hidden" });
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.emulateMedia({ reducedMotion: "reduce" });
@@ -144,7 +142,6 @@ async function checkTaskbar(page) {
 		.every((part) => getComputedStyle(part).animationName === "none")), "Secrets bubble moves when reduced motion is requested");
 	for (const width of [1440, 390, 320]) {
 		await page.setViewportSize({ width, height: 900 });
-		await nextFrames();
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
 		const bounds = await bubble.boundingBox();
 		check(bounds.width <= 206 && bounds.height <= 83, "Secrets bubble is too large");
@@ -571,8 +568,6 @@ async function checkTaskbar(page) {
 
 	for (const width of [390, 320]) {
 		await page.setViewportSize({ width, height: 844 });
-		await nextFrames();
-		const zoom = await page.locator(".desktop").evaluate((el) => Number(getComputedStyle(el).zoom));
 		check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 12, "Narrow screens did not reduce spark density");
 		check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), "Sparks added horizontal overflow");
 		for (const control of [start, page.locator(".taskbar__tray")]) {
@@ -595,8 +590,7 @@ async function checkTaskbar(page) {
 		await page.waitForFunction(() => document.getElementById("desktop-window-cd-player").contains(document.activeElement));
 		const bounds = await player.boundingBox();
 		const trigger = await music.boundingBox();
-		// The 4px gap is in desktop pixels, which the zoom shrinks on screen.
-		check(Math.abs(bounds.y + bounds.height - trigger.y + 4 * zoom) <= 1, "CD Player lost its taskbar anchor on a narrow screen");
+		check(Math.abs(bounds.y + bounds.height - trigger.y + 4) <= 1, "CD Player lost its taskbar anchor on a narrow screen");
 		check(bounds.x >= 0 && bounds.x + bounds.width <= width, `CD Player left the ${width}px viewport: ${JSON.stringify(bounds)}`);
 		check(await player.locator(".win__client").evaluate((el) => el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth), "CD controls are clipped");
 		check(await elapsed.evaluate((el) => {

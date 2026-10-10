@@ -7,7 +7,6 @@ import { useShell } from "./ShellProvider";
 import { itemOf, type ShellNode } from "./state";
 import { useDesktopSelection } from "./useDesktopSelection";
 import { ICON_H, ICON_STEP_X, ICON_STEP_Y, ICON_W, iconGrid } from "../window/layout";
-import { desktopViewport, toDesktop } from "../viewport";
 
 type DeskIcon = CatalogIcon & { recycle?: boolean };
 type DeskIconPosition = { col: number; row: number };
@@ -88,10 +87,7 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
 	const shell = useShell();
 	const { getState } = shell;
-	const [deskIconPositions, setDeskIconPositions] = useState(() => {
-		const { width, height } = desktopViewport();
-		return defaultDeskIconPositions(width, height);
-	});
+	const [deskIconPositions, setDeskIconPositions] = useState(() => defaultDeskIconPositions(window.innerWidth, window.innerHeight));
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
@@ -104,7 +100,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 
 	useEffect(() => {
 		const resize = () => {
-			const { width, height } = desktopViewport();
+			const { innerWidth: width, innerHeight: height } = window;
 			setDeskIconPositions((current) => ({
 				...current,
 				...normalizeDeskIconPositions(current, width, height, shellDeskIcons(getState().nodes)),
@@ -119,8 +115,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const deskIcons = shellDeskIcons(shell.state.nodes);
 	// Icons the desktop starts with wait for the boot reveal; files moved onto it do not.
 	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
-	const viewport = desktopViewport();
-	const positions = normalizeDeskIconPositions(deskIconPositions, viewport.width, viewport.height, deskIcons);
+	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
 
 	function markDeskIconInteraction(icon: DeskIcon) {
@@ -129,7 +124,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 
 	/** Moves an icon to a cell, swapping with the icon already there; the Recycle Bin is never displaced. */
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
-		const { cols, rows } = iconGrid(viewport.width, viewport.height, deskIcons.length);
+		const { cols, rows } = iconGrid(window.innerWidth, window.innerHeight, deskIcons.length);
 		const cell = { col: Math.min(Math.max(col, 0), cols - 1), row: Math.min(Math.max(row, 0), rows - 1) };
 		setDeskIconPositions((current) => {
 			const source = current[sourceId] ?? positions[sourceId];
@@ -166,8 +161,8 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					event.preventDefault();
 					// The cell nearest the drop point.
 					const bounds = event.currentTarget.getBoundingClientRect();
-					const x = toDesktop(event.clientX - bounds.left);
-					const y = toDesktop(event.clientY - bounds.top);
+					const x = event.clientX - bounds.left;
+					const y = event.clientY - bounds.top;
 					moveDeskIconToCell(draggingId, Math.round((x - ICON_W / 2) / ICON_STEP_X), Math.round((y - ICON_H / 2) / ICON_STEP_Y));
 					shell.endDrag();
 					setDraggingId(null);

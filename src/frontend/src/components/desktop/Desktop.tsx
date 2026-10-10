@@ -19,7 +19,6 @@ import { Window } from "./window/Window";
 import { useTaskFlyout } from "./window/flyout";
 import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, moveWindow, openApp, restoreDecorations, taskWindows, type AppId } from "./window/state";
 import { TASKBAR_H, altCropStyle, layoutDesktop, reflowDesktop, type DesktopWindow } from "./window/layout";
-import { desktopViewport } from "./viewport";
 import "./desktop.css";
 
 /** Apps that open a shell file; launching fails while that file is deleted. */
@@ -43,9 +42,8 @@ function DesktopWorkspace() {
 	const shell = useShell();
 	const { getState, notice } = shell;
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
-	// Boot mounts this client-only, so window is available on first paint.
-	const [viewport, setViewport] = useState(desktopViewport);
-	const [windows, setWindows] = useState<DesktopWindow[]>(() => layoutDesktop(viewport.width, viewport.height));
+	// Boot mounts this client-only, so window is available on first paint
+	const [windows, setWindows] = useState<DesktopWindow[]>(() => layoutDesktop(window.innerWidth, window.innerHeight));
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
@@ -65,13 +63,11 @@ function DesktopWorkspace() {
 
 	useEffect(() => {
 		const resize = () => {
-			const next = desktopViewport();
-			setViewport(next);
-			const { width, height } = next;
+			const { innerWidth: width, innerHeight: height } = window;
 			const previous = layoutRef.current;
-			const layout = layoutDesktop(width, height);
-			layoutRef.current = layout;
-			setWindows((current) => reflowDesktop(current, previous, layout, width, height));
+			const next = layoutDesktop(width, height);
+			layoutRef.current = next;
+			setWindows((current) => reflowDesktop(current, previous, next, width, height));
 		};
 		window.addEventListener("resize", resize);
 		return () => window.removeEventListener("resize", resize);
@@ -175,9 +171,9 @@ function DesktopWorkspace() {
 				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "file not found");
 				return;
 			}
-			const { width, height } = desktopViewport();
+			const { innerWidth, innerHeight } = window;
 			if (id === "explorer") setSecretsOpened(true);
-			setWindows((prev) => openApp(prev, id, width, height));
+			setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
 			setBusy(false);
 			focusWindow(id);
 		}, id === "explorer" || id === "recycle-bin" ? FOLDER_LOAD_MS : APP_LOAD_MS);
@@ -200,8 +196,7 @@ function DesktopWorkspace() {
 	}, [openShell, getState, notice]);
 
 	const move = useCallback((id: string, x: number, y: number) => {
-		const { width, height } = desktopViewport();
-		setWindows((prev) => moveWindow(prev, id, x, y, width, height));
+		setWindows((prev) => moveWindow(prev, id, x, y, window.innerWidth, window.innerHeight));
 	}, []);
 
 	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
@@ -241,9 +236,7 @@ function DesktopWorkspace() {
 	const pspIsActive = activeId === "experience";
 
 	return (
-		<div className={busy ? "desktop desktop--busy" : "desktop"}
-			// Below the minimum canvas, the whole desktop is laid out larger and zoomed down to fit (viewport.ts).
-			style={{ "--taskbar-height": `${TASKBAR_H}px`, zoom: viewport.scale, width: viewport.width, height: viewport.height } as CSSProperties}
+		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
 			onDragOver={(event) => {
 				if (isDesktopSurface(event.target) && shell.canDrop(event, "desktop")) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }
 			}}
@@ -259,8 +252,8 @@ function DesktopWorkspace() {
 					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
 					style={{
 						zIndex: pspWindow ? pspWindow.z + (pspIsActive ? 0 : 1) : 0,
-						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / viewport.width) * 100}%` : undefined,
-						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / viewport.height) * 100}%` : undefined,
+						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / window.innerWidth) * 100}%` : undefined,
+						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / window.innerHeight) * 100}%` : undefined,
 					} as CSSProperties}
 					aria-hidden="true"
 				/>

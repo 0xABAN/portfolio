@@ -191,8 +191,7 @@ async function checkTerminal(page) {
 	await page.locator(".rsod").click();
 	await input.waitFor();
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Narrow terminal overflowed horizontally");
-	// Measured in desktop pixels: narrow windows zoom the whole desktop down.
-	check(await input.evaluate((el) => el.getBoundingClientRect().width / el.currentCSSZoom > 100), "Narrow prompt has no usable input space");
+	check(await input.evaluate((el) => el.getBoundingClientRect().width > 100), "Narrow prompt has no usable input space");
 	check(await input.evaluate((el) => getComputedStyle(el).getPropertyValue("caret-animation")) === "manual", "Reduced-motion caret still animates");
 
 	// Normal-motion startup must type both commands, not just show the final log.
