@@ -35,7 +35,7 @@ const REPLY_STALL_MS = 60_000;
 const COPYRIGHT = ["Microsoft(R) Windows 95", "   (C)Copyright Microsoft Corp 1981-1995.", ""];
 const COMMANDS = [
 	"Available commands:",
-	"  ADAM.EXE  Chat with Adam about his work.",
+	"  ADAM.EXE  Chat with Adam.",
 	"  HELP      Show this list.",
 	"  CLS       Clear the screen.",
 	"  VER       Show the Windows version.",

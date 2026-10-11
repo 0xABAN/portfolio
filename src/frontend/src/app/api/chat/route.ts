@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { checkChatTime } from "@/lib/chat/gate";
 import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages } from "@/lib/chat/messages";
 import { streamReply } from "@/lib/chat/model";
-import { systemPrompt } from "@/lib/chat/persona";
 import { sseEvent } from "@/lib/chat/sse";
 
 /** The model's GPU takes about 90 s to start from zero, so allow the plan's full 300 s. */
@@ -30,8 +29,6 @@ export async function POST(req: Request) {
 	const refusal = await checkChatTime(req, "message");
 	if (refusal) return refusal;
 
-	const conversation = [{ role: "system" as const, content: systemPrompt() }, ...messages];
-
 	// Writes stop once the visitor disconnects; req.signal then cancels the model request too.
 	let open = true;
 	const stream = new ReadableStream<Uint8Array>({
@@ -41,7 +38,7 @@ export async function POST(req: Request) {
 			};
 
 			try {
-				for await (const text of streamReply(conversation, req.signal)) {
+				for await (const text of streamReply(messages, req.signal)) {
 					send(sseEvent("token", { content: text }));
 				}
 				send(sseEvent("done", {}));

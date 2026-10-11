@@ -5,8 +5,6 @@ import { completionText } from "@/lib/chat/sse";
 /** Longest reply in tokens. Adam's texts are short, and the cap ends a rare repetition loop early. */
 const MAX_REPLY_TOKENS = 256;
 
-type ModelMessage = { role: "system" | ChatMessage["role"]; content: string };
-
 /**
  * A request to the fine-tuned model: vLLM's OpenAI-compatible API on Modal, behind a Modal
  * proxy token (see serving/app.py in the adam repo).
@@ -33,7 +31,7 @@ export async function wakeModel(signal: AbortSignal): Promise<void> {
 }
 
 /** Streams Adam's reply from the fine-tuned model. */
-export async function* streamReply(messages: ModelMessage[], signal: AbortSignal): AsyncGenerator<string> {
+export async function* streamReply(messages: ChatMessage[], signal: AbortSignal): AsyncGenerator<string> {
 	const response = await modelRequest("/v1/chat/completions", {
 		method: "POST",
 		body: JSON.stringify({ model: "adam", messages, stream: true, max_tokens: MAX_REPLY_TOKENS }),

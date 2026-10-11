@@ -54,7 +54,7 @@ async function checkTerminal(page) {
 	check(opening[0] === "Microsoft(R) Windows 95", "Wrong DOS banner");
 	check(opening.includes("   (C)Copyright Microsoft Corp 1981-1995."), "Wrong copyright year");
 	const help = opening.indexOf("C:\\PORTFOLIO>help");
-	const explanation = opening.indexOf("  ADAM.EXE  Chat with Adam about his work.");
+	const explanation = opening.indexOf("  ADAM.EXE  Chat with Adam.");
 	const launch = opening.indexOf("C:\\PORTFOLIO>ADAM.EXE");
 	const woke = opening.indexOf("ADAM> (o_o)");
 	const greeting = opening.indexOf("ADAM> come chat with me :)");
