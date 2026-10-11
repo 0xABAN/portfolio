@@ -5,6 +5,8 @@ import { type ChatMessage, FAILURE_REPLIES } from "@/lib/chat/messages";
 import "./terminal.css";
 
 const GREETING = "come chat with me :)";
+/** Adam's first line arrives this long after everything before it, like a message coming in. */
+const GREETING_DELAY_MS = 1000;
 const BOT = "ADAM> ";
 const YOU = "YOU> ";
 const SHELL = "C:\\PORTFOLIO>";
@@ -224,29 +226,30 @@ export function Terminal() {
 			await typeCommand("ADAM.EXE");
 			if (!alive) return;
 			append("");
-			// The program starts without output, then Adam naps until his model is up.
-			await pause(970);
+			// The program starts without output. A second later Adam answers, or naps until his model is up.
+			await pause(GREETING_DELAY_MS);
 			if (!alive) return;
-			let greeting = append(BOT);
-			if (!wakeSettled) stopNap = showAsleep(greeting, wakeStarted);
+			let face: number | undefined;
+			if (!wakeSettled) {
+				face = append(BOT);
+				stopNap = showAsleep(face, wakeStarted);
+			}
 			const failure = await wakeup;
 			if (!alive) return;
-
-			const napped = stopNap !== undefined;
 			stopNap?.();
 			stopNap = undefined;
+
 			if (failure) {
-				setLineText(greeting, BOT + failure);
+				if (face === undefined) append(BOT + failure);
+				else setLineText(face, BOT + failure);
 			} else {
-				if (napped) {
-					setLineText(greeting, BOT + AWAKE);
-					await pause(600);
+				if (face !== undefined) {
+					// He wakes up, then greets a second later.
+					setLineText(face, BOT + AWAKE);
+					await pause(GREETING_DELAY_MS);
 					if (!alive) return;
-					greeting = append(BOT);
 				}
-				await pause(190);
-				await typewrite(GREETING, (typed) => { if (alive) setLineText(greeting, BOT + typed); }, () => alive, 40, 60);
-				if (!alive) return;
+				append(BOT + GREETING);
 				setHistory([{ role: "assistant", content: GREETING }]);
 			}
 			await pause(175);
