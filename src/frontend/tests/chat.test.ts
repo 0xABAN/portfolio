@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { consumeChat, type Counter, DAILY_IP_LIMIT, GLOBAL_PER_MINUTE_LIMIT } from "@/lib/chat/limits";
-import { ChatInputError, MAX_HISTORY_MESSAGES, MAX_HISTORY_TOKENS, MAX_MESSAGE_CHARS, parseMessages } from "@/lib/chat/messages";
+import { ChatInputError, MAX_MESSAGE_CHARS, parseMessages } from "@/lib/chat/messages";
 import { completionText } from "@/lib/chat/sse";
 
 const user = (content: string) => ({ role: "user", content });
@@ -25,19 +25,9 @@ test("parseMessages rejects malformed requests", () => {
 	}
 });
 
-test("parseMessages keeps only the newest messages", () => {
-	const conversation = Array.from({ length: MAX_HISTORY_MESSAGES + 5 }, (_, i) => (i % 2 ? assistant(`a${i}`) : user(`u${i}`)));
-	const kept = parseMessages(conversation);
-	assert.equal(kept.length, MAX_HISTORY_MESSAGES);
-	assert.deepEqual(kept.at(-1), conversation.at(-1));
-});
-
-test("parseMessages drops the oldest messages until the conversation fits the token budget", () => {
-	const long = "x".repeat(MAX_MESSAGE_CHARS);
-	const kept = parseMessages([user(long), assistant(long), user(long), assistant(long), user(long), assistant(long), user("latest")]);
-	const tokens = kept.reduce((sum, message) => sum + Math.ceil(message.content.length / 3), 0);
-	assert.ok(tokens <= MAX_HISTORY_TOKENS, `${tokens} tokens kept`);
-	assert.equal(kept.at(-1)?.content, "latest");
+test("parseMessages keeps the whole conversation", () => {
+	const conversation = Array.from({ length: 101 }, (_, i) => (i % 2 ? assistant(`a${i}`) : user(`u${i}`)));
+	assert.deepEqual(parseMessages(conversation), conversation);
 });
 
 /** An in-memory stand-in for the Redis commands the limiter uses. */
