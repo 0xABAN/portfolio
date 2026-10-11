@@ -4,14 +4,20 @@ import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, use
 import { type ChatMessage, FAILURE_REPLIES } from "@/lib/chat/messages";
 import "./terminal.css";
 
-const GREETING = "how u doing :)";
+const GREETING = "come chat with me :)";
 const BOT = "ADAM> ";
 const YOU = "YOU> ";
 const SHELL = "C:\\PORTFOLIO>";
 const WINDOWS_VERSION = "Windows 95. [Version 4.00.950]";
-// The model scales to zero when idle and takes about a minute to answer again.
-const WAKING = "... (waking up, the first reply can take a minute)";
-const WAKING_AFTER_MS = 5000;
+
+// Adam's model sleeps when idle and takes about 90 s to wake up; meanwhile he naps on screen.
+const ASLEEP = "(-_-) ";
+const AWAKE = "(o_o)";
+/** Each frame of the z's drifting away from his face. */
+const SNORE = ["z  ", "zZ ", "zZz", " Zz", "  z", "   "];
+const SNORE_MS = 350;
+/** A reply that hasn't started by now is waiting on the model to wake up. */
+const ASLEEP_AFTER_MS = 3000;
 
 const COPYRIGHT = ["Microsoft(R) Windows 95", "   (C)Copyright Microsoft Corp 1981-1995.", ""];
 const COMMANDS = [
@@ -60,8 +66,30 @@ async function typewrite(text: string, onTick: (typed: string) => void, alive: (
 	if (pending) onTick(typed);
 }
 
+/** How long since `since`, as minutes and seconds: "0:41". */
+function elapsed(since: number) {
+	const seconds = Math.floor((Date.now() - since) / 1000);
+	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 /** A failed reply; its message is what Adam says about it, one of FAILURE_REPLIES or the server's own. */
 class ChatFailure extends Error {}
+
+/** What Adam says about a refused request: the route's `detail`, or a generic line for responses without one, like platform error pages. */
+async function refusalReply(res: Response) {
+	const detail = await res.json().then((body: { detail?: string }) => body.detail, () => undefined);
+	return detail || FAILURE_REPLIES.broken;
+}
+
+/** Wakes Adam's model. Resolves once he can reply, or with what he says instead (out of time, broken, unreachable). */
+async function wakeAdam(): Promise<string | null> {
+	try {
+		const res = await fetch("/api/chat/wake", { method: "POST" });
+		return res.ok ? null : await refusalReply(res);
+	} catch {
+		return FAILURE_REPLIES.unreachable;
+	}
+}
 
 /** Streams Adam's reply from the chat API's server-sent events, one token at a time. */
 async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
@@ -74,11 +102,7 @@ async function streamChat(messages: ChatMessage[], onToken: (token: string) => v
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ messages }),
 	}).catch(unreachable);
-	if (!res.ok) {
-		// The route explains its refusals in `detail`; anything else, like a platform error page, has none.
-		const detail = await res.json().then((body: { detail?: string }) => body.detail, () => undefined);
-		throw new ChatFailure(detail || FAILURE_REPLIES.broken);
-	}
+	if (!res.ok) throw new ChatFailure(await refusalReply(res));
 	if (!res.body) throw new ChatFailure(FAILURE_REPLIES.broken);
 
 	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -139,10 +163,41 @@ export function Terminal() {
 		setLines((prev) => prev.map((line) => (line.id === id ? { ...line, text } : line)));
 	}, []);
 
-	// The opening script: a DOS banner, a typed HELP and ADAM.EXE, then Adam's greeting.
+	const removeLine = useCallback((id: number) => {
+		setLines((prev) => prev.filter((line) => line.id !== id));
+	}, []);
+
+	/**
+	 * Shows Adam asleep on line `faceId`, with how long he's been waking up (since `since`) on a
+	 * line under it. Returns the function that stops the nap and removes that line.
+	 */
+	const showAsleep = useCallback((faceId: number, since: number) => {
+		const statusId = append("");
+		let frame = 0;
+		const draw = () => {
+			const snore = prefersReducedMotion() ? "zZz" : SNORE[frame++ % SNORE.length];
+			setLineText(faceId, BOT + ASLEEP + snore);
+			setLineText(statusId, `${" ".repeat(BOT.length)}asleep, waking him up · ${elapsed(since)}`);
+		};
+		draw();
+		const timer = setInterval(draw, SNORE_MS);
+
+		return () => {
+			clearInterval(timer);
+			removeLine(statusId);
+		};
+	}, [append, setLineText, removeLine]);
+
+	// The opening script: a DOS banner, a typed HELP and ADAM.EXE, then Adam's greeting once he's awake.
 	useEffect(() => {
 		let alive = true;
+		let stopNap: (() => void) | undefined;
 		const pause = (ms: number) => (prefersReducedMotion() ? Promise.resolve() : sleep(ms));
+
+		// Start waking the model now, so it boots during the intro instead of after it.
+		const wakeStarted = Date.now();
+		let wakeSettled = false;
+		const wakeup = wakeAdam().finally(() => { wakeSettled = true; });
 
 		// The two shell commands are a demonstration, not messages sent to Adam.
 		async function typeCommand(command: string) {
@@ -169,21 +224,42 @@ export function Terminal() {
 			await typeCommand("ADAM.EXE");
 			if (!alive) return;
 			append("");
-			// The program starts without output, then Adam starts talking.
+			// The program starts without output, then Adam naps until his model is up.
 			await pause(970);
 			if (!alive) return;
-			const greeting = append(BOT);
-			await pause(190);
-			await typewrite(GREETING, (typed) => { if (alive) setLineText(greeting, BOT + typed); }, () => alive, 40, 60);
+			let greeting = append(BOT);
+			if (!wakeSettled) stopNap = showAsleep(greeting, wakeStarted);
+			const failure = await wakeup;
 			if (!alive) return;
+
+			const napped = stopNap !== undefined;
+			stopNap?.();
+			stopNap = undefined;
+			if (failure) {
+				setLineText(greeting, BOT + failure);
+			} else {
+				if (napped) {
+					setLineText(greeting, BOT + AWAKE);
+					await pause(600);
+					if (!alive) return;
+					greeting = append(BOT);
+				}
+				await pause(190);
+				await typewrite(GREETING, (typed) => { if (alive) setLineText(greeting, BOT + typed); }, () => alive, 40, 60);
+				if (!alive) return;
+				setHistory([{ role: "assistant", content: GREETING }]);
+			}
 			await pause(175);
-			setHistory([{ role: "assistant", content: GREETING }]);
+			if (!alive) return;
 			append("");
 			setBusy(false);
 			setBooted(true);
 		})();
-		return () => { alive = false; };
-	}, [append, setLineText]);
+		return () => {
+			alive = false;
+			stopNap?.();
+		};
+	}, [append, setLineText, showAsleep]);
 
 	function editInput(value: string) {
 		recallIndex.current = null;
@@ -215,22 +291,32 @@ export function Terminal() {
 		setBusy(true);
 		let reply = "";
 		const replyId = append(BOT + "...");
-		const waking = setTimeout(() => {
-			if (!reply) setLineText(replyId, BOT + WAKING);
-		}, WAKING_AFTER_MS);
+
+		// No first word by now means the model is waking up from zero, so Adam naps until it does.
+		const sent = Date.now();
+		let stopNap: (() => void) | undefined;
+		const napping = setTimeout(() => { stopNap = showAsleep(replyId, sent); }, ASLEEP_AFTER_MS);
+		const endNap = () => {
+			clearTimeout(napping);
+			stopNap?.();
+			stopNap = undefined;
+		};
+
 		try {
 			await streamChat(conversation, (token) => {
+				endNap();
 				reply += token;
 				setLineText(replyId, BOT + reply);
 			});
 			if (!reply.trim()) throw new ChatFailure(FAILURE_REPLIES.silent);
 			setHistory([...conversation, { role: "assistant", content: reply }]);
 		} catch (error) {
+			endNap();
 			// Failed turns stay out of the history, so the model never sees these lines.
 			if (!(error instanceof ChatFailure)) console.error(error);
 			setLineText(replyId, BOT + (error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken));
 		} finally {
-			clearTimeout(waking);
+			endNap();
 			append("");
 			setBusy(false);
 		}

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { allowChat } from "@/lib/chat/limits";
+import { chargeChatTime } from "@/lib/chat/gate";
 import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages } from "@/lib/chat/messages";
 import { streamReply } from "@/lib/chat/model";
 import { systemPrompt } from "@/lib/chat/persona";
 import { sseEvent } from "@/lib/chat/sse";
-import { redis } from "@/lib/redis";
 
 /** The model's GPU takes about 90 s to start from zero, so allow the plan's full 300 s. */
 export const maxDuration = 300;
@@ -28,16 +27,8 @@ export async function POST(req: Request) {
 		throw error;
 	}
 
-	const store = redis();
-	if (!store) {
-		console.error("chat: Upstash isn't configured, so the chat time limit can't be checked");
-		return NextResponse.json({ detail: FAILURE_REPLIES.broken }, { status: 503 });
-	}
-
-	const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-	if (!(await allowChat(store, ip))) {
-		return NextResponse.json({ detail: FAILURE_REPLIES.outOfTime }, { status: 429 });
-	}
+	const refusal = await chargeChatTime(req);
+	if (refusal) return refusal;
 
 	const conversation = [{ role: "system" as const, content: systemPrompt() }, ...messages];
 

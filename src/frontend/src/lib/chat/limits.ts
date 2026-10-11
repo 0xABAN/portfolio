@@ -1,9 +1,10 @@
 /**
  * Chat time limit: each visitor (IP) gets 15 minutes of conversation per UTC day.
  *
- * Conversation time is the time between a visitor's consecutive messages, counting each gap up
- * to 5 minutes. The model's GPU stays up for 5 minutes after any request, so this is roughly
- * the GPU time the visitor keeps busy. A longer gap starts a new conversation and isn't counted.
+ * Conversation time is the time between a visitor's consecutive requests (opening the terminal,
+ * which wakes the model, and each message), counting each gap up to 5 minutes. The model's GPU
+ * stays up for 5 minutes after any request, so this is roughly the GPU time the visitor keeps
+ * busy. A longer gap starts a new conversation and isn't counted.
  *
  * The counts live in Redis because serverless instances share no memory.
  */
@@ -18,7 +19,7 @@ export type Store = {
 	expire(key: string, seconds: number): Promise<unknown>;
 };
 
-/** Records a message from `ip` at `now` (ms) and returns whether the visitor still has chat time today. */
+/** Records a request from `ip` at `now` (ms) and returns whether the visitor still has chat time today. */
 export async function allowChat(redis: Store, ip: string, now = Date.now()): Promise<boolean> {
 	// Swap in this message's time and get the previous one back in one atomic step. The key
 	// expires after the gap, so a missing previous time means a new conversation.

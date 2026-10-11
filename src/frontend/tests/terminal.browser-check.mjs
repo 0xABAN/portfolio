@@ -23,9 +23,25 @@ async function checkTerminal(page) {
 		if (!condition) throw new Error(message);
 	};
 	await page.emulateMedia({ reducedMotion: "reduce" });
+	// The terminal wakes Adam's model as it mounts, so answer that request before the desktop boots.
+	let wakeResponse = { status: 204 };
+	let releaseWake;
+	const wakeHeld = new Promise((resolve) => { releaseWake = resolve; });
+	await page.route("**/api/chat/wake", async (route) => {
+		await wakeHeld;
+		await route.fulfill(wakeResponse);
+	});
 	await page.locator(".rsod").click();
 	const input = page.getByRole("textbox", { name: "Terminal input" });
+	const lineTexts = () => page.locator(".term__line").allTextContents();
+
+	// Adam naps, with a wake-up timer and no prompt, until his model answers.
+	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> (-_-) zZz"));
+	check((await lineTexts()).some((line) => line.trim().startsWith("asleep, waking him up · 0:")), "Napping Adam has no wake-up timer");
+	check(await input.count() === 0, "Prompt appeared before Adam woke up");
+	releaseWake();
 	await input.waitFor();
+	check(!(await lineTexts()).some((line) => line.includes("asleep, waking him up")), "Wake-up timer outlived the nap");
 	const prompt = page.locator(".term__prompt");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").content) === '"_"', "Empty unfocused prompt has no cursor cue");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "none", "Idle cursor ignores reduced motion");
@@ -36,8 +52,9 @@ async function checkTerminal(page) {
 	const help = opening.indexOf("C:\\PORTFOLIO>help");
 	const explanation = opening.indexOf("  ADAM.EXE  Chat with Adam about his work.");
 	const launch = opening.indexOf("C:\\PORTFOLIO>ADAM.EXE");
-	const greeting = opening.indexOf("ADAM> how u doing :)");
-	check(help > 1 && explanation > help && launch > explanation && greeting > launch, "Expected HELP, command list, ADAM.EXE, then Adam's greeting");
+	const woke = opening.indexOf("ADAM> (o_o)");
+	const greeting = opening.indexOf("ADAM> come chat with me :)");
+	check(help > 1 && explanation > help && launch > explanation && woke > launch && greeting > woke, "Expected HELP, command list, ADAM.EXE, Adam waking, then his greeting");
 	// Test controls unobstructed by the deliberately overlapping desktop windows.
 	await page.addStyleTag({ content: ".win--dos { left:20px !important; top:20px !important; width:640px !important; height:480px !important; z-index:100 !important; }" });
 	await page.evaluate(() => {
@@ -170,7 +187,7 @@ async function checkTerminal(page) {
 	await input.press("Enter");
 	await page.waitForFunction(() => typeof window.finishChat === "function");
 	const messages = await page.evaluate(() => window.testChatRequests[1].messages);
-	check(JSON.stringify(messages.map((message) => message.content)) === JSON.stringify(["how u doing :)", "hello", "hello there", "follow-up"]), "CLS reset or polluted the conversation");
+	check(JSON.stringify(messages.map((message) => message.content)) === JSON.stringify(["come chat with me :)", "hello", "hello there", "follow-up"]), "CLS reset or polluted the conversation");
 	await page.evaluate(() => { window.chatToken("hello there"); window.finishChat(); });
 	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
 	await input.fill("clear");
@@ -204,6 +221,26 @@ async function checkTerminal(page) {
 		check(await prompt.isVisible(), "Prompt did not recover after a failed request");
 	}
 
+	// A reply with no first word after 3 s means the model went back to sleep: Adam naps until it starts.
+	await input.fill("u still there?");
+	await input.press("Enter");
+	await page.waitForFunction(() => typeof window.finishChat === "function");
+	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> (-_-) zZz"), null, { timeout: 10000 });
+	check((await lineTexts()).some((line) => line.trim().startsWith("asleep, waking him up · 0:0")), "Napping reply has no wake-up timer");
+	await page.evaluate(() => { window.chatToken("yeah"); window.finishChat(); });
+	await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+	const afterNap = await lineTexts();
+	check(afterNap.includes("ADAM> yeah") && !afterNap.some((line) => line.includes("asleep, waking him up")), "Nap did not end when the reply started");
+
+	// A visitor out of chat time gets Adam's refusal instead of a greeting, and can still use the prompt.
+	wakeResponse = { status: 429, contentType: "application/json", body: JSON.stringify({ detail: "sry i'm too broke to afford this rn" }) };
+	await page.reload();
+	await page.locator(".rsod").click();
+	await input.waitFor();
+	const refused = await lineTexts();
+	check(refused.includes("ADAM> sry i'm too broke to afford this rn") && !refused.includes("ADAM> come chat with me :)"), "Refused wake-up still greeted the visitor");
+	wakeResponse = { status: 204 };
+
 	// Check narrow text wrapping; preserve the desktop's existing off-screen placement.
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.reload();
@@ -231,9 +268,9 @@ async function checkTerminal(page) {
 	await input.waitFor();
 	const frames = await page.evaluate(() => [...window.startupCommands]);
 	check(frames.includes("C:\\PORTFOLIO>hel") && frames.includes("C:\\PORTFOLIO>ADA"), "Startup did not animate both commands");
-	check((await page.locator(".term__line").allTextContents()).includes("ADAM> how u doing :)"), "Animated startup did not reach chat");
+	check((await page.locator(".term__line").allTextContents()).includes("ADAM> come chat with me :)"), "Animated startup did not reach chat");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "term-cursor-blink", "Ready cursor does not blink");
-	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, refusals, lost connections, recall, commands, conversation, wrapping, and reduced motion";
+	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, refusals, lost connections, napping, recall, commands, conversation, wrapping, and reduced motion";
 }
 
 try {
