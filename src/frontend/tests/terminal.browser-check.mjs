@@ -46,7 +46,7 @@ async function checkTerminal(page) {
 		window.testChatRequests = [];
 		const nativeFetch = window.fetch.bind(window);
 		window.fetch = (resource, init) => {
-			if (new URL(String(resource), location.href).pathname !== "/chat") return nativeFetch(resource, init);
+			if (new URL(String(resource), location.href).pathname !== "/api/chat") return nativeFetch(resource, init);
 			window.testChatRequests.push(JSON.parse(init.body));
 			// Keep the response open between tokens to test the visible waiting states.
 			const stream = new ReadableStream({ start(controller) {

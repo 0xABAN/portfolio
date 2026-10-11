@@ -33,13 +33,6 @@ src/frontend/**/yarn-debug.log*
 src/frontend/**/yarn-error.log*
 src/frontend/**/.pnpm-debug.log*
 
-# backend
-src/backend/**/.venv/
-src/backend/**/__pycache__/
-src/backend/**/.ruff_cache/
-src/backend/**/.pytest_cache/
-src/backend/**/*.egg-info/
-
 # ai-grep search index
 /SEARCH/
 .searchignore
