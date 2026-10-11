@@ -4,12 +4,18 @@ import { allowChat, type ChatRequest } from "@/lib/chat/limits";
 import { FAILURE_REPLIES } from "@/lib/chat/messages";
 import { redis } from "@/lib/redis";
 
+/** IPs with no chat time limit, comma-separated: Adam's own, so testing his site doesn't use up a budget. */
+function unlimited(ip: string): boolean {
+	return (process.env.CHAT_UNLIMITED_IPS ?? "").split(",").some((entry) => entry.trim() === ip);
+}
+
 /**
  * Checks a request against the visitor's daily chat time, spending some if it's a message.
  * Returns the response refusing it, or null if the visitor still has time.
  */
 export async function checkChatTime(req: Request, request: ChatRequest): Promise<NextResponse | null> {
 	const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+	if (unlimited(ip)) return null;
 
 	const store = redis();
 	if (!store) {
