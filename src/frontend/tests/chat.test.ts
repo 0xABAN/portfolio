@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { consumeChat, type Counter, DAILY_IP_LIMIT, GLOBAL_PER_MINUTE_LIMIT } from "@/lib/chat/limits";
+import { allowChat, CONVERSATION_GAP_MS, DAILY_CHAT_MS, type Store } from "@/lib/chat/limits";
 import { ChatInputError, MAX_MESSAGE_CHARS, parseMessages } from "@/lib/chat/messages";
 import { completionText } from "@/lib/chat/sse";
 
 const user = (content: string) => ({ role: "user", content });
 const assistant = (content: string) => ({ role: "assistant", content });
 
-test("parseMessages keeps a valid conversation as is", () => {
-	const conversation = [assistant("how u doing :)"), user("good wbu")];
+test("parseMessages keeps the whole conversation", () => {
+	const conversation = Array.from({ length: 101 }, (_, i) => (i % 2 ? assistant(`a${i}`) : user(`u${i}`)));
 	assert.deepEqual(parseMessages(conversation), conversation);
 });
 
@@ -25,56 +25,66 @@ test("parseMessages rejects malformed requests", () => {
 	}
 });
 
-test("parseMessages keeps the whole conversation", () => {
-	const conversation = Array.from({ length: 101 }, (_, i) => (i % 2 ? assistant(`a${i}`) : user(`u${i}`)));
-	assert.deepEqual(parseMessages(conversation), conversation);
-});
+const MINUTE = 60_000;
 
-/** An in-memory stand-in for the Redis commands the limiter uses. */
-function fakeRedis(): Counter & { ttl: Map<string, number> } {
-	const values = new Map<string, number>();
-	const ttl = new Map<string, number>();
+/** An in-memory stand-in for the Redis commands the limit uses, with expiry on a test-controlled clock. */
+function fakeRedis(clock: { now: number }): Store {
+	const values = new Map<string, { value: number; expiresAt: number }>();
+	const read = (key: string) => {
+		const entry = values.get(key);
+		return entry && entry.expiresAt > clock.now ? entry.value : null;
+	};
+
 	return {
-		ttl,
-		async incr(key) {
-			const next = (values.get(key) ?? 0) + 1;
-			values.set(key, next);
+		async set(key: string, value: number, { px }: { px: number }) {
+			const previous = read(key);
+			values.set(key, { value, expiresAt: clock.now + px });
+			return previous;
+		},
+		async incrby(key: string, increment: number) {
+			const next = (read(key) ?? 0) + increment;
+			values.set(key, { value: next, expiresAt: values.get(key)?.expiresAt ?? Infinity });
 			return next;
 		},
-		async expire(key, seconds) {
-			ttl.set(key, seconds);
+		async expire(key: string, seconds: number) {
+			const entry = values.get(key);
+			if (entry) entry.expiresAt = clock.now + seconds * 1000;
 			return 1;
-		},
-		async get<T>(key: string) {
-			return (values.get(key) ?? null) as T | null;
 		},
 	};
 }
 
-test("consumeChat allows a visitor DAILY_IP_LIMIT requests per day", async () => {
-	const redis = fakeRedis();
-	const minutes = Array.from({ length: DAILY_IP_LIMIT + 1 }, (_, i) => new Date(Date.UTC(2026, 9, 10, 12, i)));
+test("allowChat gives a visitor 15 minutes of conversation, then refuses them for the rest of the day", async () => {
+	const clock = { now: Date.UTC(2026, 9, 11, 12, 0) };
+	const redis = fakeRedis(clock);
+	const message = (ip = "1.2.3.4") => allowChat(redis, ip, clock.now);
 
-	for (const [i, now] of minutes.slice(0, -1).entries()) {
-		assert.deepEqual(await consumeChat(redis, "1.2.3.4", now), { ok: true, remaining: DAILY_IP_LIMIT - i - 1 });
+	// A message a minute: the gaps between 16 messages add up to exactly 15 minutes.
+	for (let i = 0; i <= DAILY_CHAT_MS / MINUTE; i++) {
+		assert.equal(await message(), true, `message ${i}`);
+		clock.now += MINUTE;
 	}
-	assert.deepEqual(await consumeChat(redis, "1.2.3.4", minutes.at(-1)), { ok: false, remaining: 0 });
+	assert.equal(await message(), false);
 
-	// Other visitors and the next UTC day are unaffected.
-	assert.equal((await consumeChat(redis, "5.6.7.8", minutes.at(-1))).ok, true);
-	assert.equal((await consumeChat(redis, "1.2.3.4", new Date(Date.UTC(2026, 9, 11, 0, 1)))).ok, true);
-	assert.ok([...redis.ttl.values()].every((seconds) => seconds > 0), "every counter expires");
+	// Still refused after a break, while another visitor is unaffected.
+	clock.now += 2 * 60 * MINUTE;
+	assert.equal(await message(), false);
+	assert.equal(await message("5.6.7.8"), true);
+
+	// A new UTC day starts over.
+	clock.now = Date.UTC(2026, 9, 12, 0, 1);
+	assert.equal(await message(), true);
 });
 
-test("consumeChat turns away requests past the site-wide per-minute limit without spending daily quota", async () => {
-	const redis = fakeRedis();
-	const now = new Date(Date.UTC(2026, 9, 10, 12, 0, 30));
+test("allowChat doesn't count gaps longer than the GPU's idle window", async () => {
+	const clock = { now: Date.UTC(2026, 9, 11, 9, 0) };
+	const redis = fakeRedis(clock);
 
-	for (let i = 0; i < GLOBAL_PER_MINUTE_LIMIT; i++) {
-		assert.equal((await consumeChat(redis, `10.0.0.${i}`, now)).ok, true);
+	// Twenty short visits through the day, each one starting after a long break.
+	for (let visit = 0; visit < 20; visit++) {
+		assert.equal(await allowChat(redis, "1.2.3.4", clock.now), true, `visit ${visit}`);
+		clock.now += CONVERSATION_GAP_MS + MINUTE;
 	}
-	assert.deepEqual(await consumeChat(redis, "1.2.3.4", now), { ok: false, remaining: DAILY_IP_LIMIT });
-	assert.equal((await consumeChat(redis, "1.2.3.4", new Date(now.getTime() + 60_000))).ok, true);
 });
 
 test("completionText reassembles text split across network chunks", async () => {

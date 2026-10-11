@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { consumeChat } from "@/lib/chat/limits";
+import { allowChat } from "@/lib/chat/limits";
 import { BROKE_MSG, ChatInputError, parseMessages } from "@/lib/chat/messages";
 import { streamReply } from "@/lib/chat/model";
 import { systemPrompt } from "@/lib/chat/persona";
@@ -13,7 +13,7 @@ export const maxDuration = 300;
 const HEARTBEAT = new TextEncoder().encode(": waiting\n\n");
 const HEARTBEAT_MS = 10_000;
 
-/** Streams Adam's reply as "token" events, then "done" with the visitor's remaining quota, or "error". */
+/** Streams Adam's reply as "token" events, then "done", or "error" if the model fails. */
 export async function POST(req: Request) {
 	let messages;
 	try {
@@ -28,13 +28,12 @@ export async function POST(req: Request) {
 
 	const store = redis();
 	if (!store) {
-		return NextResponse.json({ detail: "chat rate limits aren't configured" }, { status: 503 });
+		return NextResponse.json({ detail: "the chat time limit isn't configured" }, { status: 503 });
 	}
 
 	const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-	const allowance = await consumeChat(store, ip);
-	if (!allowance.ok) {
-		return NextResponse.json({ detail: BROKE_MSG, remaining: allowance.remaining }, { status: 429 });
+	if (!(await allowChat(store, ip))) {
+		return NextResponse.json({ detail: BROKE_MSG }, { status: 429 });
 	}
 
 	const conversation = [{ role: "system" as const, content: systemPrompt() }, ...messages];
@@ -52,7 +51,7 @@ export async function POST(req: Request) {
 				for await (const text of streamReply(conversation, req.signal)) {
 					send(sseEvent("token", { content: text }));
 				}
-				send(sseEvent("done", { remaining: allowance.remaining }));
+				send(sseEvent("done", {}));
 			} catch (error) {
 				send(sseEvent("error", { detail: error instanceof Error ? error.message : "chat failed" }));
 			} finally {
@@ -70,7 +69,6 @@ export async function POST(req: Request) {
 			"Content-Type": "text/event-stream",
 			"Cache-Control": "no-cache",
 			"X-Accel-Buffering": "no",
-			"X-RateLimit-Remaining": String(allowance.remaining),
 		},
 	});
 }
