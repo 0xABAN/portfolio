@@ -27,8 +27,8 @@ const WAKE_CHECK_TIMEOUT_MS = 30_000;
 const WAKE_GIVE_UP_MS = 5 * 60_000;
 /** Failed checks in a row before Adam says the visitor seems to be offline. */
 const OFFLINE_AFTER_FAILURES = 3;
-/** The model shuts down 5 minutes after its last request, so after 4 quiet minutes wake it before sending. */
-const AWAKE_FOR_MS = 4 * 60_000;
+/** The model shuts down 15 minutes after its last request, so after 14 quiet minutes wake it before sending. */
+const AWAKE_FOR_MS = 14 * 60_000;
 /** A reply that sends nothing for this long has stalled. */
 const REPLY_STALL_MS = 60_000;
 

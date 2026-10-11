@@ -1,9 +1,9 @@
 /**
  * Chat time limit: each visitor (IP) gets 15 minutes of conversation per UTC day.
  *
- * A message costs the time since the visitor's previous request, up to 5 minutes. The model's
- * GPU stays up for 5 minutes after any request, so this is roughly the GPU time the visitor keeps
- * busy by chatting. A longer gap starts a new conversation and costs nothing.
+ * A message costs the time since the visitor's previous request, up to 5 minutes. A longer gap
+ * means the visitor stepped away, so it starts a new conversation and costs nothing. (The GPU
+ * stays up for 15 minutes after the last request, but only time spent chatting counts.)
  *
  * Waking the model costs nothing, so visitors aren't charged for waiting on a cold start, and a
  * message right after Adam wakes up costs only the moment since the last wake-up check. A visitor

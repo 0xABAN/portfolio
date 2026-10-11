@@ -81,7 +81,7 @@ test("allowChat gives a visitor 15 minutes of conversation, then refuses them fo
 	assert.equal(await message(), true);
 });
 
-test("allowChat doesn't count gaps longer than the GPU's idle window", async () => {
+test("allowChat doesn't count gaps longer than 5 minutes", async () => {
 	const clock = { now: Date.UTC(2026, 9, 11, 9, 0) };
 	const redis = fakeRedis(clock);
 
