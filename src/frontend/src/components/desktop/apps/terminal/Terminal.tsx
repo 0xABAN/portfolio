@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { BROKE_MSG, type ChatMessage } from "@/lib/chat/messages";
 import "./terminal.css";
 
 const GREETING = "how u doing :)";
@@ -8,9 +9,9 @@ const BOT = "ADAM> ";
 const YOU = "YOU> ";
 const SHELL = "C:\\PORTFOLIO>";
 const WINDOWS_VERSION = "Windows 95. [Version 4.00.950]";
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-// keep in sync with portfolio_backend.chat.BROKE_MSG
-const BROKE_MSG = "sry i'm too broke to afford this rn";
+// The model scales to zero when idle and takes about a minute to answer again.
+const WAKING = "... (waking up, the first reply can take a minute)";
+const WAKING_AFTER_MS = 5000;
 
 const COPYRIGHT = ["Microsoft(R) Windows 95", "   (C)Copyright Microsoft Corp 1981-1995.", ""];
 const COMMANDS = [
@@ -32,7 +33,6 @@ const HELP = [
 	"",
 ];
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
 type Line = { id: number; text: string };
 
 let lineId = 0;
@@ -62,7 +62,7 @@ async function typewrite(text: string, onTick: (typed: string) => void, alive: (
 
 /** Streams Adam's reply from the chat API's server-sent events, one token at a time. */
 async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
-	const res = await fetch(`${API_URL}/chat`, {
+	const res = await fetch("/api/chat", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ messages }),
@@ -207,6 +207,9 @@ export function Terminal() {
 		setBusy(true);
 		let reply = "";
 		const replyId = append(BOT + "...");
+		const waking = setTimeout(() => {
+			if (!reply) setLineText(replyId, BOT + WAKING);
+		}, WAKING_AFTER_MS);
 		try {
 			await streamChat(conversation, (token) => {
 				reply += token;
@@ -219,6 +222,7 @@ export function Terminal() {
 			const broke = message === BROKE_MSG || /too broke|rate limit|quota|credit|billing/i.test(message);
 			setLineText(replyId, broke ? `${BOT}${BROKE_MSG}` : `error: ${message}`);
 		} finally {
+			clearTimeout(waking);
 			append("");
 			setBusy(false);
 		}
