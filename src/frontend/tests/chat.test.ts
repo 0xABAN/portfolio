@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { allowChat, CONVERSATION_GAP_MS, DAILY_CHAT_MS, type Store } from "@/lib/chat/limits";
-import { ChatInputError, MAX_MESSAGE_CHARS, parseMessages } from "@/lib/chat/messages";
+import { ChatInputError, MAX_MESSAGE_CHARS, MessageTooLongError, parseMessages } from "@/lib/chat/messages";
 import { completionText } from "@/lib/chat/sse";
 
 const user = (content: string) => ({ role: "user", content });
@@ -23,6 +23,8 @@ test("parseMessages rejects malformed requests", () => {
 	]) {
 		assert.throws(() => parseMessages(bad), ChatInputError, JSON.stringify(bad));
 	}
+	// The route answers this one specifically, since the terminal can send it.
+	assert.throws(() => parseMessages([user("x".repeat(MAX_MESSAGE_CHARS + 1))]), MessageTooLongError);
 });
 
 const MINUTE = 60_000;

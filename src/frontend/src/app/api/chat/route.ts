@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { allowChat } from "@/lib/chat/limits";
-import { BROKE_MSG, ChatInputError, parseMessages } from "@/lib/chat/messages";
+import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages } from "@/lib/chat/messages";
 import { streamReply } from "@/lib/chat/model";
 import { systemPrompt } from "@/lib/chat/persona";
 import { sseEvent } from "@/lib/chat/sse";
@@ -9,27 +9,34 @@ import { redis } from "@/lib/redis";
 /** The model's GPU takes about 90 s to start from zero, so allow the plan's full 300 s. */
 export const maxDuration = 300;
 
-/** Streams Adam's reply as "token" events, then "done", or "error" if the model fails. */
+/**
+ * Streams Adam's reply as "token" events, then "done", or "error" if the model fails. Every
+ * failure's `detail` is one of FAILURE_REPLIES, which the terminal shows as Adam's reply.
+ */
 export async function POST(req: Request) {
 	let messages;
 	try {
 		const body = (await req.json()) as { messages?: unknown } | null;
 		messages = parseMessages(body?.messages);
 	} catch (error) {
+		if (error instanceof MessageTooLongError) {
+			return NextResponse.json({ detail: FAILURE_REPLIES.tooLong }, { status: 400 });
+		}
 		if (error instanceof ChatInputError || error instanceof SyntaxError) {
-			return NextResponse.json({ detail: error.message }, { status: 400 });
+			return NextResponse.json({ detail: FAILURE_REPLIES.malformed }, { status: 400 });
 		}
 		throw error;
 	}
 
 	const store = redis();
 	if (!store) {
-		return NextResponse.json({ detail: "the chat time limit isn't configured" }, { status: 503 });
+		console.error("chat: Upstash isn't configured, so the chat time limit can't be checked");
+		return NextResponse.json({ detail: FAILURE_REPLIES.broken }, { status: 503 });
 	}
 
 	const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 	if (!(await allowChat(store, ip))) {
-		return NextResponse.json({ detail: BROKE_MSG }, { status: 429 });
+		return NextResponse.json({ detail: FAILURE_REPLIES.outOfTime }, { status: 429 });
 	}
 
 	const conversation = [{ role: "system" as const, content: systemPrompt() }, ...messages];
@@ -48,7 +55,9 @@ export async function POST(req: Request) {
 				}
 				send(sseEvent("done", {}));
 			} catch (error) {
-				send(sseEvent("error", { detail: error instanceof Error ? error.message : "chat failed" }));
+				// A visitor who leaves cancels the model request; only other failures are worth logging.
+				if (!req.signal.aborted) console.error("chat: the model's reply failed:", error);
+				send(sseEvent("error", { detail: FAILURE_REPLIES.broken }));
 			} finally {
 				if (open) controller.close();
 			}

@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import { BROKE_MSG, type ChatMessage } from "@/lib/chat/messages";
+import { type ChatMessage, FAILURE_REPLIES } from "@/lib/chat/messages";
 import "./terminal.css";
 
 const GREETING = "how u doing :)";
@@ -60,24 +60,32 @@ async function typewrite(text: string, onTick: (typed: string) => void, alive: (
 	if (pending) onTick(typed);
 }
 
+/** A failed reply; its message is what Adam says about it, one of FAILURE_REPLIES or the server's own. */
+class ChatFailure extends Error {}
+
 /** Streams Adam's reply from the chat API's server-sent events, one token at a time. */
 async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
+	const unreachable = () => {
+		throw new ChatFailure(FAILURE_REPLIES.unreachable);
+	};
+
 	const res = await fetch("/api/chat", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ messages }),
-	});
+	}).catch(unreachable);
 	if (!res.ok) {
+		// The route explains its refusals in `detail`; anything else, like a platform error page, has none.
 		const detail = await res.json().then((body: { detail?: string }) => body.detail, () => undefined);
-		throw new Error(detail || res.statusText || `HTTP ${res.status}`);
+		throw new ChatFailure(detail || FAILURE_REPLIES.broken);
 	}
-	if (!res.body) throw new Error("no response body");
+	if (!res.body) throw new ChatFailure(FAILURE_REPLIES.broken);
 
 	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
 	let buffer = "";
 	let event = "message";
 	for (;;) {
-		const { done, value } = await reader.read();
+		const { done, value } = await reader.read().catch(unreachable);
 		if (done) return;
 		const lines = (buffer + value).split("\n");
 		buffer = lines.pop() ?? "";
@@ -95,7 +103,7 @@ async function streamChat(messages: ChatMessage[], onToken: (token: string) => v
 				continue;
 			}
 			if (event === "token" && data.content) onToken(data.content);
-			else if (event === "error") throw new Error(data.detail || "stream error");
+			else if (event === "error") throw new ChatFailure(data.detail || FAILURE_REPLIES.broken);
 			event = "message";
 		}
 	}
@@ -215,12 +223,12 @@ export function Terminal() {
 				reply += token;
 				setLineText(replyId, BOT + reply);
 			});
-			if (!reply.trim()) throw new Error("No reply received. Please try again.");
+			if (!reply.trim()) throw new ChatFailure(FAILURE_REPLIES.silent);
 			setHistory([...conversation, { role: "assistant", content: reply }]);
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "request failed";
-			const broke = message === BROKE_MSG || /too broke|rate limit|quota|credit|billing/i.test(message);
-			setLineText(replyId, broke ? `${BOT}${BROKE_MSG}` : `error: ${message}`);
+			// Failed turns stay out of the history, so the model never sees these lines.
+			if (!(error instanceof ChatFailure)) console.error(error);
+			setLineText(replyId, BOT + (error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken));
 		} finally {
 			clearTimeout(waking);
 			append("");

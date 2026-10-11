@@ -48,6 +48,11 @@ async function checkTerminal(page) {
 		window.fetch = (resource, init) => {
 			if (new URL(String(resource), location.href).pathname !== "/api/chat") return nativeFetch(resource, init);
 			window.testChatRequests.push(JSON.parse(init.body));
+			// A queued failure answers the next request instead of a stream.
+			const failure = window.nextChatFailure;
+			delete window.nextChatFailure;
+			if (failure === "offline") return Promise.reject(new TypeError("Failed to fetch"));
+			if (failure) return Promise.resolve(new Response(failure.body, { status: failure.status }));
 			// Keep the response open between tokens to test the visible waiting states.
 			const stream = new ReadableStream({ start(controller) {
 				const send = (event, data) => controller.enqueue(new TextEncoder().encode(
@@ -179,10 +184,24 @@ async function checkTerminal(page) {
 		await page.waitForFunction(() => typeof window.finishChat === "function");
 		await page.evaluate((message) => window.finishChat(message), error);
 		await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
-		const expected = error || "No reply received. Please try again.";
-		check((await page.locator(".term__line").allTextContents()).includes(`error: ${expected}`), "Stream failure left a blank Adam message");
+		const expected = error || "i blanked lol, ask me again";
+		check((await page.locator(".term__line").allTextContents()).includes(`ADAM> ${expected}`), "Stream failure left a blank Adam message");
 		check(await prompt.isVisible(), "Prompt did not recover after a stream failure");
 		check(await input.evaluate((el) => el === document.activeElement), "Stream failure lost input focus");
+	}
+
+	// Refusals show the route's own words; error pages and lost connections get Adam's.
+	for (const [failure, expected] of [
+		[{ status: 429, body: JSON.stringify({ detail: "sry i'm too broke to afford this rn" }) }, "sry i'm too broke to afford this rn"],
+		[{ status: 504, body: "An error occurred with your deployment" }, "my brain isn't working rn, try again in a bit"],
+		["offline", "can't reach u rn, check ur internet"],
+	]) {
+		await page.evaluate((next) => { window.nextChatFailure = next; }, failure);
+		await input.fill("try again");
+		await input.press("Enter");
+		await page.waitForFunction(() => !document.querySelector(".term__input").readOnly);
+		check((await page.locator(".term__line").allTextContents()).includes(`ADAM> ${expected}`), `Wrong reply for ${JSON.stringify(failure)}`);
+		check(await prompt.isVisible(), "Prompt did not recover after a failed request");
 	}
 
 	// Check narrow text wrapping; preserve the desktop's existing off-screen placement.
@@ -214,7 +233,7 @@ async function checkTerminal(page) {
 	check(frames.includes("C:\\PORTFOLIO>hel") && frames.includes("C:\\PORTFOLIO>ADA"), "Startup did not animate both commands");
 	check((await page.locator(".term__line").allTextContents()).includes("ADAM> how u doing :)"), "Animated startup did not reach chat");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "term-cursor-blink", "Ready cursor does not blink");
-	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, recall, commands, conversation, wrapping, and reduced motion";
+	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, refusals, lost connections, recall, commands, conversation, wrapping, and reduced motion";
 }
 
 try {
