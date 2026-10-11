@@ -21,6 +21,17 @@ const SNORE_MS = 350;
 /** A reply that hasn't started by now is waiting on the model to wake up. */
 const ASLEEP_AFTER_MS = 3000;
 
+/** Each wake-up check gets this long to come back before the terminal asks again; the server answers within 20 s. */
+const WAKE_CHECK_TIMEOUT_MS = 30_000;
+/** Adam gives up waking after this long. Cold starts take 1.5–2.5 minutes. */
+const WAKE_GIVE_UP_MS = 5 * 60_000;
+/** Failed checks in a row before Adam says the visitor seems to be offline. */
+const OFFLINE_AFTER_FAILURES = 3;
+/** The model shuts down 5 minutes after its last request, so after 4 quiet minutes wake it before sending. */
+const AWAKE_FOR_MS = 4 * 60_000;
+/** A reply that sends nothing for this long has stalled. */
+const REPLY_STALL_MS = 60_000;
+
 const COPYRIGHT = ["Microsoft(R) Windows 95", "   (C)Copyright Microsoft Corp 1981-1995.", ""];
 const COMMANDS = [
 	"Available commands:",
@@ -86,55 +97,83 @@ async function refusalReply(res: Response) {
 	return detail || FAILURE_REPLIES.broken;
 }
 
-/** Wakes Adam's model. Resolves once he can reply, or with what he says instead (out of time, broken, unreachable). */
+/**
+ * Wakes Adam's model, checking until it's up. Resolves once he can reply, or with what he says
+ * instead (out of time, broken, unreachable).
+ */
 async function wakeAdam(): Promise<string | null> {
-	try {
-		const res = await fetch("/api/chat/wake", { method: "POST" });
-		return res.ok ? null : await refusalReply(res);
-	} catch {
-		return FAILURE_REPLIES.unreachable;
+	const giveUp = Date.now() + WAKE_GIVE_UP_MS;
+	let failures = 0;
+
+	while (Date.now() < giveUp) {
+		let res: Response;
+		try {
+			res = await fetch("/api/chat/wake", { method: "POST", signal: AbortSignal.timeout(WAKE_CHECK_TIMEOUT_MS) });
+		} catch {
+			// A lost check is retried; the model keeps booting either way.
+			if (++failures >= OFFLINE_AFTER_FAILURES) return FAILURE_REPLIES.unreachable;
+			await sleep(2000);
+			continue;
+		}
+
+		failures = 0;
+		if (res.status === 204) return null;
+		// 202: still waking up, so check again.
+		if (res.status !== 202) return refusalReply(res);
 	}
+	return FAILURE_REPLIES.broken;
 }
 
 /** Streams Adam's reply from the chat API's server-sent events, one token at a time. */
 async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
-	const unreachable = () => {
-		throw new ChatFailure(FAILURE_REPLIES.unreachable);
+	// A reply that goes silent is abandoned rather than awaited forever.
+	const stall = new AbortController();
+	let stallTimer = setTimeout(() => stall.abort(), REPLY_STALL_MS);
+	const fail = (): never => {
+		throw new ChatFailure(stall.signal.aborted ? FAILURE_REPLIES.broken : FAILURE_REPLIES.unreachable);
 	};
 
-	const res = await fetch("/api/chat", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ messages }),
-	}).catch(unreachable);
-	if (!res.ok) throw new ChatFailure(await refusalReply(res));
-	if (!res.body) throw new ChatFailure(FAILURE_REPLIES.broken);
+	try {
+		const res = await fetch("/api/chat", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ messages }),
+			signal: stall.signal,
+		}).catch(fail);
+		if (!res.ok) throw new ChatFailure(await refusalReply(res));
+		if (!res.body) throw new ChatFailure(FAILURE_REPLIES.broken);
 
-	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
-	let buffer = "";
-	let event = "message";
-	for (;;) {
-		const { done, value } = await reader.read().catch(unreachable);
-		if (done) return;
-		const lines = (buffer + value).split("\n");
-		buffer = lines.pop() ?? "";
-		for (const raw of lines) {
-			const line = raw.replace(/\r$/, "");
-			if (line.startsWith("event:")) {
-				event = line.slice(6).trim();
-				continue;
+		const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+		let buffer = "";
+		let event = "message";
+		for (;;) {
+			const { done, value } = await reader.read().catch(fail);
+			if (done) return;
+			clearTimeout(stallTimer);
+			stallTimer = setTimeout(() => stall.abort(), REPLY_STALL_MS);
+
+			const lines = (buffer + value).split("\n");
+			buffer = lines.pop() ?? "";
+			for (const raw of lines) {
+				const line = raw.replace(/\r$/, "");
+				if (line.startsWith("event:")) {
+					event = line.slice(6).trim();
+					continue;
+				}
+				if (!line.startsWith("data:")) continue;
+				let data: { content?: string; detail?: string };
+				try {
+					data = JSON.parse(line.slice(5));
+				} catch {
+					continue;
+				}
+				if (event === "token" && data.content) onToken(data.content);
+				else if (event === "error") throw new ChatFailure(data.detail || FAILURE_REPLIES.broken);
+				event = "message";
 			}
-			if (!line.startsWith("data:")) continue;
-			let data: { content?: string; detail?: string };
-			try {
-				data = JSON.parse(line.slice(5));
-			} catch {
-				continue;
-			}
-			if (event === "token" && data.content) onToken(data.content);
-			else if (event === "error") throw new ChatFailure(data.detail || FAILURE_REPLIES.broken);
-			event = "message";
 		}
+	} finally {
+		clearTimeout(stallTimer);
 	}
 }
 
@@ -151,6 +190,8 @@ export function Terminal() {
 	const submittedInput = useRef<string[]>([]);
 	const recallIndex = useRef<number | null>(null);
 	const draft = useRef("");
+	/** When Adam's model last answered, to tell whether it has gone back to sleep. */
+	const lastHeard = useRef(0);
 
 	useEffect(() => {
 		const el = bodyRef.current;
@@ -262,6 +303,7 @@ export function Terminal() {
 				}
 				append(BOT + GREETING);
 				setHistory([{ role: "assistant", content: GREETING }]);
+				lastHeard.current = Date.now();
 			}
 			await pause(175);
 			if (!alive) return;
@@ -308,6 +350,7 @@ export function Terminal() {
 
 		// No first word by now means the model is waking up from zero, so Adam naps until it does.
 		const sent = Date.now();
+		const mayBeAsleep = sent - lastHeard.current > AWAKE_FOR_MS;
 		let stopNap: (() => void) | undefined;
 		const napping = setTimeout(() => { stopNap = showAsleep(replyId, sent); }, ASLEEP_AFTER_MS);
 		const endNap = () => {
@@ -317,6 +360,11 @@ export function Terminal() {
 		};
 
 		try {
+			// Wake a model that has probably shut down first, so the reply itself never waits on a cold start.
+			if (mayBeAsleep) {
+				const failure = await wakeAdam();
+				if (failure) throw new ChatFailure(failure);
+			}
 			await streamChat(conversation, (token) => {
 				endNap();
 				reply += token;
@@ -324,8 +372,11 @@ export function Terminal() {
 			});
 			if (!reply.trim()) throw new ChatFailure(FAILURE_REPLIES.silent);
 			setHistory([...conversation, { role: "assistant", content: reply }]);
+			lastHeard.current = Date.now();
 		} catch (error) {
 			endNap();
+			// The model may have gone down, so check it's awake before the next message.
+			lastHeard.current = 0;
 			// Failed turns stay out of the history, so the model never sees these lines.
 			if (!(error instanceof ChatFailure)) console.error(error);
 			setLineText(replyId, BOT + (error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken));

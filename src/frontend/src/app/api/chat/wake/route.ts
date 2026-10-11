@@ -3,21 +3,30 @@ import { chargeChatTime } from "@/lib/chat/gate";
 import { FAILURE_REPLIES } from "@/lib/chat/messages";
 import { wakeModel } from "@/lib/chat/model";
 
-/** The model's GPU takes about 90 s to start from zero, so allow the plan's full 300 s. */
-export const maxDuration = 300;
+/**
+ * Each check waits on the model at most this long, then reports that Adam is still waking up.
+ * A cold start takes 1.5–2.5 minutes, and a request that stays silent that long can die on the
+ * way back to the visitor without either side noticing, so the terminal checks repeatedly.
+ */
+const CHECK_MS = 20_000;
+
+export const maxDuration = 30;
 
 /**
- * Wakes Adam's model when the terminal opens and answers once it's ready, so the terminal
- * greets visitors only when Adam can reply. It counts toward the visitor's daily chat time
- * like a message, so reopening the terminal can't keep the GPU running for free.
+ * Wakes Adam's model and answers 204 once it's ready, or 202 if it's still starting, in which
+ * case the terminal checks again. The pending check is what keeps Modal booting the GPU. Each
+ * check counts toward the visitor's daily chat time like a message, so reopening the terminal
+ * can't keep the GPU running for free.
  */
 export async function POST(req: Request) {
 	const refusal = await chargeChatTime(req);
 	if (refusal) return refusal;
 
+	const timeout = AbortSignal.timeout(CHECK_MS);
 	try {
-		await wakeModel(req.signal);
+		await wakeModel(AbortSignal.any([req.signal, timeout]));
 	} catch (error) {
+		if (timeout.aborted) return new Response(null, { status: 202 });
 		// A visitor who leaves cancels the request; only other failures are worth logging.
 		if (!req.signal.aborted) console.error("chat: waking the model failed:", error);
 		return NextResponse.json({ detail: FAILURE_REPLIES.broken }, { status: 502 });

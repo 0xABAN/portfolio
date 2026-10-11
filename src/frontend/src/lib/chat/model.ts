@@ -24,7 +24,7 @@ function modelRequest(path: string, init: RequestInit): Promise<Response> {
 	});
 }
 
-/** Resolves once the model can reply. Modal holds the request while the GPU starts from zero (about 90 s). */
+/** Resolves once the model can reply. Modal holds the request while the GPU starts from zero (1.5–2.5 minutes). */
 export async function wakeModel(signal: AbortSignal): Promise<void> {
 	const response = await modelRequest("/health", { signal });
 	if (!response.ok) {

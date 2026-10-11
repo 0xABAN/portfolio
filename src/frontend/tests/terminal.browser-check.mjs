@@ -27,7 +27,10 @@ async function checkTerminal(page) {
 	let wakeResponse = { status: 204 };
 	let releaseWake;
 	const wakeHeld = new Promise((resolve) => { releaseWake = resolve; });
+	// The first check reports that Adam is still waking up, so the terminal has to ask again.
+	let wakeChecks = 0;
 	await page.route("**/api/chat/wake", async (route) => {
+		if (++wakeChecks === 1) return route.fulfill({ status: 202 });
 		await wakeHeld;
 		await route.fulfill(wakeResponse);
 	});
@@ -39,6 +42,7 @@ async function checkTerminal(page) {
 	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> (-_-) zZz"));
 	check((await lineTexts()).some((line) => line.trim().startsWith("asleep, waking him up · 0:")), "Napping Adam has no wake-up timer");
 	check(await input.count() === 0, "Prompt appeared before Adam woke up");
+	check(wakeChecks >= 2, "Terminal stopped checking after Adam was still waking up");
 	releaseWake();
 	await input.waitFor();
 	check(!(await lineTexts()).some((line) => line.includes("asleep, waking him up")), "Wake-up timer outlived the nap");
