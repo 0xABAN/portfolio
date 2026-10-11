@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chargeChatTime } from "@/lib/chat/gate";
+import { checkChatTime } from "@/lib/chat/gate";
 import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages } from "@/lib/chat/messages";
 import { streamReply } from "@/lib/chat/model";
 import { systemPrompt } from "@/lib/chat/persona";
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 		throw error;
 	}
 
-	const refusal = await chargeChatTime(req);
+	const refusal = await checkChatTime(req, "message");
 	if (refusal) return refusal;
 
 	const conversation = [{ role: "system" as const, content: systemPrompt() }, ...messages];

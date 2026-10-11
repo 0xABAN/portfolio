@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chargeChatTime } from "@/lib/chat/gate";
+import { checkChatTime } from "@/lib/chat/gate";
 import { FAILURE_REPLIES } from "@/lib/chat/messages";
 import { wakeModel } from "@/lib/chat/model";
 
@@ -14,12 +14,11 @@ export const maxDuration = 30;
 
 /**
  * Wakes Adam's model and answers 204 once it's ready, or 202 if it's still starting, in which
- * case the terminal checks again. The pending check is what keeps Modal booting the GPU. Each
- * check counts toward the visitor's daily chat time like a message, so reopening the terminal
- * can't keep the GPU running for free.
+ * case the terminal checks again. The pending check is what keeps Modal booting the GPU. Waking
+ * costs no chat time, but a visitor who is out of time can't wake the model.
  */
 export async function POST(req: Request) {
-	const refusal = await chargeChatTime(req);
+	const refusal = await checkChatTime(req, "wake");
 	if (refusal) return refusal;
 
 	const timeout = AbortSignal.timeout(CHECK_MS);

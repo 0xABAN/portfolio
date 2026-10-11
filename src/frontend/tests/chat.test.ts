@@ -43,6 +43,9 @@ function fakeRedis(clock: { now: number }): Store {
 			values.set(key, { value, expiresAt: clock.now + px });
 			return previous;
 		},
+		async get<T>(key: string) {
+			return read(key) as T | null;
+		},
 		async incrby(key: string, increment: number) {
 			const next = (read(key) ?? 0) + increment;
 			values.set(key, { value: next, expiresAt: values.get(key)?.expiresAt ?? Infinity });
@@ -59,7 +62,7 @@ function fakeRedis(clock: { now: number }): Store {
 test("allowChat gives a visitor 15 minutes of conversation, then refuses them for the rest of the day", async () => {
 	const clock = { now: Date.UTC(2026, 9, 11, 12, 0) };
 	const redis = fakeRedis(clock);
-	const message = (ip = "1.2.3.4") => allowChat(redis, ip, clock.now);
+	const message = (ip = "1.2.3.4") => allowChat(redis, ip, "message", clock.now);
 
 	// A message a minute: the gaps between 16 messages add up to exactly 15 minutes.
 	for (let i = 0; i <= DAILY_CHAT_MS / MINUTE; i++) {
@@ -84,9 +87,32 @@ test("allowChat doesn't count gaps longer than the GPU's idle window", async () 
 
 	// Twenty short visits through the day, each one starting after a long break.
 	for (let visit = 0; visit < 20; visit++) {
-		assert.equal(await allowChat(redis, "1.2.3.4", clock.now), true, `visit ${visit}`);
+		assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true, `visit ${visit}`);
 		clock.now += CONVERSATION_GAP_MS + MINUTE;
 	}
+});
+
+test("allowChat doesn't charge for waiting on the model to wake up", async () => {
+	const clock = { now: Date.UTC(2026, 9, 11, 9, 0) };
+	const redis = fakeRedis(clock);
+
+	// A 2.5-minute cold start, checked every 20 s, then a message right as Adam wakes up.
+	for (let check = 0; check < 8; check++) {
+		assert.equal(await allowChat(redis, "1.2.3.4", "wake", clock.now), true, `check ${check}`);
+		clock.now += 20_000;
+	}
+	assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true);
+
+	// Only that last 20 s was spent: 14 one-minute gaps still fit, and a 15th doesn't.
+	for (let i = 0; i < 14; i++) {
+		clock.now += MINUTE;
+		assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true, `message ${i}`);
+	}
+	clock.now += MINUTE;
+	assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), false);
+
+	// Once out of time, the visitor can't wake the model either.
+	assert.equal(await allowChat(redis, "1.2.3.4", "wake", clock.now + 10 * MINUTE), false);
 });
 
 test("completionText reassembles text split across network chunks", async () => {
