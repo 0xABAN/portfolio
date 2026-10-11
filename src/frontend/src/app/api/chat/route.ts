@@ -9,10 +9,6 @@ import { redis } from "@/lib/redis";
 /** The model's GPU takes about 90 s to start from zero, so allow the plan's full 300 s. */
 export const maxDuration = 300;
 
-/** A comment line, which the terminal ignores, keeps the connection busy while the model wakes up. */
-const HEARTBEAT = new TextEncoder().encode(": waiting\n\n");
-const HEARTBEAT_MS = 10_000;
-
 /** Streams Adam's reply as "token" events, then "done", or "error" if the model fails. */
 export async function POST(req: Request) {
 	let messages;
@@ -45,7 +41,6 @@ export async function POST(req: Request) {
 			const send = (chunk: Uint8Array) => {
 				if (open) controller.enqueue(chunk);
 			};
-			const heartbeat = setInterval(() => send(HEARTBEAT), HEARTBEAT_MS);
 
 			try {
 				for await (const text of streamReply(conversation, req.signal)) {
@@ -55,7 +50,6 @@ export async function POST(req: Request) {
 			} catch (error) {
 				send(sseEvent("error", { detail: error instanceof Error ? error.message : "chat failed" }));
 			} finally {
-				clearInterval(heartbeat);
 				if (open) controller.close();
 			}
 		},
