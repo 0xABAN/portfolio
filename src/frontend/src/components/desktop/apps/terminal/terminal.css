@@ -114,6 +114,15 @@
 	display: block;
 }
 
+/* Adam's nap: cream z's, and the wake-up timer in white. */
+.term__snore {
+	color: #f5ecd4;
+}
+
+.term__time {
+	color: #fff;
+}
+
 .term__input-row {
 	display: flex;
 	align-items: baseline;

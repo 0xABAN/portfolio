@@ -41,7 +41,10 @@ const HELP = [
 	"",
 ];
 
-type Line = { id: number; text: string };
+/** Part of a line drawn in its own color. */
+type Segment = { text: string; tone?: "snore" | "time" };
+/** A line of output. `segments`, when set, color the parts of `text`. */
+type Line = { id: number; text: string; segments?: Segment[] };
 
 let lineId = 0;
 
@@ -162,7 +165,12 @@ export function Terminal() {
 	}, []);
 
 	const setLineText = useCallback((id: number, text: string) => {
-		setLines((prev) => prev.map((line) => (line.id === id ? { ...line, text } : line)));
+		setLines((prev) => prev.map((line) => (line.id === id ? { id, text } : line)));
+	}, []);
+
+	const setLineSegments = useCallback((id: number, segments: Segment[]) => {
+		const text = segments.map((segment) => segment.text).join("");
+		setLines((prev) => prev.map((line) => (line.id === id ? { id, text, segments } : line)));
 	}, []);
 
 	const removeLine = useCallback((id: number) => {
@@ -178,8 +186,11 @@ export function Terminal() {
 		let frame = 0;
 		const draw = () => {
 			const snore = prefersReducedMotion() ? "zZz" : SNORE[frame++ % SNORE.length];
-			setLineText(faceId, BOT + ASLEEP + snore);
-			setLineText(statusId, `${" ".repeat(BOT.length)}asleep, waking him up · ${elapsed(since)}`);
+			setLineSegments(faceId, [{ text: BOT + ASLEEP }, { text: snore, tone: "snore" }]);
+			setLineSegments(statusId, [
+				{ text: `${" ".repeat(BOT.length)}asleep, waking him up · ` },
+				{ text: elapsed(since), tone: "time" },
+			]);
 		};
 		draw();
 		const timer = setInterval(draw, SNORE_MS);
@@ -188,7 +199,7 @@ export function Terminal() {
 			clearInterval(timer);
 			removeLine(statusId);
 		};
-	}, [append, setLineText, removeLine]);
+	}, [append, setLineSegments, removeLine]);
 
 	// The opening script: a DOS banner, a typed HELP and ADAM.EXE, then Adam's greeting once he's awake.
 	useEffect(() => {
@@ -407,7 +418,11 @@ export function Terminal() {
 			<div className="term__status" role="status">{clipboardStatus}</div>
 			<div className="term__body" ref={bodyRef} onClick={() => { if (window.getSelection()?.isCollapsed) inputRef.current?.focus(); }}>
 				{lines.map((line) => (
-					<span key={line.id} className={line.text ? "term__line" : "term__line term__line--blank"}>{line.text || "\u00a0"}</span>
+					<span key={line.id} className={line.text ? "term__line" : "term__line term__line--blank"}>
+						{line.segments?.map((segment, i) => (
+							<span key={i} className={segment.tone && `term__${segment.tone}`}>{segment.text}</span>
+						)) ?? (line.text || "\u00a0")}
+					</span>
 				))}
 				{/* Keep the field mounted during replies: native focus and selection survive. */}
 				{booted && (
