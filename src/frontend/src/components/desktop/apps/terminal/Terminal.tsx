@@ -204,24 +204,24 @@ export function Terminal() {
 		// The two shell commands are a demonstration, not messages sent to Adam.
 		async function typeCommand(command: string) {
 			const id = append(SHELL);
-			await pause(450);
-			await typewrite(command, (typed) => { if (alive) setLineText(id, SHELL + typed); }, () => alive, 80, 110);
-			await pause(220);
+			await pause(225);
+			await typewrite(command, (typed) => { if (alive) setLineText(id, SHELL + typed); }, () => alive, 40, 55);
+			await pause(110);
 		}
 
 		void (async () => {
 			// Cold open: the DOS session starts before the chat program.
-			await pause(350);
+			await pause(175);
 			for (const text of COPYRIGHT) {
 				if (!alive) return;
 				append(text);
-				await pause(text ? 210 : 140);
+				await pause(text ? 105 : 70);
 			}
 			if (!alive) return;
 			await typeCommand("help");
 			if (!alive) return;
 			COMMANDS.forEach(append);
-			await pause(500);
+			await pause(250);
 			if (!alive) return;
 			await typeCommand("ADAM.EXE");
 			if (!alive) return;
