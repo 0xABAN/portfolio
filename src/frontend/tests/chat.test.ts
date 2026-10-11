@@ -59,12 +59,12 @@ function fakeRedis(clock: { now: number }): Store {
 	};
 }
 
-test("allowChat gives a visitor 15 minutes of conversation, then refuses them for the rest of the day", async () => {
+test("allowChat gives a visitor the daily chat time, then refuses them for the rest of the day", async () => {
 	const clock = { now: Date.UTC(2026, 9, 11, 12, 0) };
 	const redis = fakeRedis(clock);
 	const message = (ip = "1.2.3.4") => allowChat(redis, ip, "message", clock.now);
 
-	// A message a minute: the gaps between 16 messages add up to exactly 15 minutes.
+	// A message a minute: the gaps between these messages add up to exactly the daily limit.
 	for (let i = 0; i <= DAILY_CHAT_MS / MINUTE; i++) {
 		assert.equal(await message(), true, `message ${i}`);
 		clock.now += MINUTE;
@@ -103,8 +103,9 @@ test("allowChat doesn't charge for waiting on the model to wake up", async () =>
 	}
 	assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true);
 
-	// Only that last 20 s was spent: 14 one-minute gaps still fit, and a 15th doesn't.
-	for (let i = 0; i < 14; i++) {
+	// Only that last 20 s was spent, so every one-minute gap that fits beside it is allowed, and one more isn't.
+	const fits = Math.floor((DAILY_CHAT_MS - 20_000) / MINUTE);
+	for (let i = 0; i < fits; i++) {
 		clock.now += MINUTE;
 		assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true, `message ${i}`);
 	}

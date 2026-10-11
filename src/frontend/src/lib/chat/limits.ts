@@ -1,5 +1,5 @@
 /**
- * Chat time limit: each visitor (IP) gets 15 minutes of conversation per UTC day.
+ * Chat time limit: each visitor (IP) gets 45 minutes of conversation per UTC day.
  *
  * A message costs the time since the visitor's previous request, up to 5 minutes. A longer gap
  * means the visitor stepped away, so it starts a new conversation and costs nothing. (The GPU
@@ -12,7 +12,7 @@
  * The counts live in Redis because serverless instances share no memory.
  */
 
-export const DAILY_CHAT_MS = 15 * 60_000;
+export const DAILY_CHAT_MS = 45 * 60_000;
 export const CONVERSATION_GAP_MS = 5 * 60_000;
 
 export type ChatRequest = "wake" | "message";
