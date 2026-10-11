@@ -1,5 +1,5 @@
 import "server-only";
-import { Redis } from "@upstash/redis";
+import { redis as client } from "@/lib/redis";
 
 // same key/logic as main branch — keep incrementing the live portfolio counter
 const KEY = "portfolio:views";
@@ -8,15 +8,6 @@ const BOT_PATTERN = /bot|crawl|spider|curl|wget|python|go-http/i;
 const DEDUP_SECONDS = 24 * 60 * 60;
 /** production site still on main — same Upstash DB behind /api/views */
 const PROD_VIEWS = "https://advm.dev/api/views";
-
-function client() {
-	const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-	const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-	if (!url?.startsWith("https") || !token || token.includes("SENSITIVE")) {
-		return null;
-	}
-	return new Redis({ url, token });
-}
 
 async function viaProduction(
 	method: "GET" | "POST",
