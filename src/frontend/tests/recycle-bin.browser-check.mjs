@@ -1,12 +1,4 @@
-import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-
-const session = `recycle-check-${process.pid}`;
-function browser(...args) {
-	const output = execFileSync("playwright-cli", [`-s=${session}`, ...args], { encoding: "utf8", timeout: 180000 });
-	assert.ok(!output.includes("### Error"), output);
-	return output;
-}
+import { runCheck } from "./browser.mjs";
 
 async function checkRecycling(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
@@ -252,12 +244,4 @@ async function checkRecycling(page) {
 	return "PASS: Win95 selection, views, restore, folder recovery, moving, reload persistence, safe dragging, permanent deletion, reset and storage failures";
 }
 
-try {
-	browser("open", process.env.RECYCLE_TEST_URL || "http://localhost:3000", "--browser", "chrome");
-	console.log(browser("run-code", checkRecycling.toString()));
-} catch (error) {
-	console.log(browser("run-code", `async (page) => { await page.clock.resume(); return { active: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500)), dialogs: await page.locator('dialog').evaluateAll((elements) => elements.map((el) => el.outerHTML)), selected: await page.locator('[aria-selected="true"]').allTextContents(), state: await page.evaluate(() => localStorage.getItem('portfolio.shell.v3')) }; }`));
-	throw error;
-} finally {
-	try { browser("close"); } catch {}
-}
+console.log(runCheck(checkRecycling));

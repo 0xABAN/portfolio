@@ -1,12 +1,4 @@
-import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-
-const session = `launch-check-${process.pid}`;
-function browser(...args) {
-	const output = execFileSync("playwright-cli", [`-s=${session}`, ...args], { encoding: "utf8", timeout: 60000 });
-	assert.ok(!output.includes("### Error"), output);
-	return output;
-}
+import { runCheck } from "./browser.mjs";
 
 async function checkLaunches(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
@@ -88,9 +80,4 @@ async function checkLaunches(page) {
 	return "PASS: desktop, every Start app, Explorer files, exact delays, hourglass, busy-click guard and immediate taskbar restores";
 }
 
-try {
-	browser("open", process.env.LAUNCH_TEST_URL || "http://localhost:3000", "--browser", "chrome");
-	console.log(browser("run-code", checkLaunches.toString()));
-} finally {
-	try { browser("close"); } catch {}
-}
+console.log(runCheck(checkLaunches));

@@ -1,12 +1,4 @@
-import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-
-const session = `fracture-check-${process.pid}`;
-function browser(...args) {
-	const output = execFileSync("playwright-cli", [`-s=${session}`, ...args], { encoding: "utf8", timeout: 60000 });
-	assert.ok(!output.includes("### Error"), output);
-	return output;
-}
+import { runCheck } from "./browser.mjs";
 
 async function checkFracture(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
@@ -51,9 +43,4 @@ async function checkFracture(page) {
 	return "PASS: the screen shatters, and the intro holds its last frame until the loop plays";
 }
 
-try {
-	browser("open", process.env.FRACTURE_TEST_URL || "http://localhost:3000", "--browser", "chrome");
-	console.log(browser("run-code", checkFracture.toString()));
-} finally {
-	try { browser("close"); } catch {}
-}
+console.log(runCheck(checkFracture));

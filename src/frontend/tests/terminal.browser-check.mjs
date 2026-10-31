@@ -1,17 +1,4 @@
-import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-
-const session = `terminal-check-${process.pid}`;
-const url = process.env.TERMINAL_TEST_URL || "http://localhost:3000";
-
-function browser(...args) {
-	const output = execFileSync("playwright-cli", [`-s=${session}`, ...args], {
-		encoding: "utf8",
-		timeout: 60000,
-	});
-	assert.ok(!output.includes("### Error"), output);
-	return output;
-}
+import { runCheck } from "./browser.mjs";
 
 async function checkTerminal(page) {
 	const check = (condition, message) => {
@@ -256,9 +243,4 @@ async function checkTerminal(page) {
 	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, refusals, lost connections, napping, recall, commands, conversation, wrapping, and typed startup";
 }
 
-try {
-	browser("open", url, "--browser", "chrome");
-	console.log(browser("run-code", checkTerminal.toString()));
-} finally {
-	browser("close");
-}
+console.log(runCheck(checkTerminal));

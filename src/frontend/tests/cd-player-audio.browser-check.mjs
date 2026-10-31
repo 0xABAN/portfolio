@@ -1,12 +1,4 @@
-import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-
-const session = `audio-check-${process.pid}`;
-function browser(...args) {
-	const output = execFileSync("playwright-cli", [`-s=${session}`, ...args], { encoding: "utf8", timeout: 60000 });
-	assert.ok(!output.includes("### Error"), output);
-	return output;
-}
+import { runCheck } from "./browser.mjs";
 
 async function checkAudio(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
@@ -190,9 +182,4 @@ async function checkAudio(page) {
 	return "PASS: silent boot, 10-second gentle fade, early/mid-fade mute, volume/track changes, pause/stop, quit/relaunch and blocked-autoplay recovery";
 }
 
-try {
-	browser("open", process.env.AUDIO_TEST_URL || "http://localhost:3000", "--browser", "chrome");
-	console.log(browser("run-code", checkAudio.toString()));
-} finally {
-	try { browser("close"); } catch {}
-}
+console.log(runCheck(checkAudio));

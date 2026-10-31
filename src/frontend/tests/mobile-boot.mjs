@@ -1,13 +1,8 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { realpath } from 'node:fs/promises';
-import { createRequire } from 'node:module';
-import { mockSoundCloud } from './soundcloud.mjs';
+import { chromium, devices, mockSoundCloud } from './browser.mjs';
 
-const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
-const { chromium, devices } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const url = process.argv[2] ?? 'http://127.0.0.1:3187';
+const url = process.argv[2] ?? 'http://localhost:3000';
 const macUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15';
 const cases = [
   { name: 'iphone', options: devices['iPhone 13'], blocked: true },

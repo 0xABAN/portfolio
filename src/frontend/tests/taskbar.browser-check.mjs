@@ -1,12 +1,4 @@
-import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-
-const session = `taskbar-check-${process.pid}`;
-function browser(...args) {
-	const output = execFileSync("playwright-cli", [`-s=${session}`, ...args], { encoding: "utf8", timeout: 60000 });
-	assert.ok(!output.includes("### Error"), output);
-	return output;
-}
+import { runCheck } from "./browser.mjs";
 
 async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
@@ -585,9 +577,4 @@ async function checkTaskbar(page) {
 	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, desktop typing, hidden streaming, sparks and narrow overflow";
 }
 
-try {
-	browser("open", process.env.TASKBAR_TEST_URL || "http://localhost:3000", "--browser", "chrome");
-	console.log(browser("run-code", checkTaskbar.toString()));
-} finally {
-	try { browser("close"); } catch {}
-}
+console.log(runCheck(checkTaskbar));

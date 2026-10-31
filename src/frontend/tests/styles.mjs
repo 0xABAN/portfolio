@@ -1,18 +1,11 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import sharp from 'sharp';
-import { mockSoundCloud } from './soundcloud.mjs';
-import { stillDesktop } from './still-desktop.mjs';
+import { assertSameImage, chromium, desktopContext, devices, stillDesktop } from './browser.mjs';
 
-const [mode, url = 'http://127.0.0.1:3187', directory = '/tmp/portfolio-styles'] = process.argv.slice(2);
+const [mode, url = 'http://localhost:3000', directory = '/tmp/portfolio-styles'] = process.argv.slice(2);
 assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
-const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
-const { chromium, devices } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const beepBoopFrame = await sharp(new URL('../public/photos/beep-boop.webp', import.meta.url).pathname).png().toBuffer();
 const profiles = [
   { name: 'desktop', viewport: { width: 1440, height: 900 } },
   { name: 'small-desktop', viewport: { width: 960, height: 600 } },
@@ -25,19 +18,7 @@ await mkdir(directory, { recursive: true });
 
 try {
   for (const { name, mobile, ...options } of profiles) {
-    const context = await browser.newContext({ ...options, locale: 'en-US', timezoneId: 'UTC' });
-    await context.addInitScript(mockSoundCloud);
-    await context.addInitScript(() => {
-      let seed = 42;
-      Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
-    });
-    await context.route('**/api/views', route => route.fulfill({ json: { count: 1234 } }));
-    await context.route('https://github-contributions-api.jogruber.de/**', route => route.fulfill({ json: {
-      contributions: Array.from({ length: 365 }, (_, i) => ({
-        date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
-      })),
-    } }));
-    await context.route('**/photos/beep-boop.webp', route => route.fulfill({ contentType: 'image/png', body: beepBoopFrame }));
+    const context = await desktopContext(browser, options);
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -80,14 +61,7 @@ try {
         await writeFile(`${file}-actual.json`, JSON.stringify(normalized));
         await writeFile(`${file}-actual.png`, image);
         assert.deepEqual(normalized, normalize(JSON.parse(await readFile(`${file}.json`, 'utf8'))), `${name}/${state}: layout and styles`);
-        const actual = await sharp(image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-        const expected = await sharp(`${file}.png`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-        assert.deepEqual(actual.info, expected.info, `${name}/${state}: image dimensions`);
-        let different = 0;
-        for (let i = 0; i < actual.data.length; i += 4) {
-          if (actual.data.subarray(i, i + 4).some((value, channel) => Math.abs(value - expected.data[i + channel]) > 12)) different++;
-        }
-        assert.ok(different <= actual.info.width * actual.info.height * 0.002, `${name}/${state}: ${different} pixels differ`);
+        const different = await assertSameImage(image, `${file}.png`, `${name}/${state}`);
         console.log(`PASS ${name}/${state}: exact layout/styles; ${different} differing pixels`);
       }
       count++;

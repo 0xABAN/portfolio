@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { realpath } from 'node:fs/promises';
-import { createRequire } from 'node:module';
-import { mockSoundCloud } from './soundcloud.mjs';
+import { chromium, mockSoundCloud } from './browser.mjs';
 
-const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
-const { chromium } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const url = process.argv[2] ?? 'http://localhost:3000';
 const artwork = '**/icons/psp.png';

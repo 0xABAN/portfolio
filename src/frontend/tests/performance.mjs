@@ -1,36 +1,18 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import sharp from 'sharp';
-import { mockSoundCloud } from './soundcloud.mjs';
-import { stillDesktop } from './still-desktop.mjs';
+import { assertSameImage, chromium, desktopContext, stillDesktop } from './browser.mjs';
 
 const [mode, url = 'http://localhost:3000', directory = '/tmp/portfolio-lossless'] = process.argv.slice(2);
 assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
-const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding: 'utf8' }).trim());
-const { chromium } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const beepBoopFrame = await sharp(new URL('../public/photos/beep-boop.webp', import.meta.url).pathname).png().toBuffer();
 const reports = [];
 await mkdir(directory, { recursive: true });
 
 try {
   for (const [width, height] of [[1440, 900], [960, 600], [390, 844]]) {
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(process.env.DPR ?? 2),
-      locale: 'en-US', timezoneId: 'UTC' });
-    await context.route('**/api/views', route => route.fulfill({ json: { count: 1234 } }));
-    await context.addInitScript(mockSoundCloud);
-    await context.route('https://github-contributions-api.jogruber.de/**', route => route.fulfill({ json: {
-      contributions: Array.from({ length: 365 }, (_, i) => ({
-        date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
-      })),
-    } }));
-    await context.route('**/photos/beep-boop.webp', route => route.fulfill({ contentType: 'image/png', body: beepBoopFrame }));
+    const context = await desktopContext(browser, { viewport: { width, height }, deviceScaleFactor: Number(process.env.DPR ?? 2) });
     await context.addInitScript(() => {
-      let seed = 42;
-      Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
       window.reactCommits = 0;
       window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
         supportsFiber: true,
@@ -58,18 +40,9 @@ try {
     async function capture(name) {
       const image = await page.screenshot({ animations: 'disabled', caret: 'hide' });
       const file = path.join(directory, `${width}-${name}.png`);
-      if (mode === 'record') return sharp(image).png().toFile(file);
-      const actual = await sharp(image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      const expected = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      assert.deepEqual(actual.info, expected.info);
-      let different = 0;
-      for (let i = 0; i < actual.data.length; i += 4) {
-        if (actual.data.subarray(i, i + 4).some((value, channel) => Math.abs(value - expected.data[i + channel]) > 12)) different++;
-      }
-      if (different > actual.info.width * actual.info.height * 0.002) {
-        await sharp(image).png().toFile(file.replace('.png', '-actual.png'));
-        assert.fail(`${name}: ${different} pixels differ`);
-      }
+      if (mode === 'record') return writeFile(file, image);
+      await writeFile(file.replace('.png', '-actual.png'), image);
+      await assertSameImage(image, file, name);
     }
 
     const geometry = () => page.locator('.win').evaluateAll(nodes => nodes.map(el => ({
