@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { bresenhamLine } from "@/components/desktop/apps/paint/tools/bresenham";
+import { PALETTE, TOOLS, bresenhamLine, isDrawable, resolveStrokeStyle } from "@/components/desktop/apps/paint/paintModel";
 
 const ORIGINAL = [
 	"43e32db14b672b21b241cdcfbf8cd59f60381b00c70ecd39f5587cef37f3c21e",
@@ -26,3 +26,18 @@ for (const dense of [false, true]) {
 		assert.equal(hash.digest("hex"), ORIGINAL[Number(dense)]);
 	});
 }
+
+test("stroke resolution rejects unsupported tools without a caller-side guard", () => {
+	for (const { id } of TOOLS) {
+		for (const reverse of [false, true]) {
+			const style = resolveStrokeStyle(id, PALETTE[0], PALETTE[14], reverse);
+			assert.equal(style !== null, isDrawable(id), `${id}, ${reverse}`);
+		}
+	}
+});
+
+test("the right button and the eraser draw in the background colour", () => {
+	assert.deepEqual(resolveStrokeStyle("pencil", "fg", "bg", false), { tool: "pencil", color: "fg" });
+	assert.deepEqual(resolveStrokeStyle("brush", "fg", "bg", true), { tool: "brush", color: "bg" });
+	assert.deepEqual(resolveStrokeStyle("eraser", "fg", "bg", false), { tool: "eraser", color: "bg" });
+});
