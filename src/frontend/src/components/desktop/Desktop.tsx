@@ -2,16 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
-import { useDesktopReveal } from "./effects/reveal/useDesktopReveal";
+import { DesktopSparks, FractureBackground, Neko, useDesktopReveal } from "./effects";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
-import { DesktopSparks } from "./effects/sparks/DesktopSparks";
-import { FractureBackground } from "./effects/fracture/FractureBackground";
 import { BIN_ICON } from "./files/catalog";
 import { ShellProvider, useShell } from "./files/ShellProvider";
 import { itemOf } from "./files/state";
 import { ShellDialogs } from "./shell/ShellDialogs";
 import { DesktopIcons } from "./files/DesktopIcons";
-import { Neko } from "./effects/neko/Neko";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { Window } from "./window/Window";

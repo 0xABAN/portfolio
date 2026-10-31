@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DESKTOP_REVEAL_MS } from "../effects/reveal/desktopReveal";
+import { DESKTOP_REVEAL_MS } from "../effects";
 import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, type DeskIcon as CatalogIcon } from "./catalog";
 import { useShell } from "./ShellProvider";
 import { itemOf, type ShellNode } from "./state";
