@@ -22,7 +22,6 @@ async function checkTerminal(page) {
 	const check = (condition, message) => {
 		if (!condition) throw new Error(message);
 	};
-	await page.emulateMedia({ reducedMotion: "reduce" });
 	// The terminal wakes Adam's model as it mounts, so answer that request before the desktop boots.
 	let wakeResponse = { status: 204 };
 	let releaseWake;
@@ -48,7 +47,6 @@ async function checkTerminal(page) {
 	check(!(await lineTexts()).some((line) => line.includes("asleep, waking him up")), "Wake-up timer outlived the nap");
 	const prompt = page.locator(".term__prompt");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").content) === '"_"', "Empty unfocused prompt has no cursor cue");
-	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "none", "Idle cursor ignores reduced motion");
 	check(await input.evaluate((el) => el.placeholder === "" && el !== document.activeElement), "Ready prompt added a hint or stole focus");
 	const opening = await page.locator(".term__line").allTextContents();
 	check(opening[0] === "Microsoft(R) Windows 95", "Wrong DOS banner");
@@ -252,10 +250,8 @@ async function checkTerminal(page) {
 	await input.waitFor();
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Narrow terminal overflowed horizontally");
 	check(await input.evaluate((el) => el.getBoundingClientRect().width > 100), "Narrow prompt has no usable input space");
-	check(await input.evaluate((el) => getComputedStyle(el).getPropertyValue("caret-animation")) === "manual", "Reduced-motion caret still animates");
 
-	// Normal-motion startup must type both commands, not just show the final log.
-	await page.emulateMedia({ reducedMotion: "no-preference" });
+	// Startup must type both commands, not just show the final log.
 	await page.reload();
 	await page.evaluate(() => {
 		// Record mutations: polling can miss a short-lived typing frame.
@@ -274,7 +270,7 @@ async function checkTerminal(page) {
 	check(frames.includes("C:\\PORTFOLIO>hel") && frames.includes("C:\\PORTFOLIO>ADA"), "Startup did not animate both commands");
 	check((await page.locator(".term__line").allTextContents()).includes("ADAM> come chat with me :)"), "Animated startup did not reach chat");
 	check(await prompt.evaluate((el) => getComputedStyle(el, "::after").animationName) === "term-cursor-blink", "Ready cursor does not blink");
-	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, refusals, lost connections, napping, recall, commands, conversation, wrapping, and reduced motion";
+	return "PASS: DOS startup, idle cursor, editing, clipboard, focus, paused streaming, sequential turns, stream errors, refusals, lost connections, napping, recall, commands, conversation, wrapping, and typed startup";
 }
 
 try {

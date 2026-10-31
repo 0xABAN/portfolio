@@ -12,10 +12,6 @@ export const Neko = memo(function Neko() {
 	useEffect(() => {
 		const el = elRef.current;
 		if (!el) return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-			el.hidden = true;
-			return;
-		}
 		return runNeko(el, SHEET);
 	}, []);
 

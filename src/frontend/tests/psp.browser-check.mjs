@@ -13,7 +13,6 @@ try {
 	browser("open", process.env.PSP_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	const result = browser("run-code", `async (page) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
-		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.locator(".rsod").waitFor({ state: "visible" });
 		await page.locator(".rsod").click();
 		await page.locator(".desktop--busy").waitFor({ state: "hidden" });

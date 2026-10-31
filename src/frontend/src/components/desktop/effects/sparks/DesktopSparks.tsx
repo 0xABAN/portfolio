@@ -64,7 +64,7 @@ const SPARKS = Array.from({ length: 24 }, (_, index) => {
 // Shrink away rather than fading: the sparks stay solid black, without glow.
 const KEYFRAMES = SPARKS.map((spark) => spark.keyframes).join("\n");
 
-/** Decorative, click-through sparks; CSS owns motion and reduced-motion handling. */
+/** Decorative, click-through sparks; CSS owns their motion. */
 export const DesktopSparks = memo(function DesktopSparks() {
 	return (
 		<div className="desktop-sparks" aria-hidden="true">

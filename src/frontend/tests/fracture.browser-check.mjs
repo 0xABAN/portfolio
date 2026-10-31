@@ -12,7 +12,6 @@ function browser(...args) {
 async function checkFracture(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
 	// Hold the loop back until well after the intro ends: the intro must stay on its last frame meanwhile.
 	await page.route("**/fracture/loop.mp4", async (route) => {

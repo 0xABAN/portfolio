@@ -60,14 +60,9 @@ type Line = { id: number; text: string; segments?: Segment[] };
 let lineId = 0;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Types `text` out, `charMs` per character and `spaceMs` after spaces, rendering every third character. */
 async function typewrite(text: string, onTick: (typed: string) => void, alive: () => boolean, charMs: number, spaceMs: number) {
-	if (prefersReducedMotion()) {
-		onTick(text);
-		return;
-	}
 	let typed = "";
 	let pending = 0;
 	for (const ch of text) {
@@ -226,8 +221,7 @@ export function Terminal() {
 		const statusId = append("");
 		let frame = 0;
 		const draw = () => {
-			const snore = prefersReducedMotion() ? "zZz" : SNORE[frame++ % SNORE.length];
-			setLineSegments(faceId, [{ text: BOT + ASLEEP }, { text: snore, tone: "snore" }]);
+			setLineSegments(faceId, [{ text: BOT + ASLEEP }, { text: SNORE[frame++ % SNORE.length], tone: "snore" }]);
 			setLineSegments(statusId, [
 				{ text: `${" ".repeat(BOT.length)}asleep, waking him up · ` },
 				{ text: elapsed(since), tone: "time" },
@@ -246,7 +240,6 @@ export function Terminal() {
 	useEffect(() => {
 		let alive = true;
 		let stopNap: (() => void) | undefined;
-		const pause = (ms: number) => (prefersReducedMotion() ? Promise.resolve() : sleep(ms));
 
 		// Start waking the model now, so it boots during the intro instead of after it.
 		const wakeStarted = Date.now();
@@ -256,30 +249,30 @@ export function Terminal() {
 		// The two shell commands are a demonstration, not messages sent to Adam.
 		async function typeCommand(command: string) {
 			const id = append(SHELL);
-			await pause(225);
+			await sleep(225);
 			await typewrite(command, (typed) => { if (alive) setLineText(id, SHELL + typed); }, () => alive, 40, 55);
-			await pause(110);
+			await sleep(110);
 		}
 
 		void (async () => {
 			// Cold open: the DOS session starts before the chat program.
-			await pause(175);
+			await sleep(175);
 			for (const text of COPYRIGHT) {
 				if (!alive) return;
 				append(text);
-				await pause(text ? 105 : 70);
+				await sleep(text ? 105 : 70);
 			}
 			if (!alive) return;
 			await typeCommand("help");
 			if (!alive) return;
 			COMMANDS.forEach(append);
-			await pause(250);
+			await sleep(250);
 			if (!alive) return;
 			await typeCommand("ADAM.EXE");
 			if (!alive) return;
 			append("");
 			// The program starts without output. A second later Adam answers, or naps until his model is up.
-			await pause(GREETING_DELAY_MS);
+			await sleep(GREETING_DELAY_MS);
 			if (!alive) return;
 			let face: number | undefined;
 			if (!wakeSettled) {
@@ -298,14 +291,14 @@ export function Terminal() {
 				if (face !== undefined) {
 					// He wakes up, then greets a second later.
 					setLineText(face, BOT + AWAKE);
-					await pause(GREETING_DELAY_MS);
+					await sleep(GREETING_DELAY_MS);
 					if (!alive) return;
 				}
 				append(BOT + GREETING);
 				setHistory([{ role: "assistant", content: GREETING }]);
 				lastHeard.current = Date.now();
 			}
-			await pause(175);
+			await sleep(175);
 			if (!alive) return;
 			append("");
 			setBusy(false);

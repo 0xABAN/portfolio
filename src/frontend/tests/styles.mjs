@@ -10,6 +10,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import sharp from 'sharp';
 import { mockSoundCloud } from './soundcloud.mjs';
+import { stillDesktop } from './still-desktop.mjs';
 
 const [mode, url = 'http://127.0.0.1:3187', directory = '/tmp/portfolio-styles'] = process.argv.slice(2);
 assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
@@ -29,7 +30,7 @@ await mkdir(directory, { recursive: true });
 
 try {
   for (const { name, mobile, ...options } of profiles) {
-    const context = await browser.newContext({ ...options, reducedMotion: 'reduce', locale: 'en-US', timezoneId: 'UTC' });
+    const context = await browser.newContext({ ...options, locale: 'en-US', timezoneId: 'UTC' });
     await context.addInitScript(mockSoundCloud);
     await context.addInitScript(() => {
       let seed = 42;
@@ -104,9 +105,9 @@ try {
     await capture('boot', '.rsod');
     if (!mobile) {
       await page.locator('button.rsod').click();
-      await page.waitForFunction(() => document.querySelector('.fracture-background video')?.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
       await page.locator('.gh-app rect[data-date="2025-12-31"]').waitFor();
       await page.locator('.neko').waitFor({ state: 'attached' });
+      await stillDesktop(page);
       await capture('desktop', '.desktop');
 
       // Exercise the additional UI surfaces at the full desktop size. Other

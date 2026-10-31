@@ -131,8 +131,8 @@ AUDIO_TEST_URL=http://127.0.0.1:3187 node tests/cd-player-audio.browser-check.mj
 LAUNCH_TEST_URL=http://127.0.0.1:3187 node tests/launch.browser-check.mjs
 ```
 
-`RUNS=1 LIVE=1` runs the benchmark against real integrations. `WIDTH`, `HEIGHT`,
-`DPR` and `MOTION` select spot-check profiles. No Playwright routing is used in
+`RUNS=1 LIVE=1` runs the benchmark against real integrations. `WIDTH`, `HEIGHT`
+and `DPR` select spot-check profiles. No Playwright routing is used in
 the timing benchmark, because it disables HTTP caching.
 
 Asset readiness includes Paint's detached source image, not just `document.images`.

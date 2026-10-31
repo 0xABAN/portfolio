@@ -13,7 +13,6 @@ async function checkAudio(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	const near = (actual, expected) => check(Math.abs(actual - expected) < 0.005, `Expected volume ${expected}, got ${actual}`);
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
 	await page.addInitScript(() => {
 		const listeners = {};

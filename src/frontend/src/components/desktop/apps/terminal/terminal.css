@@ -185,13 +185,3 @@
 	background: #c0c0c0;
 	color: #000;
 }
-
-@media (prefers-reduced-motion: reduce) {
-	.term__input {
-		caret-animation: manual;
-	}
-
-	.term__prompt::after {
-		animation: none;
-	}
-}

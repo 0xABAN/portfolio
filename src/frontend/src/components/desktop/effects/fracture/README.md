@@ -18,8 +18,6 @@ keeps cracking and glitching in a loop. It plays from two recordings in
   intro is removed once the loop is playing, so a slow download holds a frame
   instead of showing a gap.
 - The desktop starts the sparks once the screen shatters.
-- Reduced motion, read when the desktop mounts, skips the intro and leaves the
-  loop paused on its first frame.
 - Both clips cover the wallpaper, cropped evenly so the impact stays centred.
 
 ## The clips

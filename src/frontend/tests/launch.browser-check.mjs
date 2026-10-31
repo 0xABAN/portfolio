@@ -12,7 +12,6 @@ function browser(...args) {
 async function checkLaunches(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
 	await page.route((url) => url.hostname === "w.soundcloud.com" && url.pathname === "/player/", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Muted test player</title>" }));
 	await page.locator(".rsod").waitFor();

@@ -10,6 +10,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import sharp from 'sharp';
 import { mockSoundCloud } from './soundcloud.mjs';
+import { stillDesktop } from './still-desktop.mjs';
 
 const [mode, url = 'http://localhost:3000', directory = '/tmp/portfolio-lossless'] = process.argv.slice(2);
 assert.ok(['record', 'compare'].includes(mode), 'Use record or compare');
@@ -23,7 +24,7 @@ await mkdir(directory, { recursive: true });
 try {
   for (const [width, height] of [[1440, 900], [960, 600], [390, 844]]) {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(process.env.DPR ?? 2),
-      reducedMotion: 'reduce', locale: 'en-US', timezoneId: 'UTC' });
+      locale: 'en-US', timezoneId: 'UTC' });
     await context.route('**/api/views', route => route.fulfill({ json: { count: 1234 } }));
     await context.addInitScript(mockSoundCloud);
     await context.route('https://github-contributions-api.jogruber.de/**', route => route.fulfill({ json: {
@@ -54,9 +55,8 @@ try {
     await page.waitForFunction(() => Object.keys(document.querySelector('.rsod') ?? {}).some(key => key.startsWith('__reactProps$')));
     await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
     await page.locator('.rsod').click();
-    await page.waitForFunction(() => document.querySelector('.fracture-background video')?.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
-    await page.locator('.term__input').waitFor({ state: 'attached' });
     await page.locator('.neko').waitFor({ state: 'attached' });
+    const moveDesktop = await stillDesktop(page);
     await page.locator('.gh-app rect[data-date="2025-12-31"]').waitFor();
     await page.evaluate(() => document.fonts.ready);
     await page.evaluate(() => Promise.all([...document.images].map(image => image.decode().catch(() => {}))));
@@ -195,10 +195,10 @@ try {
       await shortcut.waitFor({ state: 'detached' });
       assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
 
-      // Reduced motion was read at boot, so the wallpaper stays still; only the sparks start.
-      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      // Idle with everything moving again: the wallpaper, the cat and the sparks.
+      await moveDesktop();
       await page.waitForTimeout(3000);
-      await measure('sparks-idle', () => page.waitForTimeout(5000));
+      await measure('motion-idle', () => page.waitForTimeout(5000));
     }
     assert.deepEqual(errors, [], 'Browser errors');
     await context.close();

@@ -284,19 +284,6 @@
 	}
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.desktop__psp-dimmer {
-		transition: none;
-	}
-
-	.desk-icon--bounce .desk-icon__img,
-	.desk-icon__bubble-x,
-	.desk-icon__bubble-y,
-	.desk-icon__bubble-body {
-		animation: none;
-	}
-}
-
 /* Win9x bevels: light top-left and dark bottom-right, swapped while pressed or sunken. */
 .chrome-raised {
 	border: 2px solid;

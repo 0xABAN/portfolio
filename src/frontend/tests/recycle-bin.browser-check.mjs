@@ -15,7 +15,6 @@ async function checkRecycling(page) {
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
 	// File operations do not need the third-party music player's timers/canvas.
 	await page.route((url) => url.hostname === "w.soundcloud.com" && url.pathname === "/player/", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Muted test player</title>" }));
@@ -45,6 +44,8 @@ async function checkRecycling(page) {
 		await page.clock.runFor(900);
 		await page.locator(".taskbar").waitFor();
 		await page.clock.runFor(2100);
+		// The terminal types its intro on the paused clock; run it until the prompt appears.
+		while (!(await page.locator(".term__input").count())) await page.clock.runFor(250);
 		await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	}
 	async function minimizeAll() {

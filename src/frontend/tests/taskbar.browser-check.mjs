@@ -13,7 +13,6 @@ async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	const waitForLaunch = () => page.locator(".desktop--busy").waitFor({ state: "hidden" });
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
 	await page.evaluate(() => {
 		window.audioActions = [];
@@ -138,8 +137,6 @@ async function checkTaskbar(page) {
 			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
 	}), "Secrets speech bubble lost its Rose Tinted font, angle, or existing artwork");
-	check(await bubble.evaluate((el) => [...el.querySelectorAll(".desk-icon__bubble-x, .desk-icon__bubble-y, .desk-icon__bubble-body")]
-		.every((part) => getComputedStyle(part).animationName === "none")), "Secrets bubble moves when reduced motion is requested");
 	for (const width of [1440, 390, 320]) {
 		await page.setViewportSize({ width, height: 900 });
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
@@ -179,16 +176,11 @@ async function checkTaskbar(page) {
 		}
 	}), "Hand cursor overrides the busy hourglass");
 
-	// Sparks mount once the wallpaper's still frame loads; wait so the reduced-motion check is not vacuous.
+	// Sparks mount once the screen shatters.
 	const sparks = page.locator(".desktop-sparks");
-	await sparks.waitFor({ state: "attached" });
-	check(await page.locator(".fracture-background video").evaluateAll((videos) => videos.length === 1
-		&& videos[0].getAttribute("src") === "/fracture/loop.mp4" && videos[0].paused && videos[0].currentTime === 0), "Reduced motion did not hold the wallpaper on the loop's first frame");
-	check(!(await sparks.isVisible()), "Sparks ignore reduced motion");
-	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Hidden sparks still animate");
-	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
-	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await sparks.waitFor({ state: "visible" });
+	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) > 0, "Sparks do not animate");
+	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
 	check(await bubble.evaluate((el) => {
 		const x = getComputedStyle(el.querySelector(".desk-icon__bubble-x"));
 		const y = getComputedStyle(el.querySelector(".desk-icon__bubble-y"));
@@ -598,8 +590,6 @@ async function checkTaskbar(page) {
 		}), "Taskbar truncation hid the music progress");
 		await player.getByRole("button", { name: "Minimize", exact: true }).click();
 	}
-	await page.emulateMedia({ reducedMotion: "reduce" });
-	check(!(await sparks.isVisible()) && await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 0, "Sparks did not stop after a reduced-motion change");
 	return "PASS: window state, Start, social links, Win95 chrome/fonts, tray, CD playback/keyboard access, desktop typing, hidden streaming, sparks and narrow overflow";
 }
 

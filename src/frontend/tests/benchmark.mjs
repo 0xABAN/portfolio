@@ -4,7 +4,7 @@
  * normal navigation in the SAME context for warm loads. No routing (it disables
  * Playwright's HTTP cache). Data and SoundCloud are stubbed, not app timers.
  * LIVE=1 uses real integrations and records completed iframe requests separately.
- * WIDTH/HEIGHT/DPR/MOTION/RUNS select additional profiles; defaults are below.
+ * WIDTH/HEIGHT/DPR/RUNS select additional profiles; defaults are below.
  */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -23,7 +23,6 @@ const live = process.env.LIVE === '1';
 const profile = {
   viewport: { width: Number(process.env.WIDTH ?? 1440), height: Number(process.env.HEIGHT ?? 900) },
   deviceScaleFactor: Number(process.env.DPR ?? 1),
-  reducedMotion: process.env.MOTION ?? 'no-preference',
 };
 const reports = [];
 

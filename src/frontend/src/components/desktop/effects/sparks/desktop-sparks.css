@@ -1,5 +1,4 @@
 .desktop-sparks {
-	display: none;
 	position: fixed;
 	inset: 0 0 var(--taskbar-height);
 	/* Above the wallpaper (0), below desktop icons (2) and windows (3). */
@@ -12,19 +11,10 @@
 .desktop-sparks__spark {
 	position: absolute;
 	background: no-repeat 0 0 / 100% 100%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-	.desktop-sparks {
-		display: block;
-	}
-
-	.desktop-sparks__spark {
-		/* Each spark's own keyframes, from DesktopSparks. */
-		animation-name: var(--spark-motion);
-		animation-timing-function: linear;
-		animation-iteration-count: infinite;
-	}
+	/* Each spark's own keyframes, from DesktopSparks. */
+	animation-name: var(--spark-motion);
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
 }
 
 @media (max-width: 600px) {

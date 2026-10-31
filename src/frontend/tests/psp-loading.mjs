@@ -15,7 +15,7 @@ try {
   // The console artwork arrives last, or the screen's background does; either way the PSP appears in one piece.
   for (const scenario of ['active', 'background', 'failed', 'slow-screen']) {
     const gated = scenario === 'slow-screen' ? '**/photos/jobs-image.webp' : artwork;
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     await context.addInitScript(mockSoundCloud);
     await context.addInitScript(() => {
       const fetch = window.fetch.bind(window);
@@ -85,7 +85,11 @@ try {
     } else {
       await screen.waitFor({ state: 'visible' });
       assert.equal(await art.isVisible(), true, 'Console and screen did not appear together');
-      if (scenario !== 'background') assert.equal(await dimming(), '1', 'The desktop did not dim once the PSP appeared');
+      if (scenario !== 'background') {
+        // Let the dimmer finish fading in.
+        await page.locator('.desktop__psp-dimmer').evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+        assert.equal(await dimming(), '1', 'The desktop did not dim once the PSP appeared');
+      }
       assert.equal(await art.evaluate(image => image.complete && image.naturalWidth > 0), true);
       assert.equal(await screen.evaluate(element => element.inert), false);
       assert.deepEqual(await geometry(), before, 'Readiness changed the screen layout');

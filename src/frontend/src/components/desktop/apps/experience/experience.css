@@ -371,14 +371,3 @@
 	background: rgba(255, 255, 255, 0.25);
 	outline: none;
 }
-
-@media (prefers-reduced-motion: reduce) {
-	.psp-xmb__wave {
-		animation: none;
-	}
-
-	.psp-xmb__category,
-	.psp-xmb__item {
-		transition: none;
-	}
-}

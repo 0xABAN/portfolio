@@ -23,7 +23,7 @@ const cases = [
 
 try {
   for (const { name, options, touchPoints, blocked } of cases) {
-    const context = await browser.newContext({ ...options, reducedMotion: 'reduce' });
+    const context = await browser.newContext(options);
     // Keep unrelated integration failures out of desktop boot checks.
     await context.addInitScript(mockSoundCloud);
     await context.route('**/api/views', route => route.fulfill({ json: { count: 1 } }));
