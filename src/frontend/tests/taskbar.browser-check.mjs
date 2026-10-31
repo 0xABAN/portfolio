@@ -12,6 +12,7 @@ async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	const waitForLaunch = () => page.locator(".desktop--busy").waitFor({ state: "hidden" });
 	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.route("**/api/chat/wake", (route) => route.fulfill({ status: 204 }));
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
 	await page.evaluate(() => {
 		window.audioActions = [];
@@ -520,7 +521,7 @@ async function checkTaskbar(page) {
 	await page.evaluate(() => {
 		const nativeFetch = window.fetch.bind(window);
 		window.fetch = (resource, init) => {
-			if (new URL(String(resource), location.href).pathname !== "/chat") return nativeFetch(resource, init);
+			if (new URL(String(resource), location.href).pathname !== "/api/chat") return nativeFetch(resource, init);
 			return Promise.resolve(new Response(new ReadableStream({ start(controller) {
 				window.finishHiddenChat = () => {
 					controller.enqueue(new TextEncoder().encode('event: token\ndata: {"content":"Still here."}\n\nevent: done\ndata: {"remaining":10}\n\n'));
