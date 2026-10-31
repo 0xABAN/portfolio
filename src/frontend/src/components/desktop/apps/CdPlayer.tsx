@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import "./cd-player.css";
 

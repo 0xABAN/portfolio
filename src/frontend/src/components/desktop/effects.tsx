@@ -1,5 +1,3 @@
-"use client";
-
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import "./effects.css";
 

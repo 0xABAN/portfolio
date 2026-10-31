@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState, type KeyboardEvent } from "react";
 import { entryId, itemOf, type RecycledEntry } from "../shell/files";
 import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/Shell";

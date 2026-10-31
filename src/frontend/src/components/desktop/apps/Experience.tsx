@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { GITHUB_URL } from "../shell/files";
 import "./experience.css";

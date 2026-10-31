@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
 import { GITHUB_USER } from "../shell/files";

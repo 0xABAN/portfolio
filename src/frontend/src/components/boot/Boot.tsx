@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Desktop } from "../desktop/Desktop";
 import { prefetchFracture } from "../desktop/effects";

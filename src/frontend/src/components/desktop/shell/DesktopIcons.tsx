@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { DESKTOP_REVEAL_MS } from "../effects";
 import { TASKBAR_H } from "../windows";

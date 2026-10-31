@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { DesktopSparks, FractureBackground, Neko, useDesktopReveal } from "./effects";

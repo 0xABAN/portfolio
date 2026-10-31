@@ -1,5 +1,3 @@
-"use client";
-
 import { memo, useEffect, useLayoutEffect, useRef, type Dispatch, type FocusEvent, type PointerEvent, type ReactNode, type SetStateAction } from "react";
 import { minimizeWindowTree, type DesktopWindow } from "./windows";
 import "./window.css";

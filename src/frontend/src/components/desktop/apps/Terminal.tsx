@@ -1,5 +1,3 @@
-"use client";
-
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { type ChatMessage, FAILURE_REPLIES } from "@/lib/chat";
 import "./terminal.css";

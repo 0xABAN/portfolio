@@ -1,5 +1,3 @@
-"use client";
-
 import { type KeyboardEvent, type PointerEvent, type RefCallback, useEffect, useRef, useState } from "react";
 import type { AppId, DesktopWindow } from "../windows";
 import "./taskbar.css";
