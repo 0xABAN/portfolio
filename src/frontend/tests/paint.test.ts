@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { PALETTE, TOOLS, bresenhamLine, isDrawable, resolveStrokeStyle } from "@/components/desktop/apps/paint/paintModel";
+import { PALETTE, TOOLS, bresenhamLine, isDrawable, resolveStrokeStyle } from "@/components/desktop/apps/Paint";
 
 const ORIGINAL = [
 	"43e32db14b672b21b241cdcfbf8cd59f60381b00c70ecd39f5587cef37f3c21e",

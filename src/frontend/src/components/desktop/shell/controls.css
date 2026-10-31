@@ -75,3 +75,17 @@
 .shell-dialog__buttons button { min-width: 72px; padding: 3px 10px; background: var(--chrome-btn); color: inherit; font: inherit; }
 .shell-dialog__buttons button:disabled { color: #808080; }
 .shell-dialog button:focus-visible, .shell-menubar button:focus-visible, .shell-toolbar button:focus-visible { outline: 1px dotted currentColor; outline-offset: -4px; }
+
+.recycle-bin { --bin-columns: 150px 200px 165px 110px; }
+.recycle-bin__columns { display: grid; grid-template-columns: var(--bin-columns); flex: none; overflow: hidden; }
+.recycle-bin__columns button { padding: 2px 5px; background: var(--chrome-btn); color: inherit; font: inherit; text-align: left; white-space: nowrap; }
+.recycle-bin__list--details { padding: 0; }
+.recycle-bin__list--details .recycle-bin__item { display: grid; grid-template-columns: var(--bin-columns); width: max-content; min-width: 100%; padding: 3px 0; border: 0; }
+.recycle-bin__list--details .recycle-bin__item > span { padding: 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recycle-bin__list--large-icons, .recycle-bin__list--small-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); align-content: start; gap: 6px; }
+.recycle-bin__list--large-icons .shell-item__name { flex-direction: column; text-align: center; }
+.recycle-bin__list--large-icons .shell-item__name img { width: 32px; height: 32px; }
+.recycle-bin__list--large-icons .shell-item__name span { white-space: normal; overflow-wrap: anywhere; }
+.recycle-bin__list--small-icons { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
+.recycle-bin__list--list { display: flex; flex-flow: column wrap; align-content: flex-start; }
+.recycle-bin__list--list .shell-item { width: 180px; }

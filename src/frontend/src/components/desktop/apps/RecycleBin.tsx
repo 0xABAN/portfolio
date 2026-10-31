@@ -1,9 +1,8 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
-import { entryId, itemOf, type RecycledEntry } from "../../shell/files";
-import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "../../shell/Shell";
-import "./recycle-bin.css";
+import { entryId, itemOf, type RecycledEntry } from "../shell/files";
+import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/Shell";
 
 const VIEWS = ["Large Icons", "Small Icons", "List", "Details"] as const;
 const COLUMNS = ["Name", "Original Location", "Date Deleted", "Type"] as const;

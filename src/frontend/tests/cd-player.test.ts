@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { coverUrl, formatElapsed, PLAYLIST_URL, shuffledOrder, stepShuffle, toTrack, type Shuffle } from "@/components/desktop/apps/cd-player/playlist";
+import { coverUrl, formatElapsed, PLAYLIST_URL, shuffledOrder, stepShuffle, toTrack, type Shuffle } from "@/components/desktop/apps/CdPlayer";
 
 test("the player reads the portfolio playlist on SoundCloud", () => {
 	assert.equal(new URL(PLAYLIST_URL).origin, "https://soundcloud.com");

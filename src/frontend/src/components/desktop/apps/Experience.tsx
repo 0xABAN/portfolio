@@ -1,7 +1,28 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { PROJECTS, WORK, type Project } from "./experienceData";
+import { GITHUB_URL } from "../shell/files";
+import "./experience.css";
+
+export type Project = {
+	id: string;
+	title: string;
+	blurb: string;
+	src?: string;
+	href?: string;
+};
+
+export const WORK: readonly Project[] = [
+	{ id: "amazon", title: "amazon", blurb: "swe intern @ amazon summer 2026", src: "/photos/amazon.webp" },
+	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/photos/ibm.webp" },
+];
+
+export const PROJECTS: readonly Project[] = [
+	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/photos/yadl.webp", href: `${GITHUB_URL}/YADL` },
+	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/photos/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
+	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/photos/maestro.jpg", href: `${GITHUB_URL}/maestro` },
+	{ id: "github", title: "github", blurb: "everything else i've built", src: "/photos/github.svg", href: GITHUB_URL },
+];
 
 type PspCategoryId = "jobs" | "projects" | "settings" | "photo" | "music";
 type PspIconName = PspCategoryId | "folder";
@@ -239,6 +260,40 @@ export function PspXmb({ ready }: { ready: boolean }) {
 				</div>
 			) : null}
 			<button className="psp-xmb__select" type="button" tabIndex={-1} onClick={() => dispatch({ type: "toggle-options" })}>SELECT&nbsp; Options</button>
+		</div>
+	);
+}
+
+const CONSOLE_ART = "/icons/psp.png";
+
+export function Experience({ onClose }: { onClose: () => void }) {
+	const rootRef = useRef<HTMLDivElement>(null);
+	const [ready, setReady] = useState(false);
+
+	useEffect(() => {
+		let disposed = false;
+		const images = [...rootRef.current!.querySelectorAll("img")];
+		Promise.all(images.map((image) => image.decode())).then(() => {
+			if (!disposed) setReady(true);
+		}, () => {});
+		return () => { disposed = true; };
+	}, []);
+
+	const hidden = ready ? undefined : { visibility: "hidden" as const };
+	return (
+		<div ref={rootRef} className="psp" aria-label="PSP Projects" data-ready={ready || undefined}>
+			<div className="psp__screen" style={hidden} inert={!ready}>
+				<PspXmb ready={ready} />
+			</div>
+			<button
+				className="psp__quit-button"
+				type="button"
+				aria-label="Close Experience"
+				data-no-window-drag
+				onPointerDown={(event) => event.stopPropagation()}
+				onClick={onClose}
+			/>
+			<img className="psp__art" src={CONSOLE_ART} alt="" draggable={false} style={hidden} />
 		</div>
 	);
 }

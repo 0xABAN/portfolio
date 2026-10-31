@@ -1,12 +1,11 @@
 import { memo, type CSSProperties } from "react";
-import { CdPlayer } from "./cd-player/CdPlayer";
-import type { useCdPlayerAudio } from "./cd-player/useCdPlayerAudio";
-import { Explorer } from "./explorer/Explorer";
-import { RecycleBin } from "./recycle-bin/RecycleBin";
-import { GitHubGraph } from "./github/GitHubGraph";
-import { Paint } from "./paint/Paint";
-import { Experience } from "./experience/Experience";
-import { Terminal } from "./terminal/Terminal";
+import { CdPlayer, type useCdPlayerAudio } from "./CdPlayer";
+import { Experience } from "./Experience";
+import { Explorer } from "./Explorer";
+import { GitHubGraph } from "./GitHubGraph";
+import { Paint } from "./Paint";
+import { RecycleBin } from "./RecycleBin";
+import { Terminal } from "./Terminal";
 import type { DesktopWindow } from "../windows";
 
 function SystemMessage({ onOkAction }: { onOkAction: () => void }) {

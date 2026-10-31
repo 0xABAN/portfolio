@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { DesktopSparks, FractureBackground, Neko, useDesktopReveal } from "./effects";
-import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
+import { useCdPlayerAudio } from "./apps/CdPlayer";
 import { BIN_ICON, itemOf } from "./shell/files";
 import { ShellDialogs, ShellProvider, useShell } from "./shell/Shell";
 import { DesktopIcons } from "./shell/DesktopIcons";
