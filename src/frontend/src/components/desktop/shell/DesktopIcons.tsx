@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { DESKTOP_REVEAL_MS } from "../effects";
-import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, type DeskIcon as CatalogIcon } from "./catalog";
-import { useShell } from "./ShellProvider";
-import { itemOf, type ShellNode } from "./state";
-import { useDesktopSelection } from "./useDesktopSelection";
 import { TASKBAR_H } from "../windows";
+import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, itemOf, type DeskIcon as CatalogIcon, type ShellNode } from "./files";
+import { ShellMenu, keyboardMenuPosition, menuPosition, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "./Shell";
 
 type DeskIcon = CatalogIcon & { recycle?: boolean };
 type DeskIconPosition = { col: number; row: number };
@@ -67,6 +65,44 @@ function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: 
 		used.add(`${position.col}:${position.row}`);
 	}
 	return next;
+}
+
+function useDesktopSelection(icons: { id: string; label: string }[], open: (id: string) => void) {
+	const shell = useShell();
+	const selection = useShellSelection(icons.map((icon) => icon.id), icons.map((icon) => icon.label));
+	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
+
+	function commands(ids: string[]): MenuCommand[] {
+		if (ids.length === 1 && ids[0] === "recycle-bin") return [
+			{ label: "Open", action: () => open("recycle-bin") },
+			{ label: "Empty Recycle Bin", disabled: !shell.state.entries.length, action: shell.empty },
+		];
+		if (!ids.length) return [{ label: "Select All", action: selection.all }];
+		return [
+			{ label: "Open", disabled: ids.length !== 1, action: () => open(ids[0]) },
+			{ label: "Delete", disabled: !ids.some((id) => id !== "recycle-bin"), action: () => shell.recycle(ids) },
+		];
+	}
+
+	function onKeyDown(event: KeyboardEvent<HTMLUListElement>) {
+		if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="menu"], dialog')) return;
+		const ids = selection.selected;
+		if (event.key === "Delete") { event.preventDefault(); shell.recycle(ids, event.shiftKey); }
+		else if (event.key === "Enter") { event.preventDefault(); if (ids.length === 1) open(ids[0]); }
+		else if (event.shiftKey && event.key === "F10") setContext({ position: keyboardMenuPosition(event), ids });
+		else selection.onKeyDown(event);
+	}
+
+	function onContextMenu(event: MouseEvent<HTMLElement>, id?: string) {
+		event.stopPropagation();
+		if (!id) selection.clear();
+		setContext({ position: menuPosition(event), ids: id ? selection.forItem(id) : [] });
+	}
+
+	return {
+		...selection, onKeyDown, onContextMenu,
+		menu: context && <ShellMenu label="Desktop context menu" commands={commands(context.ids)} position={context.position} onClose={() => setContext(null)} />,
+	};
 }
 
 function DeskIconGlyph({ src, label, notification = false }: { src: string; label: string; notification?: boolean }) {

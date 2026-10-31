@@ -1,4 +1,4 @@
-import { GITHUB_URL } from "../../files/catalog";
+import { GITHUB_URL } from "../../shell/files";
 
 export type Project = {
 	id: string;

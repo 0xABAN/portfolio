@@ -4,11 +4,9 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { flushSync } from "react-dom";
 import { DesktopSparks, FractureBackground, Neko, useDesktopReveal } from "./effects";
 import { useCdPlayerAudio } from "./apps/cd-player/useCdPlayerAudio";
-import { BIN_ICON } from "./files/catalog";
-import { ShellProvider, useShell } from "./files/ShellProvider";
-import { itemOf } from "./files/state";
-import { ShellDialogs } from "./shell/ShellDialogs";
-import { DesktopIcons } from "./files/DesktopIcons";
+import { BIN_ICON, itemOf } from "./shell/files";
+import { ShellDialogs, ShellProvider, useShell } from "./shell/Shell";
+import { DesktopIcons } from "./shell/DesktopIcons";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { useTaskFlyout, Window } from "./Window";

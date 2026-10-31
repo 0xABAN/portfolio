@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { byCatalogOrder } from "@/components/desktop/files/catalog";
-import { deleteNodes, entryId, initialShellState, moveNodes, parseShellState, purgeEntries, restoreEntries, type ShellState } from "@/components/desktop/files/state";
+import { byCatalogOrder, deleteNodes, entryId, initialShellState, moveNodes, parseShellState, purgeEntries, restoreEntries, type ShellState } from "@/components/desktop/shell/files";
 
 const remove = (state = initialShellState(), ids = ["experience"], now = 1000) => deleteNodes(state, ids, now);
 const parentOf = (state: ShellState, id: string) => state.nodes.find((node) => node.id === id)?.parentId;
