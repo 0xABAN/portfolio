@@ -8,7 +8,7 @@ const cli = await realpath(execFileSync('which', ['playwright-cli'], { encoding:
 const { chromium } = createRequire(cli)('playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const url = process.argv[2] ?? 'http://localhost:3000';
-const artwork = '**/icons/psp.png?v=current';
+const artwork = '**/icons/psp.png';
 
 try {
   for (const scenario of ['active', 'background', 'failed', 'slow-screen']) {
@@ -47,10 +47,8 @@ try {
       return { x, y, width, height };
     });
 
-    const backgroundRequested = page.waitForRequest(request => new URL(request.url()).pathname === '/photos/jobs-image.webp');
     await open();
     await xmb.waitFor({ state: 'attached' });
-    await backgroundRequested;
     if (scenario === 'slow-screen') {
       await page.waitForFunction(() => document.querySelector('.psp__art').naturalWidth > 0);
     } else {
@@ -105,7 +103,7 @@ try {
     if (scenario === 'active') {
       await page.evaluate(async () => {
         window.cachedConsole = new Image();
-        window.cachedConsole.src = '/icons/psp.png?v=current';
+        window.cachedConsole.src = '/icons/psp.png';
         await window.cachedConsole.decode();
       });
       await page.locator('[data-task-id="explorer"]').click();

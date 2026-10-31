@@ -2,18 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import "./experience.css";
-import { CATEGORIES, PspXmb } from "./PspXmb";
+import { PspXmb } from "./PspXmb";
 
-const CONSOLE_ART = "/icons/psp.png?v=current";
-
-const IMAGES = [CONSOLE_ART, ...CATEGORIES.flatMap((category) => [category.artwork, ...category.items.map((item) => item.src)])]
-	.filter((src): src is string => Boolean(src));
-
-let preloads: HTMLImageElement[] | null = null;
-
-export function preloadExperience() {
-	preloads ??= IMAGES.map((src) => Object.assign(new Image(), { src }));
-}
+const CONSOLE_ART = "/icons/psp.png";
 
 export function Experience({ onClose }: { onClose: () => void }) {
 	const rootRef = useRef<HTMLDivElement>(null);

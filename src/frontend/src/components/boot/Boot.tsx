@@ -8,6 +8,8 @@ import { MobileUnsupported, Rsod } from "./Rsod";
 
 type Phase = "unsupported" | "rsod" | "restarting" | "desktop";
 
+let preloads: HTMLImageElement[] | undefined;
+
 function blockTabNavigation(event: globalThis.KeyboardEvent) {
 	if (event.key !== "Tab") return;
 	event.preventDefault();
@@ -23,7 +25,9 @@ export function Boot() {
 	});
 
 	useEffect(() => {
-		if (phase === "rsod") prefetchFracture();
+		if (phase !== "rsod") return;
+		prefetchFracture();
+		preloads ??= JSON.parse(process.env.PUBLIC_IMAGES!).map((src: string) => Object.assign(new Image(), { src }));
 	}, [phase]);
 
 	useEffect(() => {
