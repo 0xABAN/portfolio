@@ -1,4 +1,4 @@
-folder.png: original Windows 95 closed-folder icon
+folder.webp: original Windows 95 closed-folder icon
 
 Artwork: Microsoft Corporation, SHELL32.DLL resource 4.
 Archived ICO source: React95/React95, commit
@@ -8,4 +8,6 @@ https://github.com/React95/React95/blob/1b94d9f59b5bb556b42bd9c3019051ef93bbaf24
 The native 32x32, 16-color frame was decoded with Pillow and saved as PNG.
 No redrawing, resizing or palette changes. Original transparency retained.
 Visible pixels and alpha were also verified with an independent ImageMagick decode.
+The PNG was later re-encoded as lossless WebP (cwebp -lossless -exact); its decoded
+RGBA pixels are identical to the PNG's.
 The existing desktop, Start menu and Explorer references share this asset.

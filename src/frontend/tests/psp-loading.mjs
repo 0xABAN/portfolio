@@ -3,7 +3,7 @@ import { chromium, mockSoundCloud } from './browser.mjs';
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const url = process.argv[2] ?? 'http://localhost:3000';
-const artwork = '**/psp/console.png';
+const artwork = '**/psp/console.webp';
 
 try {
   for (const scenario of ['active', 'background', 'failed', 'slow-screen']) {
@@ -98,7 +98,7 @@ try {
     if (scenario === 'active') {
       await page.evaluate(async () => {
         window.cachedConsole = new Image();
-        window.cachedConsole.src = '/psp/console.png';
+        window.cachedConsole.src = '/psp/console.webp';
         await window.cachedConsole.decode();
       });
       await page.locator('[data-task-id="explorer"]').click();

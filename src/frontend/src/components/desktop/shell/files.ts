@@ -6,7 +6,7 @@ const RESUME_URL = `${GITHUB_URL}/jobs/blob/main/resumes/default/Adam_Torres_Enc
 
 const DOCUMENTS = [
 	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application" },
-	{ id: "resume", name: "resume.doc", icon: "/icons/document.png", href: RESUME_URL, type: "Microsoft Word Document" },
+	{ id: "resume", name: "resume.doc", icon: "/icons/document.webp", href: RESUME_URL, type: "Microsoft Word Document" },
 ] as const;
 
 export type DeskIcon = {
@@ -18,7 +18,7 @@ export type DeskIcon = {
 };
 
 function game(id: string, label: string, href: string): DeskIcon {
-	return { id, label, src: `/icons/games/${id}.png`, href };
+	return { id, label, src: `/icons/games/${id}.webp`, href };
 }
 
 export const DESK_ICONS: DeskIcon[] = [
@@ -32,8 +32,8 @@ export const DESK_ICONS: DeskIcon[] = [
 	{ id: "social-github", label: "GitHub", src: "/icons/social/github.svg", href: GITHUB_URL },
 	{ id: "social-linkedin", label: "LinkedIn", src: "/icons/social/linkedin.svg", href: "https://www.linkedin.com/in/adam-torres-encarnacion/" },
 	{ id: "social-twitter", label: "Twitter", src: "/icons/social/twitter.svg", href: "https://x.com/0xABANN" },
-	{ id: "cd-player-icon", label: "CD Player", src: "/icons/cd.png", open: "cd-player" },
-	{ id: "secrets", label: "secrets", src: "/icons/folder.png", open: "explorer" },
+	{ id: "cd-player-icon", label: "CD Player", src: "/icons/cd.webp", open: "cd-player" },
+	{ id: "secrets", label: "secrets", src: "/icons/folder.webp", open: "explorer" },
 ];
 
 export type ShellItem = {
@@ -66,7 +66,7 @@ export function byCatalogOrder(a: { id: string }, b: { id: string }) {
 	return CATALOG_INDEX.get(a.id)! - CATALOG_INDEX.get(b.id)!;
 }
 export const DESKTOP_PATH = "C:\\Windows\\Desktop";
-export const BIN_ICON = { empty: "/icons/recycle-bin-empty.png", full: "/icons/recycle-bin-full.png" };
+export const BIN_ICON = { empty: "/icons/recycle-bin-empty.webp", full: "/icons/recycle-bin-full.webp" };
 
 export const STORAGE_KEY = "portfolio.shell.v3";
 

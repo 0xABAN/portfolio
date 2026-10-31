@@ -18,7 +18,7 @@ export const WORK: readonly Project[] = [
 export const PROJECTS: readonly Project[] = [
 	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/psp/thumbnails/yadl.webp", href: `${GITHUB_URL}/YADL` },
 	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/psp/thumbnails/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
-	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/psp/thumbnails/maestro.jpg", href: `${GITHUB_URL}/maestro` },
+	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/psp/thumbnails/maestro.webp", href: `${GITHUB_URL}/maestro` },
 	{ id: "github", title: "github", blurb: "everything else i've built", src: "/psp/thumbnails/github.svg", href: GITHUB_URL },
 ];
 
@@ -53,7 +53,7 @@ const EMPTY_ITEMS: readonly Project[] = [];
 
 export const CATEGORIES: readonly PspCategory[] = [
 	{ id: "jobs", label: "Work", icon: "jobs", items: WORK, artwork: "/psp/jobs.webp" },
-	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS, artwork: "/psp/projects.png" },
+	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS, artwork: "/psp/projects.webp" },
 	{ id: "settings", label: "Settings", icon: "settings", items: EMPTY_ITEMS, disabled: true },
 	{ id: "photo", label: "Photo", icon: "photo", items: EMPTY_ITEMS, disabled: true },
 	{ id: "music", label: "Music", icon: "music", items: EMPTY_ITEMS, disabled: true },
@@ -262,7 +262,7 @@ export function PspXmb({ ready }: { ready: boolean }) {
 	);
 }
 
-const CONSOLE_ART = "/psp/console.png";
+const CONSOLE_ART = "/psp/console.webp";
 
 export function Experience({ onClose }: { onClose: () => void }) {
 	const rootRef = useRef<HTMLDivElement>(null);

@@ -98,7 +98,7 @@
 	top: 4px;
 	width: 16px;
 	height: 16px;
-	background: url("/icons/paint-tools.png") no-repeat calc(-16px * var(--icon-index, 0)) 0;
+	background: url("/icons/paint-tools.webp") no-repeat calc(-16px * var(--icon-index, 0)) 0;
 	image-rendering: pixelated;
 	pointer-events: none;
 }

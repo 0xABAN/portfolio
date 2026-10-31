@@ -142,7 +142,7 @@ try {
       await page.locator('#hit-test-overlay').evaluate(el => el.remove());
       await dropError();
       assert.equal(await win('sysmsg-4').count(), 1, 'Dragging a window must not recycle it');
-      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-empty.png');
+      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-empty.webp');
       assert.equal(await page.evaluate(() => {
         window.hitTestObserver.disconnect();
         return window.hitTestMutations.length;
@@ -153,7 +153,7 @@ try {
       const shortcut = page.locator('.desktop__icons [data-shell-item="silksong"]');
       await shortcut.dragTo(page.locator('[data-recycle-bin]'));
       await shortcut.waitFor({ state: 'detached' });
-      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
+      assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.webp');
 
       await moveDesktop();
       await page.waitForTimeout(3000);

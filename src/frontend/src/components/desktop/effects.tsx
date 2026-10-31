@@ -264,7 +264,7 @@ function runNeko(el: HTMLElement): () => void {
 		if (!document.hidden) tick();
 	};
 
-	el.style.backgroundImage = "url(/desktop/neko.png)";
+	el.style.backgroundImage = "url(/desktop/neko.webp)";
 	paint("idle", 0);
 	place();
 	document.addEventListener("mousemove", onMove, { passive: true });

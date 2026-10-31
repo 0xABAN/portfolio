@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" viewBox="0 0 20 24" shape-rendering="crispEdges">
-  <!-- Pixel-grid trace of the supplied reference; fingertip hotspot: (7, 1). -->
-  <path fill="#303030" d="M6 1H8V2H9V6H11V7H14V8H16V9H17V10H18V16H17V19H16V22H6V19H5V17H4V15H3V13H2V12H1V9H4V10H5V2H6Z"/>
-  <path fill="#fff" d="M6 2H8V11H9V7H11V11H12V8H14V12H15V9H16V10H17V16H16V19H15V21H7V19H6V17H5V15H4V13H3V12H2V10H4V11H5V14H6Z"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" shape-rendering="crispEdges" viewBox="0 0 20 24"><path fill="#303030" d="M6 1h2v1h1v4h2v1h3v1h2v1h1v1h1v6h-1v3h-1v3H6v-3H5v-2H4v-2H3v-2H2v-1H1V9h3v1h1V2h1Z"/><path fill="#fff" d="M6 2h2v9h1V7h2v4h1V8h2v4h1V9h1v1h1v6h-1v3h-1v2H7v-2H6v-2H5v-2H4v-2H3v-1H2v-2h2v1h1v3h1Z"/></svg>

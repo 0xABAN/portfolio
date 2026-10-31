@@ -105,7 +105,7 @@ assert.match(result, /"initialCategory":"jobs"/);
 assert.match(result, /"initialBackground".*psp\/jobs\.webp/);
 assert.match(result, /"tabFocusPreserved":true/);
 assert.match(result, /"nextCategory":"projects"/);
-assert.match(result, /"projectBackground".*psp\/projects\.png/);
+assert.match(result, /"projectBackground".*psp\/projects\.webp/);
 assert.match(result, /"categoryLabels":\["Work","Projects","Settings","Photo","Music"\]/);
 assert.match(result, /"disabledCategories":3/);
 assert.match(result, /"initialItems":\["amazon","ibm"\]/);

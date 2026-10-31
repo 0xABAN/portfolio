@@ -3,14 +3,14 @@ import type { AppId, DesktopWindow } from "../windows";
 import "./taskbar.css";
 
 const GROUPS = [
-	{ label: "Programs", icon: "/icons/computer.png", items: [
-		{ app: "me", label: "Paint", icon: "/icons/paint.png" },
+	{ label: "Programs", icon: "/icons/computer.webp", items: [
+		{ app: "me", label: "Paint", icon: "/icons/paint.webp" },
 		{ app: "terminal", label: "MS-DOS Prompt", icon: "/icons/terminal.svg" },
 		{ app: "github", label: "Activity", icon: "/icons/code.svg" },
-		{ app: "cd-player", label: "CD Player", icon: "/icons/cd.png" },
+		{ app: "cd-player", label: "CD Player", icon: "/icons/cd.webp" },
 	] },
-	{ label: "Documents", icon: "/icons/folder.png", items: [
-		{ app: "explorer", label: "secrets", icon: "/icons/folder.png" },
+	{ label: "Documents", icon: "/icons/folder.webp", items: [
+		{ app: "explorer", label: "secrets", icon: "/icons/folder.webp" },
 		{ file: "resume", label: "resume.doc", icon: "/icons/notepad.svg" },
 	] },
 ] as const;
@@ -115,10 +115,10 @@ function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAct
 					<hr />
 					<button type="button" role="menuitem" aria-label="Restore desktop decorations" disabled={!canRestoreDecorations}
 						onPointerMove={closeGroupOnHover} onClick={() => run(onRestoreDecorationsAction)}>
-						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
+						<img src="/icons/computer.webp" alt="" width={32} height={32} /><span>Restore Decorations</span>
 					</button>
 					<button type="button" role="menuitem" onPointerMove={closeGroupOnHover} onClick={() => run(onResetAction)}>
-						<img src="/icons/recycle-bin-empty.png" alt="" width={32} height={32} /><span>Reset portfolio</span>
+						<img src="/icons/recycle-bin-empty.webp" alt="" width={32} height={32} /><span>Reset portfolio</span>
 					</button>
 				</div>
 			</div>

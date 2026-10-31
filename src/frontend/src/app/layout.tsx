@@ -3,10 +3,6 @@ import "./globals.css";
 
 export const metadata: Metadata = {
 	title: "portfolio",
-	icons: {
-		icon: [{ url: "/icons/computer.png", type: "image/png" }],
-		shortcut: "/favicon.ico",
-	},
 };
 
 export default function RootLayout({

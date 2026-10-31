@@ -127,11 +127,11 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 }
 
 function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
-	return { id: "cd-player", title: "cd player", kind: "cd-player", icon: "/icons/cd.png", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
+	return { id: "cd-player", title: "cd player", kind: "cd-player", icon: "/icons/cd.webp", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
 }
 
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
-	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/desktop/street.webp", icon: "/icons/paint.png", ...layoutMeWindow(vw, vh) };
+	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/desktop/street.webp", icon: "/icons/paint.webp", ...layoutMeWindow(vw, vh) };
 	const terminal = { id: "terminal", title: "MS-DOS Prompt", z: 12, kind: "terminal" as const, icon: "/icons/terminal.svg", ...layoutTerminalWindow(me, vw, vh) };
 	const windows: DesktopWindow[] = [
 		me,
@@ -197,7 +197,7 @@ export function makeExperienceWindow(z: number, vw: number, vh: number): Desktop
 export function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const w = Math.min(760, Math.max(240, vw - 24));
 	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
-	return { id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.png", z, ...layoutCentered(w, h, vw, vh) };
+	return { id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.webp", z, ...layoutCentered(w, h, vw, vh) };
 }
 
 export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: number, vh: number): DesktopWindow {
@@ -210,7 +210,7 @@ export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: numb
 	const x = anchor && fitsLeft ? anchor.x - w - gap : centered.x;
 	const y = anchor ? anchor.y + anchor.h - h : centered.y;
 	return {
-		id: "explorer", title: "secrets", kind: "explorer", icon: "/icons/folder.png", z, w, h,
+		id: "explorer", title: "secrets", kind: "explorer", icon: "/icons/folder.webp", z, w, h,
 		x: Math.max(MARGIN, Math.min(x, vw - MARGIN - w)),
 		y: Math.max(MARGIN, Math.min(y, vh - TASKBAR_H - MARGIN - h)),
 	};
