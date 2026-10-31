@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { checkChatTime } from "@/lib/chat/gate";
-import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages } from "@/lib/chat/messages";
-import { streamReply } from "@/lib/chat/model";
-import { sseEvent } from "@/lib/chat/sse";
+import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages, sseEvent } from "@/lib/chat";
+import { checkChatTime, streamReply } from "@/lib/server";
 
 export const maxDuration = 300;
 

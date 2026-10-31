@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { checkChatTime } from "@/lib/chat/gate";
-import { FAILURE_REPLIES } from "@/lib/chat/messages";
-import { wakeModel } from "@/lib/chat/model";
+import { FAILURE_REPLIES } from "@/lib/chat";
+import { checkChatTime, wakeModel } from "@/lib/server";
 
 const CHECK_MS = 20_000;
 
