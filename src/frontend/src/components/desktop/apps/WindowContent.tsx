@@ -6,9 +6,22 @@ import { RecycleBin } from "./recycle-bin/RecycleBin";
 import { GitHubGraph } from "./github/GitHubGraph";
 import { Paint } from "./paint/Paint";
 import { Experience } from "./experience/Experience";
-import { SystemMessage } from "../window/SystemMessage";
 import { Terminal } from "./terminal/Terminal";
-import type { DesktopWindow } from "../window/layout";
+import type { DesktopWindow } from "../windows";
+
+function SystemMessage({ onOkAction }: { onOkAction: () => void }) {
+	return (
+		<div className="sysmsg">
+			<div className="sysmsg__row">
+				<span className="sysmsg__icon" aria-hidden>×</span>
+				<span className="sysmsg__text">Critical error</span>
+			</div>
+			<div className="sysmsg__actions">
+				<button type="button" className="sysmsg__ok chrome-raised" onClick={onOkAction}>Ok</button>
+			</div>
+		</div>
+	);
+}
 
 type Props = {
 	id: string;

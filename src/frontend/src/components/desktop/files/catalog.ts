@@ -1,4 +1,4 @@
-import type { AppId } from "../window/state";
+import type { AppId } from "../windows";
 
 export const GITHUB_USER = "0xABAN";
 export const GITHUB_URL = `https://github.com/${GITHUB_USER}`;

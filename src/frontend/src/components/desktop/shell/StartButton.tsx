@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import type { AppId } from "../window/state";
+import type { AppId } from "../windows";
 import "./start-menu.css";
 
 const GROUPS = [

@@ -2,8 +2,7 @@
 
 import { type RefCallback, useEffect, useRef, useState } from "react";
 import { StartButton } from "./StartButton";
-import type { AppId } from "../window/state";
-import type { DesktopWindow } from "../window/layout";
+import type { AppId, DesktopWindow } from "../windows";
 import "./taskbar.css";
 
 let viewsRequest: Promise<number | null> | null = null;

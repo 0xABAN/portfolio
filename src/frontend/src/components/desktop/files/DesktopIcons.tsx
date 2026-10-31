@@ -6,7 +6,7 @@ import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, type DeskIcon as Ca
 import { useShell } from "./ShellProvider";
 import { itemOf, type ShellNode } from "./state";
 import { useDesktopSelection } from "./useDesktopSelection";
-import { TASKBAR_H } from "../window/layout";
+import { TASKBAR_H } from "../windows";
 
 type DeskIcon = CatalogIcon & { recycle?: boolean };
 type DeskIconPosition = { col: number; row: number };

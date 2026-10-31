@@ -11,10 +11,8 @@ import { ShellDialogs } from "./shell/ShellDialogs";
 import { DesktopIcons } from "./files/DesktopIcons";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
-import { Window } from "./window/Window";
-import { useTaskFlyout } from "./window/flyout";
-import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, moveWindow, openApp, restoreDecorations, taskWindows, type AppId } from "./window/state";
-import { TASKBAR_H, altCropStyle, layoutDesktop, reflowDesktop, type DesktopWindow } from "./window/layout";
+import { useTaskFlyout, Window } from "./Window";
+import { TASKBAR_H, activateWindow, activeWindowId, altCropStyle, isDecoration, layoutDesktop, minimizeWindowTree, moveWindow, openApp, reflowDesktop, restoreDecorations, taskWindows, type AppId, type DesktopWindow } from "./windows";
 import "./desktop.css";
 
 const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", experience: "experience" };
