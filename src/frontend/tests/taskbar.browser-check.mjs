@@ -114,7 +114,7 @@ async function checkTaskbar(page) {
 		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
 		const text = getComputedStyle(el.querySelector(".desk-icon__bubble-text"));
 		const art = new Image();
-		art.src = "/icons/secrets-bubble.svg";
+		art.src = "/desktop/secrets-bubble.svg";
 		await art.decode();
 		return art.naturalWidth === 120 && art.naturalHeight === 58
 			&& document.fonts.check('italic 700 14px "Rose Tinted"')
@@ -125,7 +125,7 @@ async function checkTaskbar(page) {
 			&& style.width === "200px" && style.height === "78px"
 			&& style.zIndex === "4"
 			&& body.paddingLeft === "50px" && body.paddingRight === "30px"
-			&& body.backgroundImage.includes("/icons/secrets-bubble.svg")
+			&& body.backgroundImage.includes("/desktop/secrets-bubble.svg")
 			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
 	}), "Secrets speech bubble lost its Rose Tinted font, angle, or existing artwork");

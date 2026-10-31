@@ -56,6 +56,6 @@ export const WindowContent = memo(function WindowContent({ id, kind, src, active
 	}
 
 	if (src) return <img className="win-fill" src={src} alt="" draggable={false} />;
-	if (cropStyle) return <img className="win-fill-crop" src="/photos/overlay.jpg" alt="" draggable={false} style={cropStyle} />;
+	if (cropStyle) return <img className="win-fill-crop" src="/desktop/overlay.jpg" alt="" draggable={false} style={cropStyle} />;
 	return null;
 });

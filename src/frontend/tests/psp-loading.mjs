@@ -3,11 +3,11 @@ import { chromium, mockSoundCloud } from './browser.mjs';
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const url = process.argv[2] ?? 'http://localhost:3000';
-const artwork = '**/icons/psp.png';
+const artwork = '**/psp/console.png';
 
 try {
   for (const scenario of ['active', 'background', 'failed', 'slow-screen']) {
-    const gated = scenario === 'slow-screen' ? '**/photos/jobs-image.webp' : artwork;
+    const gated = scenario === 'slow-screen' ? '**/psp/jobs.webp' : artwork;
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     await context.addInitScript(mockSoundCloud);
     await context.addInitScript(() => {
@@ -98,7 +98,7 @@ try {
     if (scenario === 'active') {
       await page.evaluate(async () => {
         window.cachedConsole = new Image();
-        window.cachedConsole.src = '/icons/psp.png';
+        window.cachedConsole.src = '/psp/console.png';
         await window.cachedConsole.decode();
       });
       await page.locator('[data-task-id="explorer"]').click();

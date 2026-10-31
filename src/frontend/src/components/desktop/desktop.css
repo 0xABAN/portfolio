@@ -211,7 +211,7 @@
 	display: grid;
 	place-items: center;
 	padding: 0 30px 15px 50px;
-	background: url("/icons/secrets-bubble.svg") no-repeat center / 100% 100%;
+	background: url("/desktop/secrets-bubble.svg") no-repeat center / 100% 100%;
 	image-rendering: pixelated;
 	color: #fff;
 	font: italic 700 14px / 16px "Rose Tinted", "Win95 UI", Tahoma, sans-serif;

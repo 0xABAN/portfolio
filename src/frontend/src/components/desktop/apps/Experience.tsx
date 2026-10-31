@@ -11,15 +11,15 @@ export type Project = {
 };
 
 export const WORK: readonly Project[] = [
-	{ id: "amazon", title: "amazon", blurb: "swe intern @ amazon summer 2026", src: "/photos/amazon.webp" },
-	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/photos/ibm.webp" },
+	{ id: "amazon", title: "amazon", blurb: "swe intern @ amazon summer 2026", src: "/psp/thumbnails/amazon.webp" },
+	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/psp/thumbnails/ibm.webp" },
 ];
 
 export const PROJECTS: readonly Project[] = [
-	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/photos/yadl.webp", href: `${GITHUB_URL}/YADL` },
-	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/photos/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
-	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/photos/maestro.jpg", href: `${GITHUB_URL}/maestro` },
-	{ id: "github", title: "github", blurb: "everything else i've built", src: "/photos/github.svg", href: GITHUB_URL },
+	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/psp/thumbnails/yadl.webp", href: `${GITHUB_URL}/YADL` },
+	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/psp/thumbnails/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
+	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/psp/thumbnails/maestro.jpg", href: `${GITHUB_URL}/maestro` },
+	{ id: "github", title: "github", blurb: "everything else i've built", src: "/psp/thumbnails/github.svg", href: GITHUB_URL },
 ];
 
 type PspCategoryId = "jobs" | "projects" | "settings" | "photo" | "music";
@@ -52,8 +52,8 @@ type ViewAction =
 const EMPTY_ITEMS: readonly Project[] = [];
 
 export const CATEGORIES: readonly PspCategory[] = [
-	{ id: "jobs", label: "Work", icon: "jobs", items: WORK, artwork: "/photos/jobs-image.webp" },
-	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS, artwork: "/photos/projects-image.png" },
+	{ id: "jobs", label: "Work", icon: "jobs", items: WORK, artwork: "/psp/jobs.webp" },
+	{ id: "projects", label: "Projects", icon: "projects", items: PROJECTS, artwork: "/psp/projects.png" },
 	{ id: "settings", label: "Settings", icon: "settings", items: EMPTY_ITEMS, disabled: true },
 	{ id: "photo", label: "Photo", icon: "photo", items: EMPTY_ITEMS, disabled: true },
 	{ id: "music", label: "Music", icon: "music", items: EMPTY_ITEMS, disabled: true },
@@ -262,7 +262,7 @@ export function PspXmb({ ready }: { ready: boolean }) {
 	);
 }
 
-const CONSOLE_ART = "/icons/psp.png";
+const CONSOLE_ART = "/psp/console.png";
 
 export function Experience({ onClose }: { onClose: () => void }) {
 	const rootRef = useRef<HTMLDivElement>(null);

@@ -75,8 +75,8 @@ export async function desktopContext(browser, options) {
 			date: new Date(Date.UTC(2025, 0, i + 1)).toISOString().slice(0, 10), count: i % 5, level: i % 5,
 		})),
 	} }));
-	const beepBoopFrame = await sharp(new URL("../public/photos/beep-boop.webp", import.meta.url).pathname).png().toBuffer();
-	await context.route("**/photos/beep-boop.webp", (route) => route.fulfill({ contentType: "image/png", body: beepBoopFrame }));
+	const beepBoopFrame = await sharp(new URL("../public/desktop/beep-boop.webp", import.meta.url).pathname).png().toBuffer();
+	await context.route("**/desktop/beep-boop.webp", (route) => route.fulfill({ contentType: "image/png", body: beepBoopFrame }));
 	return context;
 }
 

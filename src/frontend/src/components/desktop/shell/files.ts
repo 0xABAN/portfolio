@@ -6,7 +6,7 @@ const RESUME_URL = `${GITHUB_URL}/jobs/blob/main/resumes/default/Adam_Torres_Enc
 
 const DOCUMENTS = [
 	{ id: "experience", name: "experience.exe", icon: "/icons/playstation.svg", open: "experience", type: "Application" },
-	{ id: "resume", name: "resume.doc", icon: "/icons/word/document.png", href: RESUME_URL, type: "Microsoft Word Document" },
+	{ id: "resume", name: "resume.doc", icon: "/icons/document.png", href: RESUME_URL, type: "Microsoft Word Document" },
 ] as const;
 
 export type DeskIcon = {

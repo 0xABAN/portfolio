@@ -131,12 +131,12 @@ function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
 }
 
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
-	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/photos/street.webp", icon: "/paint/icon-16.png", ...layoutMeWindow(vw, vh) };
+	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/desktop/street.webp", icon: "/icons/paint.png", ...layoutMeWindow(vw, vh) };
 	const terminal = { id: "terminal", title: "MS-DOS Prompt", z: 12, kind: "terminal" as const, icon: "/icons/terminal.svg", ...layoutTerminalWindow(me, vw, vh) };
 	const windows: DesktopWindow[] = [
 		me,
 		{ id: "alt", title: "move me", z: 3, parentId: "me", ...layoutAltOnParent(me) },
-		{ id: "new", title: "beep boop", z: 4, src: "/photos/beep-boop.webp", ...layoutBeepBoop(me) },
+		{ id: "new", title: "beep boop", z: 4, src: "/desktop/beep-boop.webp", ...layoutBeepBoop(me) },
 		terminal,
 		{ id: "github", title: "activity", icon: "/icons/code.svg", z: 13, kind: "github", ...layoutGitHubWindow(terminal) },
 		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },

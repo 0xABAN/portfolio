@@ -4,7 +4,7 @@ import "./taskbar.css";
 
 const GROUPS = [
 	{ label: "Programs", icon: "/icons/computer.png", items: [
-		{ app: "me", label: "Paint", icon: "/paint/icon-16.png" },
+		{ app: "me", label: "Paint", icon: "/icons/paint.png" },
 		{ app: "terminal", label: "MS-DOS Prompt", icon: "/icons/terminal.svg" },
 		{ app: "github", label: "Activity", icon: "/icons/code.svg" },
 		{ app: "cd-player", label: "CD Player", icon: "/icons/cd.png" },
@@ -80,7 +80,7 @@ function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAct
 					menu.current!.showPopover();
 					menuItems(menu.current!).at(event.key === "ArrowUp" ? -1 : 0)?.focus();
 				}}>
-				<img className="start-btn__logo" src="/windows-flag.svg" alt="" width={16} height={14} draggable={false} />
+				<img className="start-btn__logo" src="/icons/windows.svg" alt="" width={16} height={14} draggable={false} />
 				<span className="start-btn__label">Start</span>
 			</button>
 			<div ref={menu} id="start-menu" className="start-menu" popover="auto" role="menu" aria-label="Start menu" onKeyDown={onKey}
