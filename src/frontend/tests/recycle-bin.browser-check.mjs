@@ -1,4 +1,3 @@
-/** Run from src/frontend against the dev server: node tests/recycle-bin.browser-check.mjs */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -16,7 +15,6 @@ async function checkRecycling(page) {
 	page.on("pageerror", (error) => errors.push(error.message));
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
-	// File operations do not need the third-party music player's timers/canvas.
 	await page.route((url) => url.hostname === "w.soundcloud.com" && url.pathname === "/player/", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Muted test player</title>" }));
 	await page.addInitScript(() => {
 		window.Audio = class extends window.Audio {
@@ -44,7 +42,6 @@ async function checkRecycling(page) {
 		await page.clock.runFor(900);
 		await page.locator(".taskbar").waitFor();
 		await page.clock.runFor(2100);
-		// The terminal types its intro on the paused clock; run it until the prompt appears.
 		while (!(await page.locator(".term__input").count())) await page.clock.runFor(250);
 		await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	}
@@ -64,7 +61,6 @@ async function checkRecycling(page) {
 	await boot();
 	await minimizeAll();
 
-	// Single click selects, Enter opens; Ctrl-selection deletes as one confirmed operation.
 	await icon("hollow-knight").click();
 	check(await icon("hollow-knight").getAttribute("aria-selected") === "true", "Single click did not select");
 	check(await page.evaluate(() => window.openedLinks.length) === 0, "Single click launched a shortcut");
@@ -74,7 +70,7 @@ async function checkRecycling(page) {
 	check(await icon("hollow-knight").getAttribute("aria-selected") === "true", "Ctrl+Space did not toggle selection");
 	await page.keyboard.press("Enter");
 	check(await page.evaluate(() => window.openedLinks.length) === 1, "Enter did not open the shortcut");
-	await icon("terraria").click({ modifiers: ["Meta"] }); // Ctrl-click opens the native context menu on macOS.
+	await icon("terraria").click({ modifiers: ["Meta"] });
 	await page.keyboard.press("Delete");
 	await answer("No");
 	check(await icon("terraria").count() === 1, "Cancel changed the desktop");
@@ -107,7 +103,6 @@ async function checkRecycling(page) {
 	await deleted("Terraria").waitFor({ state: "detached" });
 	check((await state()).entries.length === 0, "Context-menu restore left the entry behind");
 
-	// Folder membership: a child whose folder is gone comes back onto the desktop.
 	await openIcon("secrets");
 	await win("explorer").getByRole("button", { name: "Up", exact: true }).click();
 	await page.clock.runFor(516);
@@ -141,7 +136,6 @@ async function checkRecycling(page) {
 	await icon("experience").waitFor({ state: "detached" });
 	check(await parentOf("experience") === "secrets", "Dragging a file onto a folder did not move it");
 
-	// Reload keeps recoverable entries.
 	await openIcon("secrets");
 	await row("experience").click();
 	await page.keyboard.press("Delete");
@@ -157,7 +151,6 @@ async function checkRecycling(page) {
 	await deleted("experience.exe").waitFor({ state: "detached" });
 	check((await bin().locator("img").getAttribute("src")).includes("empty"), "Purged bin has full icon");
 
-	// Native dragging only accepts an internal shell operation; windows are never files.
 	await minimizeAll();
 	await icon("silksong").dragTo(bin());
 	await icon("silksong").waitFor({ state: "detached" });
@@ -179,7 +172,6 @@ async function checkRecycling(page) {
 	check(await win("terminal").count() === 1, "Dragging a window recycled it");
 	check((await state()).entries.length === 1, "Dragging a window changed bin contents");
 
-	// Empty is irreversible; reset is a separate, explicitly confirmed escape hatch.
 	await minimizeAll();
 	await bin().click({ button: "right" });
 	await page.getByRole("menuitem", { name: "Empty Recycle Bin", exact: true }).click();
@@ -194,7 +186,6 @@ async function checkRecycling(page) {
 	await answer("Yes");
 	await icon("silksong").waitFor();
 	check((await state()).nodes.length === 14, "Reset did not restore the initial catalog");
-	// A queued taskbar-focus frame must not steal focus after typing activates Terminal.
 	await page.locator('[data-task-id="terminal"]').click();
 	await page.clock.runFor(16);
 	const terminalInput = win("terminal").locator(".term__input");
@@ -204,7 +195,6 @@ async function checkRecycling(page) {
 	await page.clock.runFor(16);
 	check(await terminalInput.inputValue() === "x" && await terminalInput.evaluate((el) => document.activeElement === el), "Delayed task focus stole Terminal typing");
 
-	// Shift+Delete is permanent, missing Start targets cannot recreate files.
 	await openIcon("secrets");
 	await row("resume").click();
 	await page.keyboard.press("Shift+Delete");
@@ -220,7 +210,6 @@ async function checkRecycling(page) {
 	check(await dialog().innerText().then((text) => text.includes("could not be found")), "Start recreated a deleted document");
 	await answer("OK");
 
-	// Dragging to the bin never asks; dragging out restores where it lands.
 	await minimizeAll();
 	await icon("roblox").dragTo(bin());
 	await icon("roblox").waitFor({ state: "detached" });
@@ -230,7 +219,6 @@ async function checkRecycling(page) {
 	await deleted("Roblox").waitFor({ state: "detached" });
 	check(await icon("roblox").count() === 1, "Dragging out did not restore to Desktop");
 
-	// A failed write keeps the change for this visit and says it was not saved.
 	await minimizeAll();
 	const beforeFailure = await state();
 	await page.evaluate((key) => {
@@ -242,14 +230,12 @@ async function checkRecycling(page) {
 	}, key);
 	await icon("roblox").click();
 	await page.keyboard.press("Delete");
-	// The notice takes the confirmation's place in the same dialog.
 	await dialog().getByRole("button", { name: "Yes", exact: true }).click();
 	await dialog().getByText("could not be saved").waitFor();
 	check(JSON.stringify(await state()) === JSON.stringify(beforeFailure) && await icon("roblox").count() === 0, "A failed save was not kept in memory only");
 	await page.evaluate(() => { Storage.prototype.setItem = window.originalStorageWrite; });
 	await answer("OK");
 
-	// Damaged saved data starts a fresh desktop, says so, and survives until the next change.
 	await page.evaluate((key) => localStorage.setItem(key, "damaged snapshot"), key);
 	await page.reload();
 	await boot();
@@ -273,5 +259,5 @@ try {
 	console.log(browser("run-code", `async (page) => { await page.clock.resume(); return { active: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500)), dialogs: await page.locator('dialog').evaluateAll((elements) => elements.map((el) => el.outerHTML)), selected: await page.locator('[aria-selected="true"]').allTextContents(), state: await page.evaluate(() => localStorage.getItem('portfolio.shell.v3')) }; }`));
 	throw error;
 } finally {
-	try { browser("close"); } catch { /* Preserve the original failure. */ }
+	try { browser("close"); } catch {}
 }

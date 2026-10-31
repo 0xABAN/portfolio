@@ -4,7 +4,6 @@ export const metadata: Metadata = {
 	title: "Privacy policy · resume",
 };
 
-/** Privacy policy for "resume", the Google OAuth app behind Adam's job-application tool. */
 export default function PrivacyPolicy() {
 	return (
 		<main

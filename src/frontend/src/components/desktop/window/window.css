@@ -28,7 +28,6 @@
 	background: transparent;
 }
 
-/* A pointer drag anywhere on these moves the window, so touch must not scroll instead. */
 .win[data-drag-anywhere] {
 	touch-action: none;
 }

@@ -1,4 +1,3 @@
-/** Classic MS Paint tool order (Win95–XP) — icons from jspaint classic sprite */
 export const TOOLS = [
 	{ id: "free-form-select", name: "Free-Form Select" },
 	{ id: "select", name: "Select" },
@@ -20,14 +19,12 @@ export const TOOLS = [
 
 export type ToolId = (typeof TOOLS)[number]["id"];
 
-/** The tools that draw; the rest are shown for the classic toolbox. */
 export type DrawableTool = Extract<ToolId, "pencil" | "brush" | "eraser">;
 
 export function isDrawable(tool: ToolId): tool is DrawableTool {
 	return tool === "pencil" || tool === "brush" || tool === "eraser";
 }
 
-/** jspaint color-data.js default palette, in its two rows of 14. */
 export const PALETTE = [
 	"rgb(0,0,0)", "rgb(128,128,128)", "rgb(128,0,0)", "rgb(128,128,0)", "rgb(0,128,0)", "rgb(0,128,128)", "rgb(0,0,128)", "rgb(128,0,128)", "rgb(128,128,64)", "rgb(0,64,64)", "rgb(0,128,255)", "rgb(0,64,128)", "rgb(64,0,255)", "rgb(128,64,0)",
 	"rgb(255,255,255)", "rgb(192,192,192)", "rgb(255,0,0)", "rgb(255,255,0)", "rgb(0,255,0)", "rgb(0,255,255)", "rgb(0,0,255)", "rgb(255,0,255)", "rgb(255,255,128)", "rgb(0,255,128)", "rgb(128,255,255)", "rgb(128,128,255)", "rgb(255,0,128)", "rgb(255,128,64)",

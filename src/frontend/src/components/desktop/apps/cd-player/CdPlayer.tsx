@@ -3,7 +3,6 @@
 import type { useCdPlayerAudio } from "./useCdPlayerAudio";
 import "./cd-player.css";
 
-/** A Win9x combo box; its spinner steps through the playlist. */
 function Field({ label, value, onPrev, onNext }: { label: string; value: string; onPrev: () => void; onNext: () => void }) {
 	return (
 		<div className="cd-player__field">
@@ -23,7 +22,6 @@ function Field({ label, value, onPrev, onNext }: { label: string; value: string;
 	);
 }
 
-/** Window positioning, activation, minimization and closing belong to Desktop. */
 export function CdPlayer({ track, playing, volume, bindElapsed, togglePlay, playPrev, playNext, setVolume, stop }: ReturnType<typeof useCdPlayerAudio>) {
 	const controls: [label: string, action: () => void, glyph: string][] = [
 		["Previous track", playPrev, "prev"],
@@ -35,9 +33,7 @@ export function CdPlayer({ track, playing, volume, bindElapsed, togglePlay, play
 	return (
 		<div className="cd-player__body">
 			<div className="cd-player__row">
-				{/* Empty while SoundCloud describes the track, or when the upload has no artwork. */}
 				<div className="cd-player__art chrome-sunken" aria-hidden>
-					{/* eslint-disable-next-line @next/next/no-img-element */}
 					{track?.cover && <img src={track.cover} alt="" draggable={false} />}
 				</div>
 
@@ -46,7 +42,6 @@ export function CdPlayer({ track, playing, volume, bindElapsed, togglePlay, play
 					<Field label="Track:" value={track?.title ?? ""} onPrev={playPrev} onNext={playNext} />
 
 					<div className="cd-player__transport" role="toolbar" aria-label="Playback">
-						{/* Keyed by position, so toggling Play and Pause keeps the same, focused button. */}
 						{controls.map(([label, action, glyph], index) => (
 							<button key={index} type="button" className="cd-player__tbtn chrome-raised" aria-label={label} onClick={action}>
 								<span className={`cd-player__glyph cd-player__glyph--${glyph}`} />

@@ -4,7 +4,6 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { AppId } from "../window/state";
 import "./start-menu.css";
 
-/** Items launch an app, or open a shell file by catalog ID. */
 const GROUPS = [
 	{ label: "Programs", icon: "/icons/computer.png", items: [
 		{ app: "me", label: "Paint", icon: "/paint/icon-16.png" },
@@ -31,7 +30,6 @@ function menuItems(scope: Element) {
 		.filter((item) => !item.matches(":disabled") && item.closest('[role="menu"]') === scope);
 }
 
-/** Native light-dismiss owns opening/closing; only menu navigation needs JavaScript. */
 export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAction, onResetAction, canRestoreDecorations }: Props) {
 	const menu = useRef<HTMLDivElement>(null);
 	const [open, setOpen] = useState(false);
@@ -66,7 +64,6 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 		}
 	}
 
-	/** Hovering a plain item closes any open submenu, as in Win95. */
 	function closeGroupOnHover(event: PointerEvent<HTMLElement>) {
 		if (event.pointerType === "mouse") setGroup(null);
 	}
@@ -80,13 +77,11 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 		<>
 			<button type="button" className="start-btn chrome-raised" aria-label="Start" aria-haspopup="menu" aria-expanded={open} popoverTarget="start-menu"
 				onKeyDown={(event) => {
-					// Up and Down open the menu on its last or first item.
 					if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
 					event.preventDefault();
 					menu.current!.showPopover();
 					menuItems(menu.current!).at(event.key === "ArrowUp" ? -1 : 0)?.focus();
 				}}>
-				{/* eslint-disable-next-line @next/next/no-img-element -- small static brand mark */}
 				<img className="start-btn__logo" src="/windows-flag.svg" alt="" width={16} height={14} draggable={false} />
 				<span className="start-btn__label">Start</span>
 			</button>
@@ -97,8 +92,6 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 				}}>
 				<div className="start-menu__brand" aria-hidden="true">Windows<strong>95</strong></div>
 				<div className="start-menu__items">
-					{/* Only actual mouse movement changes groups: opening under a parked
-					    pointer must not replace a keyboard-focused submenu. */}
 					{GROUPS.map((entry) => (
 						<div className="start-menu__group" key={entry.label} onPointerMove={(event) => {
 							if (event.pointerType === "mouse") setGroup(entry.label);
@@ -106,7 +99,6 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 							<button type="button" role="menuitem" data-group={entry.label}
 								aria-haspopup="menu" aria-expanded={group === entry.label}
 								onClick={() => openGroup(entry.label)}>
-								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img src={entry.icon} alt="" width={32} height={32} />
 								<span>{entry.label}</span><span className="start-menu__arrow" aria-hidden="true" />
 							</button>
@@ -115,7 +107,6 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 									{entry.items.map((item) => (
 										<button key={item.label} type="button" role="menuitem"
 											onClick={() => run(() => "file" in item ? onOpenFileAction(item.file) : onLaunchAction(item.app))}>
-											{/* eslint-disable-next-line @next/next/no-img-element */}
 											<img src={item.icon} alt="" width={16} height={16} /><span>{item.label}</span>
 										</button>
 									))}
@@ -126,11 +117,9 @@ export function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorat
 					<hr />
 					<button type="button" role="menuitem" aria-label="Restore desktop decorations" disabled={!canRestoreDecorations}
 						onPointerMove={closeGroupOnHover} onClick={() => run(onRestoreDecorationsAction)}>
-						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/computer.png" alt="" width={32} height={32} /><span>Restore Decorations</span>
 					</button>
 					<button type="button" role="menuitem" onPointerMove={closeGroupOnHover} onClick={() => run(onResetAction)}>
-						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/icons/recycle-bin-empty.png" alt="" width={32} height={32} /><span>Reset portfolio</span>
 					</button>
 				</div>

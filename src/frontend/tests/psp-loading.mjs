@@ -1,4 +1,3 @@
-/** node tests/psp-loading.mjs [url] — uses the installed playwright-cli, no new dependency. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { realpath } from 'node:fs/promises';
@@ -12,7 +11,6 @@ const url = process.argv[2] ?? 'http://localhost:3000';
 const artwork = '**/icons/psp.png?v=current';
 
 try {
-  // The console artwork arrives last, or the screen's background does; either way the PSP appears in one piece.
   for (const scenario of ['active', 'background', 'failed', 'slow-screen']) {
     const gated = scenario === 'slow-screen' ? '**/photos/jobs-image.webp' : artwork;
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -49,7 +47,6 @@ try {
       return { x, y, width, height };
     });
 
-    // Screen assets must still request in parallel with the blocked console PNG.
     const backgroundRequested = page.waitForRequest(request => new URL(request.url()).pathname === '/photos/jobs-image.webp');
     await open();
     await xmb.waitFor({ state: 'attached' });
@@ -86,7 +83,6 @@ try {
       await screen.waitFor({ state: 'visible' });
       assert.equal(await art.isVisible(), true, 'Console and screen did not appear together');
       if (scenario !== 'background') {
-        // Let the dimmer finish fading in.
         await page.locator('.desktop__psp-dimmer').evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
         assert.equal(await dimming(), '1', 'The desktop did not dim once the PSP appeared');
       }
@@ -107,8 +103,6 @@ try {
     await page.unroute(gated);
 
     if (scenario === 'active') {
-      // No routes remain: allow normal caching and retain a decoded image while
-      // reopening, covering the case where a new load event is easy to miss.
       await page.evaluate(async () => {
         window.cachedConsole = new Image();
         window.cachedConsole.src = '/icons/psp.png?v=current';

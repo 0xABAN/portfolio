@@ -1,4 +1,3 @@
-/** Run against the dev server from src/frontend with node; uses installed playwright-cli. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -73,7 +72,6 @@ async function checkAudio(page) {
 	const launcher = page.locator('[data-app-id="cd-player"]');
 	const task = page.locator('[data-task-id="cd-player"]');
 	async function boot(blocked = false) {
-		// Let Next hydrate before freezing its scheduler along with the boot timers.
 		await page.clock.resume();
 		await page.reload();
 		await page.locator(".rsod").waitFor();
@@ -111,7 +109,6 @@ async function checkAudio(page) {
 	check((await state()).muted, "Fade or track change overrode mute");
 	await speaker.click();
 	check(!(await state()).muted, "Unmute stopped working");
-	// The tray is far from the player, which hides when the mouse strays; reopen it from its task.
 	await task.click();
 	await player.getByRole("button", { name: "Pause", exact: true }).click();
 	await page.locator(".taskbar__clock").click();
@@ -189,7 +186,6 @@ async function checkAudio(page) {
 	await page.locator(".taskbar__clock").click();
 	check(await page.evaluate(() => window.pendingPlayCalls) === 1, "Late play rejection rearmed autoplay after quitting");
 
-	// playwright-cli waits on a page timer after run-code returns.
 	await page.clock.resume();
 	return "PASS: silent boot, 10-second gentle fade, early/mid-fade mute, volume/track changes, pause/stop, quit/relaunch and blocked-autoplay recovery";
 }
@@ -198,5 +194,5 @@ try {
 	browser("open", process.env.AUDIO_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	console.log(browser("run-code", checkAudio.toString()));
 } finally {
-	try { browser("close"); } catch { /* Preserve the original test failure. */ }
+	try { browser("close"); } catch {}
 }

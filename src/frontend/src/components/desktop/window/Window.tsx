@@ -15,22 +15,17 @@ type Props = {
 	h: number;
 	z: number;
 	variant?: "dos" | "error";
-	/** Report moves every frame (nested crop / child follow). Default: commit on pointerup. */
 	liveMove?: boolean;
 	minimizable?: boolean;
-	/** No title bar: the whole window drags, except elements marked data-no-window-drag. */
 	frameless?: boolean;
-	/** The whole window drags, not just its title bar. */
 	dragAnywhere?: boolean;
 	onActivateAction: (id: string) => void;
 	onMinimizeAction: (id: string) => void;
 	onCloseAction?: (id: string) => void;
-	/** Without it, the window cannot be dragged. */
 	onMoveAction?: (id: string, x: number, y: number) => void;
 	children?: ReactNode;
 };
 
-/** The pointer's offset into the window, the window's latest position, and a pending report. */
 type Drag = { offsetX: number; offsetY: number; x: number; y: number; live: boolean; frame: number };
 
 export const Window = memo(function Window({
@@ -47,10 +42,8 @@ export const Window = memo(function Window({
 		moveRef.current = onMoveAction;
 	});
 
-	// Geometry is written directly, so a drag can move the window without rendering.
 	useLayoutEffect(() => {
 		const el = rootRef.current!;
-		// Activation still raises a window during its own drag.
 		el.style.zIndex = String(z);
 		if (drag.current && !drag.current.live) return;
 		Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
@@ -60,7 +53,6 @@ export const Window = memo(function Window({
 		if ((event.target as HTMLElement).closest(".win-min, [data-no-window-drag]")) return;
 		const el = rootRef.current!;
 		event.currentTarget.setPointerCapture(event.pointerId);
-		// Gives the window a layer of its own while it moves (desktop.css).
 		el.toggleAttribute("data-dragging", true);
 		drag.current = {
 			offsetX: event.clientX - el.offsetLeft, offsetY: event.clientY - el.offsetTop,
@@ -74,10 +66,8 @@ export const Window = memo(function Window({
 		d.x = event.clientX - d.offsetX;
 		d.y = event.clientY - d.offsetY;
 		if (!d.live) {
-			// Most windows move on screen only, and report where they land on release.
 			Object.assign(rootRef.current!.style, { left: `${d.x}px`, top: `${d.y}px` });
 		} else if (!d.frame) {
-			// Live windows report once per frame, so their nested windows follow.
 			d.frame = requestAnimationFrame(() => {
 				d.frame = 0;
 				moveRef.current?.(id, d.x, d.y);
@@ -98,7 +88,6 @@ export const Window = memo(function Window({
 	function onFocusCapture(event: FocusEvent<HTMLElement>) {
 		onActivateAction(id);
 		const target = event.target as HTMLElement;
-		// Focusing the window itself returns focus to wherever it last was inside.
 		if (target === event.currentTarget) {
 			if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
 		} else if (!target.closest(".win-titlebar")) {
@@ -128,7 +117,6 @@ export const Window = memo(function Window({
 		>
 			{!frameless && (
 				<header className="win-titlebar" {...(dragAnywhere ? {} : dragHandlers)}>
-					{/* eslint-disable-next-line @next/next/no-img-element */}
 					{icon && <img className="win-titlebar__icon" src={icon} alt="" draggable={false} />}
 					<span className="win-titlebar__text">{title}</span>
 					{minimizable && (

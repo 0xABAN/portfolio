@@ -8,7 +8,6 @@ import "./github-graph.css";
 const API = "https://github-contributions-api.jogruber.de/v4/";
 const THEME = { dark: ["#1a1a1a", "#3d1515", "#6b1c1c", "#9a2222", "#af0000"] };
 
-/** One fetch per page load, so Strict Mode's remount does not abort it. A failure retries on the next mount. */
 let contributionsRequest: Promise<Activity[]> | null = null;
 
 function loadContributions() {
@@ -39,7 +38,6 @@ export function GitHubGraph() {
 		return () => { alive = false; };
 	}, []);
 
-	// Open on the latest weeks. The calendar renders its scroll container once it has data.
 	useEffect(() => {
 		const scroller = rootRef.current?.querySelector(".react-activity-calendar__scroll-container");
 		if (data && scroller) scroller.scrollLeft = scroller.scrollWidth;

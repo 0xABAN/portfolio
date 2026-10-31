@@ -137,7 +137,6 @@
 	padding-left: 1px;
 }
 
-/* Transport glyphs, drawn from borders and pseudo-elements in a 14×10 box. */
 .cd-player__glyph {
 	display: block;
 	position: relative;
@@ -158,7 +157,6 @@
 	top: 0;
 }
 
-/* Pause bars, and the stop square's outline. */
 .cd-player__glyph--pause::before,
 .cd-player__glyph--pause::after {
 	content: "";
@@ -181,7 +179,6 @@
 	background: transparent;
 }
 
-/* Skip glyphs: a bar and a triangle pointing away from it. */
 .cd-player__glyph--prev::before,
 .cd-player__glyph--next::before {
 	content: "";
@@ -211,7 +208,6 @@
 	flex-shrink: 0;
 }
 
-/* Classic Win9x volume trackbar. Vendor pseudo-elements cannot share a rule: one unknown selector voids it. */
 .cd-player__trackbar {
 	appearance: none;
 	flex: 1;

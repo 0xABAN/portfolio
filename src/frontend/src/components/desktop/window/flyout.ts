@@ -4,24 +4,13 @@ import { useEffect, useLayoutEffect, type Dispatch, type SetStateAction } from "
 import type { DesktopWindow } from "./layout";
 import { minimizeWindowTree } from "./state";
 
-/** How far the mouse may stray from a flyout and its task button before the flyout hides, in px. */
 const HIDE_DISTANCE = 120;
 
-/** Distance from a point to a rectangle; 0 inside it. */
 function distanceTo(rect: DOMRect, x: number, y: number) {
 	return Math.hypot(Math.max(rect.left - x, 0, x - rect.right), Math.max(rect.top - y, 0, y - rect.bottom));
 }
 
-/**
- * Makes a window a taskbar flyout, like the CD Player. While shown, it sits
- * directly above its task button, and it hides once the mouse strays more
- * than HIDE_DISTANCE from both. Hiding waits until the mouse has come near
- * since the flyout opened, so one launched from across the screen does not
- * vanish on the first move. `taskOrder` changes whenever the task buttons do,
- * so the flyout follows its own.
- */
 export function useTaskFlyout(id: string, shown: boolean, taskOrder: string, setWindows: Dispatch<SetStateAction<DesktopWindow[]>>) {
-	// Placed before paint, so the flyout never shows where it last was.
 	useLayoutEffect(() => {
 		if (!shown) return;
 		const place = () => {
@@ -48,7 +37,6 @@ export function useTaskFlyout(id: string, shown: boolean, taskOrder: string, set
 		if (!shown) return;
 		let armed = false;
 		const onPointerMove = (event: PointerEvent) => {
-			// Only a free-moving mouse counts: not touch, and not a drag such as moving the volume slider.
 			if (event.pointerType !== "mouse" || event.buttons) return;
 			const flyout = document.getElementById(`desktop-window-${id}`);
 			const task = document.querySelector(`[data-task-id="${id}"]`);

@@ -1,4 +1,3 @@
-/** Run against the dev server from src/frontend with node. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -137,5 +136,5 @@ try {
 	assert.match(result, /"screenDrag":\[0,0\]/);
 	console.log(result);
 } finally {
-	try { browser("close"); } catch { /* Preserve the original test failure. */ }
+	try { browser("close"); } catch {}
 }

@@ -16,15 +16,12 @@ function blockTabNavigation(event: globalThis.KeyboardEvent) {
 
 export function Boot() {
 	const [phase, setPhase] = useState<Phase>(() => {
-		// Boot is client-only. This is a best-effort device gate, not a width limit.
 		const { userAgent, maxTouchPoints } = navigator;
 		const mobile = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk/i.test(userAgent)
-			// Desktop-mode iPads identify as Macs but still expose multitouch.
 			|| (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);
 		return mobile ? "unsupported" : "rsod";
 	});
 
-	// Download the shatter clip while the stop screen is up, so the desktop does not wait for it.
 	useEffect(() => {
 		if (phase === "rsod") prefetchFracture();
 	}, [phase]);

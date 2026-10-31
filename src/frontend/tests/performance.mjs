@@ -1,8 +1,3 @@
-/**
- * node tests/performance.mjs record|compare [url] [artifact-directory]
- * Uses the existing playwright-cli and sharp installations. External data/audio
- * are fixed; application code is not patched. Run record before an optimization.
- */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
@@ -37,12 +32,10 @@ try {
       let seed = 42;
       Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
       window.reactCommits = 0;
-      // Observe React commits without adding profiling wrappers to production code.
       window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
         supportsFiber: true,
         renderers: new Map(),
         inject(renderer) { this.renderers.set(1, renderer); return 1; },
-        // Production component names are minified; count commits, not name-based renders.
         onCommitFiberRoot() { window.reactCommits++; },
         onCommitFiberUnmount() {},
       };
@@ -73,8 +66,6 @@ try {
       for (let i = 0; i < actual.data.length; i += 4) {
         if (actual.data.subarray(i, i + 4).some((value, channel) => Math.abs(value - expected.data[i + channel]) > 12)) different++;
       }
-      // A tiny allowance for Chromium's scaled-image rasterization; geometry is
-      // also checked exactly below, so shifted windows cannot hide in this budget.
       if (different > actual.info.width * actual.info.height * 0.002) {
         await sharp(image).png().toFile(file.replace('.png', '-actual.png'));
         assert.fail(`${name}: ${different} pixels differ`);
@@ -143,14 +134,11 @@ try {
       assert.equal(await win('alt').isVisible(), true);
       await task('terminal').click();
       await page.locator('.term__input').fill('preserve this draft');
-      // This window intentionally extends beyond the desktop's right edge.
       await win('terminal').getByRole('button', { name: 'Minimize', exact: true }).dispatchEvent('click');
       await task('terminal').click();
       assert.equal(await page.locator('.term__input').inputValue(), 'preserve this draft');
       await page.locator('.term__input').fill('');
 
-      // Since be5a5eb, windows are never files. Dragging one over the bin,
-      // with or without an overlay, must leave both the window and bin intact.
       await page.evaluate(() => {
         window.hitTestMutations = [];
         window.hitTestObserver = new MutationObserver(records => {
@@ -187,7 +175,6 @@ try {
         return window.hitTestMutations.length;
       }), 0, 'Hit testing must not toggle window pointer-events');
 
-      // Actual files still recycle through the shell's native drag operation.
       await page.locator('.win:not([data-minimized="true"]) .win-min[aria-label="Minimize"]')
         .evaluateAll(buttons => buttons.forEach(button => button.click()));
       const shortcut = page.locator('.desktop__icons [data-shell-item="silksong"]');
@@ -195,7 +182,6 @@ try {
       await shortcut.waitFor({ state: 'detached' });
       assert.equal(await page.locator('[data-recycle-bin] img').getAttribute('src'), '/icons/recycle-bin-full.png');
 
-      // Idle with everything moving again: the wallpaper, the cat and the sparks.
       await moveDesktop();
       await page.waitForTimeout(3000);
       await measure('motion-idle', () => page.waitForTimeout(5000));

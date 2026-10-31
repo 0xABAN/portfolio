@@ -1,15 +1,11 @@
-/* The recorded wallpaper behind the desktop, ending at the taskbar. */
 .fracture-background {
 	position: absolute;
 	inset: 0 0 var(--taskbar-height);
-	/* Explicit, so stacking checks can compare it with the sparks and windows. */
 	z-index: 0;
 	pointer-events: none;
-	/* Shows until the first frame loads, and matches the recording's average red. */
 	background: var(--desktop-bg);
 }
 
-/* Each clip covers the wallpaper, cropped evenly so the impact stays centred. */
 .fracture-background__video {
 	position: absolute;
 	inset: 0;
@@ -18,12 +14,6 @@
 	object-fit: cover;
 }
 
-/*
- * The clips are grayscale: each grey is the wallpaper's red level. Video keeps
- * brightness at full resolution but colour at half, which blurred the fine
- * red-on-black detail. Multiplying by pure red restores the colour; the root's
- * stacking context keeps the blend to the clips.
- */
 .fracture-background::after {
 	content: "";
 	position: absolute;

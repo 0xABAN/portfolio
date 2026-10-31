@@ -104,7 +104,6 @@ function StatusBar() {
 	);
 }
 
-/** The PSP's d-pad and buttons: arrows or WASD, Enter or X, Escape or Backspace, and O for options. */
 const KEYS: Record<string, "left" | "right" | "up" | "down" | "enter" | "back" | "options"> = {
 	ArrowLeft: "left", a: "left", ArrowRight: "right", d: "right",
 	ArrowUp: "up", w: "up", ArrowDown: "down", s: "down",
@@ -128,7 +127,6 @@ export function PspXmb({ ready }: { ready: boolean }) {
 	useEffect(() => {
 		const root = rootRef.current;
 		const windowRoot = root?.closest<HTMLElement>(".win");
-		// Decoding can finish after the user switches away or minimizes the app.
 		if (ready && windowRoot?.dataset.active === "true" && !windowRoot.inert) {
 			root?.focus({ preventScroll: true });
 		}
@@ -140,10 +138,8 @@ export function PspXmb({ ready }: { ready: boolean }) {
 
 	function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
 		const action = event.key === "Tab" ? "tab" : KEYS[event.key] ?? KEYS[event.key.toLowerCase()];
-		// The options menu only takes up, down, enter and back.
 		if (!action || (state.optionsOpen && (action === "left" || action === "right" || action === "options"))) return;
 		event.preventDefault();
-		// Focus stays on the XMB itself; its buttons only mark what Enter acts on.
 		focusRoot();
 		const target = event.target as HTMLElement;
 		const indexOf = (selector: string) => target.closest<HTMLElement>(selector)?.dataset.index;
@@ -167,7 +163,6 @@ export function PspXmb({ ready }: { ready: boolean }) {
 			else if (itemIndex === undefined && target.closest(".psp-xmb__select")) dispatch({ type: "toggle-options" });
 			else openExternal(project?.href);
 		}
-		// Back has nothing to back out of outside the options menu, and Tab only returns focus.
 	}
 
 	return (
@@ -184,9 +179,7 @@ export function PspXmb({ ready }: { ready: boolean }) {
 			onClickCapture={() => focusRoot()}
 			onKeyDown={onKeyDown}
 		>
-			{/* Every category's artwork stays rendered, so switching categories never waits for a load. */}
 			{CATEGORIES.map((entry) => entry.artwork && (
-				// eslint-disable-next-line @next/next/no-img-element
 				<img key={entry.id} className={entry === category ? "psp-xmb__artwork is-current" : "psp-xmb__artwork"} src={entry.artwork} alt="" draggable={false} />
 			))}
 			{category.artwork && <div className="psp-xmb__shade" aria-hidden="true" />}
@@ -229,7 +222,6 @@ export function PspXmb({ ready }: { ready: boolean }) {
 							}}
 						>
 							{entry.src ? (
-								// eslint-disable-next-line @next/next/no-img-element
 								<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
 							) : <Icon name="folder" />}
 							<span className="psp-xmb__item-content">

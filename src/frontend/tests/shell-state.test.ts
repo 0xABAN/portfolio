@@ -13,7 +13,6 @@ test("delete, save, restore and permanent delete keep each item's identity", () 
 	assert.deepEqual(deleted.entries.map(entryId), ["experience"]);
 	assert.equal(deleted.entries[0].location, "C:\\Windows\\Desktop\\secrets");
 
-	// A restored item rejoins the end of the list; folders show their items in catalog order.
 	const restored = restoreEntries(parseShellState(JSON.stringify(deleted)), ["experience"]);
 	assert.deepEqual({ ...restored, nodes: restored.nodes.toSorted(byCatalogOrder) }, initial);
 

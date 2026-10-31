@@ -4,7 +4,6 @@ import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { ShellMenu, keyboardMenuPosition, menuPosition, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/ShellControls";
 import { useShell } from "./ShellProvider";
 
-/** Desktop layout is owned by Desktop; this hook only owns shell selection/actions. */
 export function useDesktopSelection(icons: { id: string; label: string }[], open: (id: string) => void) {
 	const shell = useShell();
 	const selection = useShellSelection(icons.map((icon) => icon.id), icons.map((icon) => icon.label));

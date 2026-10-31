@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import "./controls.css";
 
-/** One selection contract for Desktop, Explorer and the Recycle Bin. */
 export function useShellSelection(ids: string[], names: string[]) {
 	const [selection, setSelection] = useState<string[]>([]);
 	const anchor = useRef<string | null>(null);
@@ -45,7 +44,6 @@ export function useShellSelection(ids: string[], names: string[]) {
 		if (event.key === "Home") next = elements[0];
 		else if (event.key === "End") next = elements.at(-1);
 		else if (event.key.startsWith("Arrow")) {
-			// Geometry keeps arrow navigation correct in wrapped desktop/icon columns.
 			const rect = current?.getBoundingClientRect();
 			const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";
 			const direction = event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 1;
@@ -87,7 +85,6 @@ export function menuPosition(event: MouseEvent<HTMLElement>): MenuPosition {
 	return { x: event.clientX || rect.left, y: event.clientY || rect.bottom };
 }
 
-/** Shift+F10 opens the context menu below the focused item. */
 export function keyboardMenuPosition(event: KeyboardEvent<HTMLElement>): MenuPosition {
 	event.preventDefault();
 	const rect = (event.target as HTMLElement).getBoundingClientRect();

@@ -5,7 +5,6 @@ import { DESKTOP_REVEAL_SCHEDULE } from "./desktopReveal";
 
 const SCHEDULED = new Set(DESKTOP_REVEAL_SCHEDULE.map(({ id }) => id));
 
-/** Whether each desktop item has appeared yet: scheduled items wait for their time, others show at once. */
 export function useDesktopReveal(): (id: string) => boolean {
 	const [revealed, setRevealed] = useState<ReadonlySet<string>>(() => new Set());
 

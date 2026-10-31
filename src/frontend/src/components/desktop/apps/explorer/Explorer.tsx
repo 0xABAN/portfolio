@@ -70,7 +70,6 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 					onDragOver={(event) => { if (item.kind === "folder" && shell.canDrop(event, node.id)) { event.preventDefault(); event.stopPropagation(); } }}
 					onDrop={(event) => { if (item.kind === "folder") shell.drop(event, node.id); }}>
 					<span className="shell-item__name">
-						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src={item.icon} alt="" width={16} height={16} draggable={false} /><span>{item.name}</span>
 					</span>
 				</button>;

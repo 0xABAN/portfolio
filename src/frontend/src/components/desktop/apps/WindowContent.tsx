@@ -23,7 +23,6 @@ type Props = {
 	folderId: string;
 };
 
-/** Maps a desktop window kind to its app content; window chrome stays in the host. */
 export const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onClose, onOpenShell, folderId }: Props) {
 	switch (kind) {
 		case "cd-player":
@@ -44,10 +43,7 @@ export const WindowContent = memo(function WindowContent({ id, kind, src, active
 			return <Explorer folderId={folderId} onOpenAction={onOpenShell} />;
 	}
 
-	// Plain picture windows: the beep boop GIF, and the "move me" window's crop of the overlay photo.
-	/* eslint-disable @next/next/no-img-element */
 	if (src) return <img className="win-fill" src={src} alt="" draggable={false} />;
 	if (cropStyle) return <img className="win-fill-crop" src="/photos/overlay.jpg" alt="" draggable={false} style={cropStyle} />;
-	/* eslint-enable @next/next/no-img-element */
 	return null;
 });

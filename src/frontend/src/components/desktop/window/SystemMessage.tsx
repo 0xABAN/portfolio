@@ -1,6 +1,5 @@
 import "./system-message.css";
 
-/** The decorative "Critical error" dialog; OK minimizes it. (*Action satisfies Next's TS 71007.) */
 export function SystemMessage({ onOkAction }: { onOkAction: () => void }) {
 	return (
 		<div className="sysmsg">

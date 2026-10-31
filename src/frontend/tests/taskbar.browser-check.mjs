@@ -1,4 +1,3 @@
-/** Run against the dev server from src/frontend with node; uses installed playwright-cli. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -176,7 +175,6 @@ async function checkTaskbar(page) {
 		}
 	}), "Hand cursor overrides the busy hourglass");
 
-	// Sparks mount once the screen shatters.
 	const sparks = page.locator(".desktop-sparks");
 	await sparks.waitFor({ state: "visible" });
 	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) > 0, "Sparks do not animate");
@@ -218,7 +216,6 @@ async function checkTaskbar(page) {
 			&& parseFloat(style.width) >= 5 && parseFloat(style.height) >= 4;
 	})), "Sparks lost their bounded, chunky, solid-black, noninteractive appearance");
 	check(await sparks.locator("span").evaluateAll((nodes) => {
-		// Where each spark's flight ends, from its last keyframe.
 		const ends = nodes.map((el) => {
 			const transform = el.getAnimations()[0].effect.getKeyframes().at(-1).transform;
 			const [, x, y, angle] = transform.match(/translate3d\(([-\d.]+)px, ([-\d.]+)px, [^)]*\) rotate\(([-\d.]+)deg\)/).map(Number);
@@ -233,7 +230,6 @@ async function checkTaskbar(page) {
 	}), "Sparks need varied shapes, angles and travel directions");
 	const firstTransform = await sparks.locator("span").first().evaluate((el) => getComputedStyle(el).transform);
 	await page.waitForFunction((previous) => getComputedStyle(document.querySelector(".desktop-sparks__spark")).transform !== previous, firstTransform);
-	// Keep sparks running for the interaction checks below: they must not intercept input.
 	for (const [label, url] of [
 		["GitHub", "https://github.com/0xABAN"],
 		["LinkedIn", "https://www.linkedin.com/in/adam-torres-encarnacion/"],
@@ -392,7 +388,6 @@ async function checkTaskbar(page) {
 		const { paused, muted, volume, src } = window.taskbarAudio;
 		return JSON.stringify({ paused, muted, volume, src, actions: window.audioActions.length });
 	});
-	// Compare CD launcher actions only after the independent startup fade settles.
 	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2 && window.taskbarAudio.volume === 1);
 	const elapsed = music.locator(".task-btn__elapsed");
 	const firstElapsed = await elapsed.innerText();
@@ -469,7 +464,6 @@ async function checkTaskbar(page) {
 	await player.getByRole("button", { name: "Minimize", exact: true }).click();
 	check(!(await player.isVisible()) && await audioState() === resumedState, "Minimizing CD Player stopped its transport");
 
-	// Ordinary desktop typing uses native input insertion, not a simulated keyboard.
 	await input.fill("");
 	await music.click();
 	await page.evaluate(() => new Promise(requestAnimationFrame));
@@ -503,7 +497,6 @@ async function checkTaskbar(page) {
 	check(await player.count() === 0 && await music.count() === 0, "Close did not remove the app and its task");
 	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Close did not quit the audio transport");
 	await page.waitForFunction(() => !document.getElementById("desktop-window-cd-player") && document.activeElement?.getAttribute("data-app-id") !== "cd-player");
-	// Closing focuses the frontmost window on the next frame; let that land before typing elsewhere.
 	await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
 	for (const editable of ["textarea", "contenteditable"]) {
@@ -524,7 +517,6 @@ async function checkTaskbar(page) {
 	await page.keyboard.type("!");
 	check(!(await menu.isVisible()) && await input.inputValue() === "aZ!d", "Typing from Start did not dismiss the menu and reach Terminal");
 
-	// Complete a paused chat stream while Terminal is hidden, then recall the request.
 	await page.evaluate(() => {
 		const nativeFetch = window.fetch.bind(window);
 		window.fetch = (resource, init) => {
@@ -564,7 +556,6 @@ async function checkTaskbar(page) {
 			const r = await control.boundingBox();
 			check(r.x >= 0 && r.x + r.width <= width, "Fixed taskbar controls clipped on narrow screens");
 		}
-		// At 320px even bare icons no longer fit; the strip scrolls and focus brings each task into view.
 		if (width === 390) check(await page.locator(".taskbar__tasks").evaluate((el) => el.scrollWidth <= el.clientWidth), "Tasks overflowed instead of shrinking to share the taskbar");
 		const lastTask = page.locator("[data-task-id]").last();
 		await lastTask.focus();
@@ -597,5 +588,5 @@ try {
 	browser("open", process.env.TASKBAR_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	console.log(browser("run-code", checkTaskbar.toString()));
 } finally {
-	try { browser("close"); } catch { /* Preserve the original test failure. */ }
+	try { browser("close"); } catch {}
 }

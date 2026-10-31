@@ -1,4 +1,3 @@
-/** Install with context.addInitScript; this replaces the widget, not app transport/timers. */
 export function mockSoundCloud() {
   const listeners = {};
   const Events = { READY: 'ready', PLAY: 'play', PAUSE: 'pause', FINISH: 'finish', PLAY_PROGRESS: 'progress', ERROR: 'error' };

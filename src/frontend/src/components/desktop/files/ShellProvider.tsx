@@ -7,7 +7,6 @@ type ShellDialog = { title: string; message: string; accept?: () => void };
 type ShellDrag = { kind: "nodes" | "entries"; ids: string[] };
 const DRAG_TYPE = "application/x-portfolio-shell";
 
-/** The saved desktop, or a fresh one and the reason when it cannot be read. */
 function loadState(): { state: ShellState; error?: string } {
 	try {
 		return { state: parseShellState(window.localStorage.getItem(STORAGE_KEY)) };
@@ -19,7 +18,6 @@ function loadState(): { state: ShellState; error?: string } {
 function useShellController() {
 	const [loaded] = useState(loadState);
 	const [state, setState] = useState(loaded.state);
-	// Event handlers and delayed launches read the latest state, not the one they closed over.
 	const current = useRef(state);
 	const [dialog, setDialog] = useState<ShellDialog | null>(() => loaded.error ? { title: "desktop storage", message: loaded.error } : null);
 	const drag = useRef<ShellDrag | null>(null);
@@ -42,7 +40,6 @@ function useShellController() {
 		}
 	}
 
-	/** Commands confirm first; drags onto the bin do not. Permanent deletion always asks. */
 	function recycle(ids: readonly string[], permanent = false, source: "command" | "drag" = "command") {
 		const roots = selectedRoots(current.current, ids);
 		if (!roots.length) return;
@@ -80,7 +77,6 @@ function useShellController() {
 		event.dataTransfer.effectAllowed = "move";
 	}
 
-	/** Only this page's own drags drop; deleted items can leave the bin but not re-enter it. */
 	function canDrop(event: DragEvent, destination: string) {
 		return Boolean(drag.current && event.dataTransfer.types.includes(DRAG_TYPE) && (destination !== "bin" || drag.current.kind === "nodes"));
 	}

@@ -1,4 +1,3 @@
-/** node tests/mobile-boot.mjs [url] — device gate, not a viewport-size gate. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { realpath } from 'node:fs/promises';
@@ -24,7 +23,6 @@ const cases = [
 try {
   for (const { name, options, touchPoints, blocked } of cases) {
     const context = await browser.newContext(options);
-    // Keep unrelated integration failures out of desktop boot checks.
     await context.addInitScript(mockSoundCloud);
     await context.route('**/api/views', route => route.fulfill({ json: { count: 1 } }));
     await context.route('https://github-contributions-api.jogruber.de/**', route => route.fulfill({ json: { contributions: [] } }));

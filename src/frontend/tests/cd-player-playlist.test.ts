@@ -29,7 +29,6 @@ test("the whole playlist plays before any track repeats", () => {
 		}
 		assert.equal(new Set(played).size, 18);
 
-		// The next round never opens with the track that just ended.
 		shuffle = stepShuffle(shuffle, 1);
 		assert.equal(shuffle.position, 0);
 		assert.notEqual(shuffle.order[0], played.at(-1));

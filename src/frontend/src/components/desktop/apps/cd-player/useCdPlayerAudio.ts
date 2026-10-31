@@ -3,12 +3,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { PLAYLIST_URL, formatElapsed, shuffledOrder, stepShuffle, toTrack, type ScSound, type Shuffle, type Track } from "./playlist";
 
-/**
- * A hidden SoundCloud Widget plays the playlist; the Win9x CD Player is only
- * the visible UI. Everything lives at module scope, so playback survives
- * minimization and Strict Mode; only Quit unloads it.
- */
-
 type ScEvents = { READY: string; PLAY: string; PAUSE: string; FINISH: string; PLAY_PROGRESS: string };
 
 type ScWidget = {
@@ -16,7 +10,6 @@ type ScWidget = {
 	unbind: (event: string) => void;
 	play: () => unknown;
 	pause: () => void;
-	/** Jumps to a sound of the playlist and starts playing it. */
 	skip: (index: number) => unknown;
 	seekTo: (milliseconds: number) => void;
 	setVolume: (volume: number) => void;
@@ -27,22 +20,17 @@ type ScApi = { Widget: ((iframe: HTMLIFrameElement) => ScWidget) & { Events: ScE
 
 const FADE_MS = 10_000;
 const API_SRC = "https://w.soundcloud.com/player/api.js";
-/** Widget getters answer by postMessage, and not at all while the widget is busy. */
 const GETTER_TIMEOUT_MS = 2000;
-/** READY can arrive before the widget lists and describes the whole playlist. */
 const RETRIES = 40;
 const RETRY_MS = 250;
 
-/** The widget and the playlist it described. Quit discards it, so a relaunch reads the playlist afresh. */
 type Session = {
 	widget: ScWidget;
 	iframe: HTMLIFrameElement;
 	events: ScEvents;
 	sounds: ScSound[];
 	shuffle: Shuffle;
-	/** The sound the widget is on: it opens on the first one, and -1 once it moves on by itself. */
 	widgetIndex: number;
-	/** Settles once SoundCloud has described every sound; a skip to an undescribed one never plays. */
 	ready: PromiseWithResolvers<void>;
 	isReady: boolean;
 };
@@ -52,12 +40,9 @@ let starting: Promise<Session> | null = null;
 let apiPromise: Promise<ScApi> | null = null;
 let userVolume = 1;
 let fadeProgress = 0;
-/** Playback was requested since launch; Quit clears it. */
 let mediaStarted = false;
-/** The listener wants music, so a browser-blocked start is retried on their next gesture. */
 let wantPlaying = false;
 let autoplayBlocked = false;
-/** Bumped whenever the track or play state changes, so stale async work can tell. */
 let generation = 0;
 let lastWidgetVolume = -1;
 let lastElapsed = -1;
@@ -65,18 +50,14 @@ let track: Track | null = null;
 const elapsedNodes = new Set<HTMLElement>();
 const playListeners = new Set<() => void>();
 
-/** Playback state, exposed as window.taskbarAudio for the browser checks. */
 const transport = {
 	muted: false,
-	/** The volume after the boot fade, before muting. */
 	volume: 0,
 	paused: true,
 	currentTime: 0,
-	/** The playlist while the player is loaded, empty once it quits. */
 	get src() {
 		return session ? PLAYLIST_URL : "";
 	},
-	/** 4 once SoundCloud has described the playlist, as a ready media element reports. */
 	get readyState() {
 		return session?.isReady ? 4 : 0;
 	},
@@ -100,14 +81,12 @@ const transport = {
 
 if (typeof window !== "undefined") Object.assign(window, { taskbarAudio: transport });
 
-/** What React renders; republished after every change to it. */
 type View = { playing: boolean; track: Track | null; muted: boolean; volume: number };
 let view: View = { playing: false, track: null, muted: false, volume: userVolume };
 const viewers = new Set<() => void>();
 
 function publish() {
 	const next: View = { playing: !transport.paused, track, muted: transport.muted, volume: userVolume };
-	// The widget echoes changes the player already made, such as the PAUSE after a pause; skip those re-renders.
 	if (next.playing === view.playing && next.track === view.track && next.muted === view.muted && next.volume === view.volume) return;
 	view = next;
 	for (const notify of viewers) notify();
@@ -121,7 +100,6 @@ function subscribe(notify: () => void) {
 const trackIndex = (s: Session) => s.shuffle.order[s.shuffle.position] ?? 0;
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
-/** Calls a widget getter; resolves undefined if the widget never answers. */
 function ask<T>(request: (answer: (value: T) => void) => void): Promise<T | undefined> {
 	return new Promise((resolve) => {
 		const timer = window.setTimeout(() => resolve(undefined), GETTER_TIMEOUT_MS);
@@ -132,7 +110,6 @@ function ask<T>(request: (answer: (value: T) => void) => void): Promise<T | unde
 	});
 }
 
-/** Re-sends the volume when forced: switching tracks can reset the widget's to full. */
 function applyVolume(force = false) {
 	transport.volume = userVolume * fadeProgress ** 2;
 	const out = Math.round((transport.muted ? 0 : transport.volume) * 100);
@@ -166,10 +143,7 @@ function ensureSession(): Promise<Session> {
 		const iframe = document.createElement("iframe");
 		Object.assign(iframe, { id: "sc-cd-player", title: "SoundCloud", allow: "autoplay; encrypted-media", tabIndex: -1 });
 		iframe.setAttribute("aria-hidden", "true");
-		// Invisible but still painted, since display:none often suspends media. It keeps the
-		// player's own size: at 1px, SoundCloud draws its waveform at zero size and throws.
 		iframe.style.cssText = "position:fixed;left:0;top:0;width:300px;height:166px;opacity:0;pointer-events:none;border:0;overflow:hidden";
-		// Widget() reads iframe.src and throws on a blank frame. The browser checks stub SC without api.js.
 		if (document.querySelector(`script[src="${API_SRC}"]`)) {
 			iframe.src = `https://w.soundcloud.com/player/?${new URLSearchParams({ url: PLAYLIST_URL, auto_play: "false" })}`;
 		}
@@ -201,7 +175,6 @@ function bindEvents(s: Session) {
 		transport.paused = true;
 		publish();
 	});
-	// The widget moves on to the next sound of the playlist by itself; follow the shuffle instead.
 	widget.bind(events.FINISH, () => {
 		s.widgetIndex = -1;
 		if (mediaStarted) step(1);
@@ -212,7 +185,6 @@ function bindEvents(s: Session) {
 	});
 }
 
-/** Deals the first shuffled round once the widget has described every sound of the playlist. */
 async function loadPlaylist(s: Session) {
 	for (let attempt = 0; attempt < RETRIES && !s.isReady; attempt++) {
 		const sounds = await ask<ScSound[]>((answer) => s.widget.getSounds(answer));
@@ -230,14 +202,12 @@ async function loadPlaylist(s: Session) {
 	if (!s.isReady) console.error(`CD Player: SoundCloud did not describe every track of ${PLAYLIST_URL}.`);
 }
 
-/** Shows the current track's details, or blank fields when there is none. */
 function showTrack() {
 	const sound = session?.isReady ? session.sounds[trackIndex(session)] : undefined;
 	track = sound?.title ? toTrack({ ...sound, title: sound.title }) : null;
 	publish();
 }
 
-/** Moves one track through the shuffled round and plays it. */
 function step(direction: 1 | -1) {
 	if (!session?.isReady) return;
 	generation++;
@@ -261,7 +231,6 @@ async function startPlayback() {
 		autoplayBlocked = error instanceof DOMException && error.name === "NotAllowedError";
 		publish();
 	}
-	// A browser can also hold play() without rejecting it; still paused a second later means blocked.
 	window.setTimeout(() => {
 		if (current === generation && wantPlaying && transport.paused) autoplayBlocked = true;
 	}, 1000);
@@ -279,7 +248,6 @@ function resetElapsed() {
 	writeElapsed();
 }
 
-/** Ref callback for every element showing the elapsed time; written directly, not rendered. */
 function bindElapsed(node: HTMLElement | null) {
 	if (!node) return;
 	elapsedNodes.add(node);
@@ -337,17 +305,11 @@ function setVolume(value: number) {
 	publish();
 }
 
-/**
- * Desktop owns the transport so minimizing the app does not stop its music.
- * `running` is whether the CD Player's window exists: the player loads while
- * it does and quits when it closes.
- */
 export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 	const { playing, track, muted, volume } = useSyncExternalStore(subscribe, () => view, () => view);
 
 	useEffect(() => {
 		void ensureSession();
-		// A gesture retries a start the browser blocked, unless the listener muted the music.
 		const retry = () => { if (autoplayBlocked && !transport.muted) void startPlayback(); };
 		window.addEventListener("click", retry);
 		window.addEventListener("keydown", retry);
@@ -362,7 +324,6 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 		else if (!mediaStarted) void startPlayback();
 	}, [running]);
 
-	// Once the desktop has booted, the music fades in over FADE_MS, resuming where an interrupted fade stopped.
 	useEffect(() => {
 		if (!running || !bootComplete || fadeProgress === 1) return;
 		let frame = 0;
@@ -390,7 +351,6 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 	return useMemo(() => ({
 		muted,
 		playing,
-		/** Null until SoundCloud has described the current track. */
 		track,
 		trackLabel: track ? `${track.artist} - ${track.title}` : "",
 		volume,

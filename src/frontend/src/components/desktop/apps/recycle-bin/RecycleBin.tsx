@@ -94,7 +94,6 @@ export function RecycleBin({ onCloseAction }: { onCloseAction: () => void }) {
 					onContextMenu={(event) => { event.stopPropagation(); setContext({ position: menuPosition(event), ids: selection.forItem(id) }); }}
 					draggable onDragStart={(event) => shell.startDrag(event, { kind: "entries", ids: selection.forItem(id) })} onDragEnd={shell.endDrag}>
 					<span className="shell-item__name">
-						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src={item.icon} alt="" width={16} height={16} draggable={false} /><span>{item.name}</span>
 					</span>
 					{view === "Details" && <><span>{entry.location}</span><span>{new Date(entry.deletedAt).toLocaleString()}</span><span>{item.type}</span></>}

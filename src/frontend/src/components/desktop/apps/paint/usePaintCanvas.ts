@@ -10,20 +10,13 @@ type Options = {
 	tool: ToolId;
 	fg: string;
 	bg: string;
-	/** The status bar's coordinates, written directly so strokes do not render. */
 	coordsEl: RefObject<HTMLElement | null>;
 };
 
-/**
- * Draws on a canvas that starts out as the `src` image. The bitmap is sized
- * once, to the canvas's first laid-out size; after that CSS scales it, so
- * resizing the window keeps the drawing and its undo history.
- */
 export function usePaintCanvas(options: Options) {
 	const { src } = options;
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
-	// The listeners are attached once and read the latest tool, colours and activity.
 	const latest = useRef(options);
 
 	useEffect(() => {
@@ -34,9 +27,7 @@ export function usePaintCanvas(options: Options) {
 		const canvas = canvasRef.current!;
 		const wrap = wrapRef.current!;
 		const undo: ImageData[] = [];
-		/** Set once the bitmap is sized and painted; strokes wait for it. */
 		let ctx: CanvasRenderingContext2D | null = null;
-		/** The starting image: undefined while it loads, null if it failed and the canvas starts white. */
 		let base: HTMLImageElement | null | undefined;
 		let rect = canvas.getBoundingClientRect();
 		let stroke: { x: number; y: number; style: FreehandStyle } | null = null;
@@ -59,7 +50,6 @@ export function usePaintCanvas(options: Options) {
 			ctx = context;
 		}
 
-		/** The bitmap pixel under the pointer, clamped to the canvas. */
 		function pixel(event: PointerEvent) {
 			const clamp = (value: number, size: number) => Math.max(0, Math.min(size - 1, Math.floor(value)));
 			return {
@@ -109,7 +99,6 @@ export function usePaintCanvas(options: Options) {
 			if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 		}
 
-		/** Ctrl+Z undoes the last stroke while this Paint window has focus, but not in text fields. */
 		function onKeyDown(event: KeyboardEvent) {
 			if (!latest.current.active || !canvas.closest(".win")?.contains(document.activeElement)) return;
 			if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
@@ -126,7 +115,6 @@ export function usePaintCanvas(options: Options) {
 		image.onerror = () => { base = null; initialize(); };
 		image.src = src;
 
-		// The boot reveal and window layout often mount Paint before its final size.
 		const observer = new ResizeObserver(() => {
 			rect = canvas.getBoundingClientRect();
 			initialize();

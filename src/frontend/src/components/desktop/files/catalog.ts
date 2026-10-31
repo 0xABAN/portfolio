@@ -62,7 +62,6 @@ export const SHELL_ITEMS: readonly ShellItem[] = [
 export const ITEM_BY_ID = new Map(SHELL_ITEMS.map((item) => [item.id, item]));
 const CATALOG_INDEX = new Map(SHELL_ITEMS.map((item, index) => [item.id, index]));
 
-/** Sorts shell items into catalog order, so a folder lists them the same way however they were moved, restored or saved. */
 export function byCatalogOrder(a: { id: string }, b: { id: string }) {
 	return CATALOG_INDEX.get(a.id)! - CATALOG_INDEX.get(b.id)!;
 }

@@ -1,11 +1,5 @@
-/** When the desktop has finished trickling in after the restart; the last items land here. */
 export const DESKTOP_REVEAL_MS = 2100;
 
-/**
- * The desktop's trickle-in after the restart, in ms. Items not listed show at
- * once, so a missing entry can never hide one. The wallpaper is not listed:
- * the screen shatters as soon as the desktop mounts, and the sparks follow it.
- */
 export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "tb:start", at: 40 },
 	{ id: "cd-player", at: 230 },
@@ -36,6 +30,5 @@ export const DESKTOP_REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "sysmsg-3", at: 2020 },
 	{ id: "sysmsg-4", at: 2060 },
 	{ id: "neko", at: DESKTOP_REVEAL_MS },
-	// Starts the CD Player's autoplay once everything has landed.
 	{ id: "boot-complete", at: DESKTOP_REVEAL_MS },
 ];

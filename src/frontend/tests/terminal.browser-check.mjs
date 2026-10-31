@@ -1,7 +1,3 @@
-/** Focused browser check; start the dev server, then run from src/frontend:
- * node tests/terminal.browser-check.mjs
- * Uses the existing playwright-cli tool. Clipboard and chat are mocked.
- */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -13,7 +9,6 @@ function browser(...args) {
 		encoding: "utf8",
 		timeout: 60000,
 	});
-	// The CLI can report page exceptions without a nonzero exit code.
 	assert.ok(!output.includes("### Error"), output);
 	return output;
 }
@@ -22,11 +17,9 @@ async function checkTerminal(page) {
 	const check = (condition, message) => {
 		if (!condition) throw new Error(message);
 	};
-	// The terminal wakes Adam's model as it mounts, so answer that request before the desktop boots.
 	let wakeResponse = { status: 204 };
 	let releaseWake;
 	const wakeHeld = new Promise((resolve) => { releaseWake = resolve; });
-	// The first check reports that Adam is still waking up, so the terminal has to ask again.
 	let wakeChecks = 0;
 	await page.route("**/api/chat/wake", async (route) => {
 		if (++wakeChecks === 1) return route.fulfill({ status: 202 });
@@ -37,7 +30,6 @@ async function checkTerminal(page) {
 	const input = page.getByRole("textbox", { name: "Terminal input" });
 	const lineTexts = () => page.locator(".term__line").allTextContents();
 
-	// Adam naps, with a wake-up timer and no prompt, until his model answers.
 	await page.waitForFunction(() => [...document.querySelectorAll(".term__line")].some((el) => el.textContent === "ADAM> (-_-) zZz"));
 	check((await lineTexts()).some((line) => line.trim().startsWith("asleep, waking him up · 0:")), "Napping Adam has no wake-up timer");
 	check(await input.count() === 0, "Prompt appeared before Adam woke up");
@@ -57,7 +49,6 @@ async function checkTerminal(page) {
 	const woke = opening.indexOf("ADAM> (o_o)");
 	const greeting = opening.indexOf("ADAM> come chat with me :)");
 	check(help > 1 && explanation > help && launch > explanation && woke > launch && greeting > woke, "Expected HELP, command list, ADAM.EXE, Adam waking, then his greeting");
-	// Test controls unobstructed by the deliberately overlapping desktop windows.
 	await page.addStyleTag({ content: ".win--dos { left:20px !important; top:20px !important; width:640px !important; height:480px !important; z-index:100 !important; }" });
 	await page.evaluate(() => {
 		window.testClipboard = "";
@@ -67,12 +58,10 @@ async function checkTerminal(page) {
 		window.fetch = (resource, init) => {
 			if (new URL(String(resource), location.href).pathname !== "/api/chat") return nativeFetch(resource, init);
 			window.testChatRequests.push(JSON.parse(init.body));
-			// A queued failure answers the next request instead of a stream.
 			const failure = window.nextChatFailure;
 			delete window.nextChatFailure;
 			if (failure === "offline") return Promise.reject(new TypeError("Failed to fetch"));
 			if (failure) return Promise.resolve(new Response(failure.body, { status: failure.status }));
-			// Keep the response open between tokens to test the visible waiting states.
 			const stream = new ReadableStream({ start(controller) {
 				const send = (event, data) => controller.enqueue(new TextEncoder().encode(
 					`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
@@ -209,7 +198,6 @@ async function checkTerminal(page) {
 		check(await input.evaluate((el) => el === document.activeElement), "Stream failure lost input focus");
 	}
 
-	// Refusals show the route's own words; error pages and lost connections get Adam's.
 	for (const [failure, expected] of [
 		[{ status: 429, body: JSON.stringify({ detail: "sry i'm too broke to afford this rn" }) }, "sry i'm too broke to afford this rn"],
 		[{ status: 504, body: "An error occurred with your deployment" }, "my brain isn't working rn, try again in a bit"],
@@ -223,7 +211,6 @@ async function checkTerminal(page) {
 		check(await prompt.isVisible(), "Prompt did not recover after a failed request");
 	}
 
-	// A reply with no first word after 3 s means the model went back to sleep: Adam naps until it starts.
 	await input.fill("u still there?");
 	await input.press("Enter");
 	await page.waitForFunction(() => typeof window.finishChat === "function");
@@ -234,7 +221,6 @@ async function checkTerminal(page) {
 	const afterNap = await lineTexts();
 	check(afterNap.includes("ADAM> yeah") && !afterNap.some((line) => line.includes("asleep, waking him up")), "Nap did not end when the reply started");
 
-	// A visitor out of chat time gets Adam's refusal instead of a greeting, and can still use the prompt.
 	wakeResponse = { status: 429, contentType: "application/json", body: JSON.stringify({ detail: "sry i'm too broke to afford this rn" }) };
 	await page.reload();
 	await page.locator(".rsod").click();
@@ -243,7 +229,6 @@ async function checkTerminal(page) {
 	check(refused.includes("ADAM> sry i'm too broke to afford this rn") && !refused.includes("ADAM> come chat with me :)"), "Refused wake-up still greeted the visitor");
 	wakeResponse = { status: 204 };
 
-	// Check narrow text wrapping; preserve the desktop's existing off-screen placement.
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.reload();
 	await page.locator(".rsod").click();
@@ -251,10 +236,8 @@ async function checkTerminal(page) {
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Narrow terminal overflowed horizontally");
 	check(await input.evaluate((el) => el.getBoundingClientRect().width > 100), "Narrow prompt has no usable input space");
 
-	// Startup must type both commands, not just show the final log.
 	await page.reload();
 	await page.evaluate(() => {
-		// Record mutations: polling can miss a short-lived typing frame.
 		window.startupCommands = new Set();
 		const observer = new MutationObserver(() => {
 			for (const line of document.querySelectorAll(".term__line")) {

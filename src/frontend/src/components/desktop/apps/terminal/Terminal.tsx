@@ -5,31 +5,22 @@ import { type ChatMessage, FAILURE_REPLIES } from "@/lib/chat/messages";
 import "./terminal.css";
 
 const GREETING = "come chat with me :)";
-/** Adam's first line arrives this long after everything before it, like a message coming in. */
 const GREETING_DELAY_MS = 1000;
 const BOT = "ADAM> ";
 const YOU = "YOU> ";
 const SHELL = "C:\\PORTFOLIO>";
 const WINDOWS_VERSION = "Windows 95. [Version 4.00.950]";
 
-// Adam's model sleeps when idle and takes about 90 s to wake up; meanwhile he naps on screen.
 const ASLEEP = "(-_-) ";
 const AWAKE = "(o_o)";
-/** Each frame of the z's drifting away from his face. */
 const SNORE = ["z  ", "zZ ", "zZz", " Zz", "  z", "   "];
 const SNORE_MS = 350;
-/** A reply that hasn't started by now is waiting on the model to wake up. */
 const ASLEEP_AFTER_MS = 3000;
 
-/** Each wake-up check gets this long to come back before the terminal asks again; the server answers within 20 s. */
 const WAKE_CHECK_TIMEOUT_MS = 30_000;
-/** Adam gives up waking after this long. Cold starts take 1.5–2.5 minutes. */
 const WAKE_GIVE_UP_MS = 5 * 60_000;
-/** Failed checks in a row before Adam says the visitor seems to be offline. */
 const OFFLINE_AFTER_FAILURES = 3;
-/** The model shuts down 15 minutes after its last request, so after 14 quiet minutes wake it before sending. */
 const AWAKE_FOR_MS = 14 * 60_000;
-/** A reply that sends nothing for this long has stalled. */
 const REPLY_STALL_MS = 60_000;
 
 const COPYRIGHT = ["Microsoft(R) Windows 95", "   (C)Copyright Microsoft Corp 1981-1995.", ""];
@@ -52,16 +43,13 @@ const HELP = [
 	"",
 ];
 
-/** Part of a line drawn in its own color. */
 type Segment = { text: string; tone?: "snore" | "time" };
-/** A line of output. `segments`, when set, color the parts of `text`. */
 type Line = { id: number; text: string; segments?: Segment[] };
 
 let lineId = 0;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/** Types `text` out, `charMs` per character and `spaceMs` after spaces, rendering every third character. */
 async function typewrite(text: string, onTick: (typed: string) => void, alive: () => boolean, charMs: number, spaceMs: number) {
 	let typed = "";
 	let pending = 0;
@@ -77,25 +65,18 @@ async function typewrite(text: string, onTick: (typed: string) => void, alive: (
 	if (pending) onTick(typed);
 }
 
-/** How long since `since`, as minutes and seconds: "0:41". */
 function elapsed(since: number) {
 	const seconds = Math.floor((Date.now() - since) / 1000);
 	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/** A failed reply; its message is what Adam says about it, one of FAILURE_REPLIES or the server's own. */
 class ChatFailure extends Error {}
 
-/** What Adam says about a refused request: the route's `detail`, or a generic line for responses without one, like platform error pages. */
 async function refusalReply(res: Response) {
 	const detail = await res.json().then((body: { detail?: string }) => body.detail, () => undefined);
 	return detail || FAILURE_REPLIES.broken;
 }
 
-/**
- * Wakes Adam's model, checking until it's up. Resolves once he can reply, or with what he says
- * instead (out of time, broken, unreachable).
- */
 async function wakeAdam(): Promise<string | null> {
 	const giveUp = Date.now() + WAKE_GIVE_UP_MS;
 	let failures = 0;
@@ -105,7 +86,6 @@ async function wakeAdam(): Promise<string | null> {
 		try {
 			res = await fetch("/api/chat/wake", { method: "POST", signal: AbortSignal.timeout(WAKE_CHECK_TIMEOUT_MS) });
 		} catch {
-			// A lost check is retried; the model keeps booting either way.
 			if (++failures >= OFFLINE_AFTER_FAILURES) return FAILURE_REPLIES.unreachable;
 			await sleep(2000);
 			continue;
@@ -113,15 +93,12 @@ async function wakeAdam(): Promise<string | null> {
 
 		failures = 0;
 		if (res.status === 204) return null;
-		// 202: still waking up, so check again.
 		if (res.status !== 202) return refusalReply(res);
 	}
 	return FAILURE_REPLIES.broken;
 }
 
-/** Streams Adam's reply from the chat API's server-sent events, one token at a time. */
 async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
-	// A reply that goes silent is abandoned rather than awaited forever.
 	const stall = new AbortController();
 	let stallTimer = setTimeout(() => stall.abort(), REPLY_STALL_MS);
 	const fail = (): never => {
@@ -181,11 +158,9 @@ export function Terminal() {
 	const [clipboardStatus, setClipboardStatus] = useState("");
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
-	// Shell recall is independent of the conversation sent to the chat API.
 	const submittedInput = useRef<string[]>([]);
 	const recallIndex = useRef<number | null>(null);
 	const draft = useRef("");
-	/** When Adam's model last answered, to tell whether it has gone back to sleep. */
 	const lastHeard = useRef(0);
 
 	useEffect(() => {
@@ -193,7 +168,6 @@ export function Terminal() {
 		if (el) el.scrollTop = el.scrollHeight;
 	}, [lines, input, busy]);
 
-	/** Adds a line and returns its id, so typewriters can keep updating it. */
 	const append = useCallback((text: string) => {
 		const id = ++lineId;
 		setLines((prev) => [...prev, { id, text }]);
@@ -213,10 +187,6 @@ export function Terminal() {
 		setLines((prev) => prev.filter((line) => line.id !== id));
 	}, []);
 
-	/**
-	 * Shows Adam asleep on line `faceId`, with how long he's been waking up (since `since`) on a
-	 * line under it. Returns the function that stops the nap and removes that line.
-	 */
 	const showAsleep = useCallback((faceId: number, since: number) => {
 		const statusId = append("");
 		let frame = 0;
@@ -236,17 +206,14 @@ export function Terminal() {
 		};
 	}, [append, setLineSegments, removeLine]);
 
-	// The opening script: a DOS banner, a typed HELP and ADAM.EXE, then Adam's greeting once he's awake.
 	useEffect(() => {
 		let alive = true;
 		let stopNap: (() => void) | undefined;
 
-		// Start waking the model now, so it boots during the intro instead of after it.
 		const wakeStarted = Date.now();
 		let wakeSettled = false;
 		const wakeup = wakeAdam().finally(() => { wakeSettled = true; });
 
-		// The two shell commands are a demonstration, not messages sent to Adam.
 		async function typeCommand(command: string) {
 			const id = append(SHELL);
 			await sleep(225);
@@ -255,7 +222,6 @@ export function Terminal() {
 		}
 
 		void (async () => {
-			// Cold open: the DOS session starts before the chat program.
 			await sleep(175);
 			for (const text of COPYRIGHT) {
 				if (!alive) return;
@@ -271,7 +237,6 @@ export function Terminal() {
 			await typeCommand("ADAM.EXE");
 			if (!alive) return;
 			append("");
-			// The program starts without output. A second later Adam answers, or naps until his model is up.
 			await sleep(GREETING_DELAY_MS);
 			if (!alive) return;
 			let face: number | undefined;
@@ -289,7 +254,6 @@ export function Terminal() {
 				else setLineText(face, BOT + failure);
 			} else {
 				if (face !== undefined) {
-					// He wakes up, then greets a second later.
 					setLineText(face, BOT + AWAKE);
 					await sleep(GREETING_DELAY_MS);
 					if (!alive) return;
@@ -316,7 +280,6 @@ export function Terminal() {
 		setClipboardStatus("");
 	}
 
-	/** Runs a shell command; returns false for anything meant for Adam. */
 	function runLocal(command: string) {
 		const name = command.toLowerCase();
 		if (name === "clear" || name === "cls") setLines([]);
@@ -341,7 +304,6 @@ export function Terminal() {
 		let reply = "";
 		const replyId = append(BOT + "...");
 
-		// No first word by now means the model is waking up from zero, so Adam naps until it does.
 		const sent = Date.now();
 		const mayBeAsleep = sent - lastHeard.current > AWAKE_FOR_MS;
 		let stopNap: (() => void) | undefined;
@@ -353,7 +315,6 @@ export function Terminal() {
 		};
 
 		try {
-			// Wake a model that has probably shut down first, so the reply itself never waits on a cold start.
 			if (mayBeAsleep) {
 				const failure = await wakeAdam();
 				if (failure) throw new ChatFailure(failure);
@@ -368,9 +329,7 @@ export function Terminal() {
 			lastHeard.current = Date.now();
 		} catch (error) {
 			endNap();
-			// The model may have gone down, so check it's awake before the next message.
 			lastHeard.current = 0;
-			// Failed turns stay out of the history, so the model never sees these lines.
 			if (!(error instanceof ChatFailure)) console.error(error);
 			setLineText(replyId, BOT + (error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken));
 		} finally {
@@ -393,7 +352,6 @@ export function Terminal() {
 			const entries = submittedInput.current;
 			if (!entries.length) return;
 
-			// Keep the unfinished entry so Down past the newest command restores it.
 			const current = recallIndex.current ?? entries.length;
 			if (recallIndex.current === null) draft.current = input;
 			const next = Math.max(0, Math.min(entries.length, current + (event.key === "ArrowUp" ? -1 : 1)));
@@ -402,7 +360,6 @@ export function Terminal() {
 		}
 	}
 
-	/** Copies selected output, else the selected input, else the whole transcript. */
 	async function copy() {
 		const field = inputRef.current;
 		const selectedInput = field?.value.slice(field.selectionStart ?? 0, field.selectionEnd ?? 0);
@@ -425,7 +382,6 @@ export function Terminal() {
 
 		try {
 			const text = await navigator.clipboard.readText();
-			// A clipboard permission prompt can outlive this particular input row.
 			if (field !== inputRef.current || field.readOnly) return;
 			field.setRangeText(text.replace(/[\r\n]+/g, " "), field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
 			editInput(field.value);
@@ -468,7 +424,6 @@ export function Terminal() {
 						)) ?? (line.text || "\u00a0")}
 					</span>
 				))}
-				{/* Keep the field mounted during replies: native focus and selection survive. */}
 				{booted && (
 					<form className="term__input-row" onSubmit={submit} aria-busy={busy} data-empty={!input}>
 						<span className="term__prompt" aria-hidden="true">{YOU}</span>

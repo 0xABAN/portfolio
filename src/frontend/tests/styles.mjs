@@ -1,8 +1,3 @@
-/**
- * node tests/styles.mjs record|compare [url] [artifact-directory]
- * Record before a CSS change; compare afterwards with the same browser and DPR.
- * Uses the existing playwright-cli and sharp installations, no new dependencies.
- */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
@@ -74,8 +69,6 @@ try {
       });
       const file = path.join(directory, `${name}-${state}`);
       const image = await target.screenshot({ animations: 'disabled', caret: 'hide' });
-      // Ignore server origins and the production minifier's equivalent gradient
-      // direction. The screenshot comparison still guards the rendered pixels.
       const normalize = value => JSON.parse(JSON.stringify(value)
         .replace(/https?:\/\/(?:127\.0\.0\.1|localhost):\d+/g, '')
         .replaceAll('linear-gradient(to right,', 'linear-gradient(90deg,'));
@@ -94,8 +87,6 @@ try {
         for (let i = 0; i < actual.data.length; i += 4) {
           if (actual.data.subarray(i, i + 4).some((value, channel) => Math.abs(value - expected.data[i + channel]) > 12)) different++;
         }
-        // Match the existing performance check's scaled-image rasterization budget.
-        // Every element's geometry and key styles above must still match exactly.
         assert.ok(different <= actual.info.width * actual.info.height * 0.002, `${name}/${state}: ${different} pixels differ`);
         console.log(`PASS ${name}/${state}: exact layout/styles; ${different} differing pixels`);
       }
@@ -110,8 +101,6 @@ try {
       await stillDesktop(page);
       await capture('desktop', '.desktop');
 
-      // Exercise the additional UI surfaces at the full desktop size. Other
-      // profiles guard viewport-dependent layout and the mobile device gate.
       if (name === 'desktop') {
         async function launch(group, label, selector) {
           await page.getByRole('button', { name: 'Start', exact: true }).click();

@@ -1,4 +1,3 @@
-/* Paint layout (classic dims/icons) on desktop chrome palette */
 .paint {
 	--paint-menu-h: 18px;
 	--paint-toolbox-w: 56px;
@@ -109,7 +108,6 @@
 	top: 5px;
 }
 
-/* 1px sunken bevel: canvas, swatches, status, selected tool */
 .paint__sunken,
 .paint__tool--selected {
 	border: 1px solid;
@@ -177,7 +175,7 @@
 .paint__palette {
 	display: flex;
 	flex-flow: row wrap;
-	width: 224px; /* 14 * 16 */
+	width: 224px;
 	height: 32px;
 }
 

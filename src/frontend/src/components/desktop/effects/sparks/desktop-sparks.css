@@ -1,7 +1,6 @@
 .desktop-sparks {
 	position: fixed;
 	inset: 0 0 var(--taskbar-height);
-	/* Above the wallpaper (0), below desktop icons (2) and windows (3). */
 	z-index: 1;
 	overflow: hidden;
 	contain: strict;
@@ -11,7 +10,6 @@
 .desktop-sparks__spark {
 	position: absolute;
 	background: no-repeat 0 0 / 100% 100%;
-	/* Each spark's own keyframes, from DesktopSparks. */
 	animation-name: var(--spark-motion);
 	animation-timing-function: linear;
 	animation-iteration-count: infinite;

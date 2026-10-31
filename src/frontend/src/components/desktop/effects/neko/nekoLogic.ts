@@ -1,4 +1,3 @@
-/** Sprite cells from crgimenes/neko (oneko.js 8×4 sheet layout), as [column, row] offsets. */
 const SPRITES: Record<string, readonly (readonly [number, number])[]> = {
 	idle: [[-3, -3]],
 	alert: [[-7, -3]],
@@ -22,10 +21,8 @@ const SPRITES: Record<string, readonly (readonly [number, number])[]> = {
 const SPEED = 20;
 const TICK_MS = 100;
 
-/** An idle animation in progress, and how long the cat has been idle. */
 type Idle = { time: number; anim: string | null; frame: number };
 
-/** The compass sprite for moving by (dx, dy) over `dist`; the axes are flipped, since the cat moves against them. */
 function moveDir(dx: number, dy: number, dist: number) {
 	const n = dy / dist > 0.5 ? "N" : "";
 	const s = dy / dist < -0.5 ? "S" : "";
@@ -34,7 +31,6 @@ function moveDir(dx: number, dy: number, dist: number) {
 	return `${n}${s}${w}${e}` || "idle";
 }
 
-/** Sleeping, or scratching itself or a nearby screen edge. */
 function pickIdleAnim(x: number, y: number, vw: number, vh: number) {
 	const options = ["sleeping", "scratchSelf"];
 	if (x < 32) options.push("scratchWallW");
@@ -44,7 +40,6 @@ function pickIdleAnim(x: number, y: number, vw: number, vh: number) {
 	return options[Math.floor(Math.random() * options.length)];
 }
 
-/** Advances the idle animation; returns the sprite and frame to show. */
 function stepIdle(idle: Idle, x: number, y: number, vw: number, vh: number): [string, number] {
 	idle.time += 1;
 	if (idle.time > 10 && Math.floor(Math.random() * 200) === 0 && !idle.anim) {
@@ -52,7 +47,6 @@ function stepIdle(idle: Idle, x: number, y: number, vw: number, vh: number): [st
 	}
 	if (!idle.anim) return ["idle", 0];
 
-	// A nap dozes off for 8 frames then sleeps; a scratch lasts 10.
 	const sleeping = idle.anim === "sleeping";
 	const sprite: [string, number] = !sleeping ? [idle.anim, idle.frame]
 		: idle.frame < 8 ? ["tired", 0] : ["sleeping", Math.floor(idle.frame / 4)];
@@ -65,7 +59,6 @@ function stepIdle(idle: Idle, x: number, y: number, vw: number, vh: number): [st
 	return sprite;
 }
 
-/** Drives a neko element at 10 Hz, chasing the mouse. Returns cleanup. */
 export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 	let nekoX = 48;
 	let nekoY = 48;
@@ -91,7 +84,6 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		const dy = nekoY - mouseY;
 		const dist = Math.hypot(dx, dy);
 
-		// Close enough to the cursor: idle animations play in place.
 		if (dist < 48) {
 			paint(...stepIdle(idle, nekoX, nekoY, innerWidth, innerHeight));
 			return;
@@ -99,7 +91,6 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 
 		idle.anim = null;
 		idle.frame = 0;
-		// Woken from idling, it looks alert for a few frames before running.
 		if (idle.time > 1) {
 			paint("alert", 0);
 			idle.time = Math.min(idle.time, 7) - 1;
@@ -116,7 +107,6 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 		mouseX = event.clientX;
 		mouseY = event.clientY;
 	};
-	// The timer keeps running; ticks do nothing while the page is hidden.
 	const onVisibility = () => {
 		if (!document.hidden) tick();
 	};
@@ -126,7 +116,6 @@ export function runNeko(el: HTMLElement, sheetUrl: string): () => void {
 	place();
 	document.addEventListener("mousemove", onMove, { passive: true });
 	document.addEventListener("visibilitychange", onVisibility);
-	// A fixed 10 Hz, rather than paying for every display refresh.
 	const timer = window.setInterval(tick, TICK_MS);
 
 	return () => {

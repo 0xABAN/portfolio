@@ -6,7 +6,6 @@ import "./restarting.css";
 const LINES = ["ATAPI CD-ROM: CD-ROM DRIVE", "Memory Test: 65536K OK", "", "Starting Windows 95..."];
 const RESTART_MS = 900;
 
-/** The POST lines appear one at a time, evenly over RESTART_MS, then the desktop starts. */
 export function Restarting({ onDoneAction }: { onDoneAction: () => void }) {
 	const [count, setCount] = useState(0);
 

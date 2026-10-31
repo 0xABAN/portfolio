@@ -23,13 +23,11 @@ test("parseMessages rejects malformed requests", () => {
 	]) {
 		assert.throws(() => parseMessages(bad), ChatInputError, JSON.stringify(bad));
 	}
-	// The route answers this one specifically, since the terminal can send it.
 	assert.throws(() => parseMessages([user("x".repeat(MAX_MESSAGE_CHARS + 1))]), MessageTooLongError);
 });
 
 const MINUTE = 60_000;
 
-/** An in-memory stand-in for the Redis commands the limit uses, with expiry on a test-controlled clock. */
 function fakeRedis(clock: { now: number }): Store {
 	const values = new Map<string, { value: number; expiresAt: number }>();
 	const read = (key: string) => {
@@ -64,19 +62,16 @@ test("allowChat gives a visitor the daily chat time, then refuses them for the r
 	const redis = fakeRedis(clock);
 	const message = (ip = "1.2.3.4") => allowChat(redis, ip, "message", clock.now);
 
-	// A message a minute: the gaps between these messages add up to exactly the daily limit.
 	for (let i = 0; i <= DAILY_CHAT_MS / MINUTE; i++) {
 		assert.equal(await message(), true, `message ${i}`);
 		clock.now += MINUTE;
 	}
 	assert.equal(await message(), false);
 
-	// Still refused after a break, while another visitor is unaffected.
 	clock.now += 2 * 60 * MINUTE;
 	assert.equal(await message(), false);
 	assert.equal(await message("5.6.7.8"), true);
 
-	// A new UTC day starts over.
 	clock.now = Date.UTC(2026, 9, 12, 0, 1);
 	assert.equal(await message(), true);
 });
@@ -85,7 +80,6 @@ test("allowChat doesn't count gaps longer than 5 minutes", async () => {
 	const clock = { now: Date.UTC(2026, 9, 11, 9, 0) };
 	const redis = fakeRedis(clock);
 
-	// Twenty short visits through the day, each one starting after a long break.
 	for (let visit = 0; visit < 20; visit++) {
 		assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true, `visit ${visit}`);
 		clock.now += CONVERSATION_GAP_MS + MINUTE;
@@ -96,14 +90,12 @@ test("allowChat doesn't charge for waiting on the model to wake up", async () =>
 	const clock = { now: Date.UTC(2026, 9, 11, 9, 0) };
 	const redis = fakeRedis(clock);
 
-	// A 2.5-minute cold start, checked every 20 s, then a message right as Adam wakes up.
 	for (let check = 0; check < 8; check++) {
 		assert.equal(await allowChat(redis, "1.2.3.4", "wake", clock.now), true, `check ${check}`);
 		clock.now += 20_000;
 	}
 	assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), true);
 
-	// Only that last 20 s was spent, so every one-minute gap that fits beside it is allowed, and one more isn't.
 	const fits = Math.floor((DAILY_CHAT_MS - 20_000) / MINUTE);
 	for (let i = 0; i < fits; i++) {
 		clock.now += MINUTE;
@@ -112,7 +104,6 @@ test("allowChat doesn't charge for waiting on the model to wake up", async () =>
 	clock.now += MINUTE;
 	assert.equal(await allowChat(redis, "1.2.3.4", "message", clock.now), false);
 
-	// Once out of time, the visitor can't wake the model either.
 	assert.equal(await allowChat(redis, "1.2.3.4", "wake", clock.now + 10 * MINUTE), false);
 });
 

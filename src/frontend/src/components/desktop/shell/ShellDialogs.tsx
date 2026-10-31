@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef } from "react";
 import { useShell } from "../files/ShellProvider";
 
-/** The shell's modal message: a notice with OK, or a question with Yes and No. */
 export function ShellDialogs() {
 	const shell = useShell();
 	const dialog = shell.dialog;
@@ -21,8 +20,6 @@ function MessageDialog({ title, message, accept, onClose }: { title: string; mes
 		dialog.showModal();
 		return () => {
 			dialog.close();
-			// React removes the dialog before passive cleanup; native focus restoration
-			// alone would leave keyboard users on <body> after Cancel.
 			const target = previous?.isConnected ? previous : surface?.querySelector<HTMLElement>("[data-shell-item]");
 			target?.focus({ preventScroll: true });
 		};

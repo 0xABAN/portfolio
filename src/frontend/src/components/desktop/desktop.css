@@ -1,4 +1,3 @@
-/* Recreated MS Sans Serif by lou, CC BY-SA 3.0; see /fonts/win95-ui-LICENSE.txt. */
 @font-face { font-family: "Win95 UI"; src: url("/fonts/win95-ui.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Win95 UI"; src: url("/fonts/win95-ui-bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "Rose Tinted"; src: url("/fonts/rose-tinted-bolditalic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
@@ -10,10 +9,8 @@
 	--chrome-hi: #5a5a5a;
 	--chrome-lo: #000000;
 	--chrome-text: #f0f0f0;
-	/* classic Win9x arrow — hotspot 0,0 */
 	--cursor-arrow: url("/cursors/arrow.cur") 0 0, default;
 	--cursor-hand: url("/cursors/hand.svg") 7 1, pointer;
-	/* hourglass while “loading” an app */
 	--cursor-wait: url("/cursors/wait.cur") 15 15, wait;
 
 	position: relative;
@@ -25,18 +22,15 @@
 	cursor: var(--cursor-arrow);
 }
 
-/* Only actionable controls get the hand; keep disabled and drawing cursors intact. */
 .desktop :is(button, a[href]):not(:disabled, [aria-disabled="true"]) {
 	cursor: var(--cursor-hand);
 }
 
-/* fake app-launch wait — force hourglass over everything */
 .desktop--busy,
 .desktop--busy * {
 	cursor: var(--cursor-wait) !important;
 }
 
-/* Window z-order is local: repeated activation must never cover the taskbar. */
 .desktop__windows {
 	position: absolute;
 	inset: 0;
@@ -49,17 +43,11 @@
 	outline: none;
 }
 
-/* Retain layout, scroll positions and canvas resolution while excluding interaction. */
 .desktop__windows > .win[data-minimized="true"] {
 	visibility: hidden;
 	pointer-events: none;
 }
 
-/*
- * A window being dragged gets a layer of its own, so moving it does not repaint
- * the shared window layer every frame. Nested windows move with their parent,
- * so dragging any of them lifts the whole family.
- */
 .desktop__windows > .win[data-dragging],
 .desktop__windows:has(> .win[data-dragging][data-live-move]) > .win[data-live-move] {
 	will-change: transform;
@@ -79,7 +67,6 @@
 	opacity: 1;
 }
 
-/* The PSP stays hidden until its images are ready; dim the desktop only once it shows. */
 .desktop__windows:has(.psp:not([data-ready])) > .desktop__psp-dimmer {
 	opacity: 0;
 }
@@ -190,7 +177,6 @@
 	pointer-events: none;
 }
 
-/* The "don't click me!" balloon wobbles on four independent, unsynchronised loops. */
 .desk-icon__bubble {
 	position: absolute;
 	left: calc(100% + 2px);
@@ -271,7 +257,6 @@
 }
 
 @media (max-width: 520px) {
-	/* Keep the larger desktop balloon inside the narrow desktop canvas. */
 	.desk-icon__bubble {
 		width: 120px;
 		height: 58px;
@@ -284,7 +269,6 @@
 	}
 }
 
-/* Win9x bevels: light top-left and dark bottom-right, swapped while pressed or sunken. */
 .chrome-raised {
 	border: 2px solid;
 	border-color: var(--chrome-hi) var(--chrome-lo) var(--chrome-lo) var(--chrome-hi);

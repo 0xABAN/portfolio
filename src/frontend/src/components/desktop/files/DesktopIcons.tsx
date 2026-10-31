@@ -23,12 +23,10 @@ type Props = {
 const RECYCLE_BIN: DeskIcon = { id: "recycle-bin", label: "Recycle Bin", src: BIN_ICON.empty, recycle: true };
 const DESK_ICONS: CatalogIcon[] = [...FILE_ICONS, RECYCLE_BIN];
 
-/** Icon cells and the 8px gaps between them; keep in sync with desktop.css. */
 const CELL_W = 96;
 const CELL_H = 112;
 const STEP_X = CELL_W + 8;
 const STEP_Y = CELL_H + 8;
-/** The secrets folder starts bouncing this long after the desktop has finished revealing. */
 const ATTENTION_DELAY_MS = 1000;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
@@ -38,7 +36,6 @@ function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	}), RECYCLE_BIN];
 }
 
-/** The desktop's grid, with enough rows for every icon even when the screen is short. */
 function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
 	const width = Math.max(CELL_W, vw - 10);
 	const height = Math.max(CELL_H, vh - TASKBAR_H - 28);
@@ -47,13 +44,11 @@ function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
 	return { cols, rows };
 }
 
-/** Icons fill the columns top to bottom, left to right. */
 function defaultDeskIconPositions(vw: number, vh: number): DeskIconPositions {
 	const { rows } = gridBounds(vw, vh);
 	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, { col: Math.floor(index / rows), row: index % rows }]));
 }
 
-/** Clamps every icon into the grid; an icon whose cell is taken moves to the next free one. */
 function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: number, icons: DeskIcon[]): DeskIconPositions {
 	const { cols, rows } = gridBounds(vw, vh, icons.length);
 	const used = new Set<string>();
@@ -78,7 +73,6 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 	return (
 		<>
 			<span className="desk-icon__art">
-				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img className="desk-icon__img" src={src} alt="" width={64} height={64} draggable={false} />
 				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
 				{notification && (
@@ -127,7 +121,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
 	const bounceSecrets = attention && !secretsOpened && !explorerOpen;
 	const deskIcons = shellDeskIcons(shell.state.nodes);
-	// Icons the desktop starts with wait for the boot reveal; files moved onto it do not.
 	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
 	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
@@ -136,7 +129,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 		if (!secretsOpened && icon.id === "secrets") onSecretsOpenedAction();
 	}
 
-	/** Moves an icon to a cell, swapping with the icon already there; the Recycle Bin is never displaced. */
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
 		const { cols, rows } = gridBounds(window.innerWidth, window.innerHeight, deskIcons.length);
 		const cell = { col: Math.min(Math.max(col, 0), cols - 1), row: Math.min(Math.max(row, 0), rows - 1) };
@@ -173,7 +165,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 				onDrop={(event) => {
 					if (!draggingId) { shell.drop(event, "desktop"); return; }
 					event.preventDefault();
-					// The cell nearest the drop point.
 					const bounds = event.currentTarget.getBoundingClientRect();
 					moveDeskIconToCell(draggingId, Math.round((event.clientX - bounds.left - CELL_W / 2) / STEP_X), Math.round((event.clientY - bounds.top - CELL_H / 2) / STEP_Y));
 					shell.endDrag();

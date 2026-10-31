@@ -9,40 +9,32 @@ export type DesktopWindow = {
 	src?: string;
 	kind?: "error" | "paint" | "github" | "experience" | "terminal" | "explorer" | "cd-player" | "recycle-bin";
 	icon?: string;
-	/** When set, geometry is clamped inside this parent window */
 	parentId?: string;
-	/** Hidden without unmounting. Decorations are restored through Start. */
 	minimized?: boolean;
-	/** An explicit launch bypasses the initial boot reveal schedule. */
 	launched?: boolean;
 };
 
 type Rect = Pick<DesktopWindow, "x" | "y" | "w" | "h">;
 
-/** Shared with the desktop CSS variable so bounds and chrome cannot drift. */
 export const TASKBAR_H = 32;
 const TITLE_H = 22;
 
-/** Window chrome: padding, border and client margin. Keep in sync with window.css. */
 const CHROME_X = 12;
 const CHROME_Y = TITLE_H + 12;
-/** The client area's origin inside the window box. */
 const FRAME_X = CHROME_X / 2;
 const FRAME_Y = TITLE_H + (CHROME_Y - TITLE_H) / 2;
 
-/** Paint's chrome around its canvas. Keep in sync with the paint.css variables. */
 const PAINT_INNER_X = 56;
 const PAINT_INNER_Y = 18;
 const PAINT_INNER_BOTTOM = 70;
 
-const STREET_RATIO = 1360 / 768; // street.webp
+const STREET_RATIO = 1360 / 768;
 const MARGIN = 24;
 
 function layoutCentered(w: number, h: number, vw: number, vh: number): Rect {
 	return { w, h, x: Math.round((vw - w) / 2), y: Math.round((vh - TASKBAR_H - h) / 2) };
 }
 
-/** Desktop-space rect of the Paint image (canvas), not the whole adam window. */
 function paintImageBounds(parent: Rect): Rect {
 	return {
 		x: parent.x + FRAME_X + PAINT_INNER_X,
@@ -52,7 +44,6 @@ function paintImageBounds(parent: Rect): Rect {
 	};
 }
 
-/** Bounds nested windows clamp to (paint canvas, else full parent). */
 export function nestBounds(parent: Rect & Pick<DesktopWindow, "kind">): Rect {
 	return parent.kind === "paint" ? paintImageBounds(parent) : parent;
 }
@@ -66,7 +57,6 @@ export function clampToParent(child: Rect, parent: Rect): Rect {
 	};
 }
 
-/** Keeps a title bar reachable: 48px of the window stay on screen and the title bar above the taskbar. */
 export function clampWindowPos(x: number, y: number, w: number, vw: number, vh: number) {
 	return {
 		x: Math.min(vw - 48, Math.max(48 - w, x)),
@@ -74,7 +64,6 @@ export function clampWindowPos(x: number, y: number, w: number, vw: number, vh: 
 	};
 }
 
-/** The adam Paint window: as tall as the desktop allows, its canvas at the photo's ratio. */
 function layoutMeWindow(vw: number, vh: number): Rect {
 	const chromeX = CHROME_X + PAINT_INNER_X;
 	const chromeY = CHROME_Y + PAINT_INNER_Y + PAINT_INNER_BOTTOM;
@@ -89,7 +78,6 @@ function layoutMeWindow(vw: number, vh: number): Rect {
 	return { w, h, x: Math.round((vw - w) / 2), y: Math.round(MARGIN + (vh - TASKBAR_H - MARGIN * 2 - h) / 2) };
 }
 
-/** The "move me" window sits over the face in the photo, which lands at its lower right. */
 function layoutAltOnParent(parent: Rect): Rect {
 	const img = paintImageBounds(parent);
 	const side = Math.round(Math.min(img.w, img.h) * 0.42);
@@ -98,7 +86,6 @@ function layoutAltOnParent(parent: Rect): Rect {
 	return clampToParent({ x: Math.round(faceX - side * 0.72) + 20, y: Math.round(faceY - side * 0.7), w: side, h: side }, img);
 }
 
-/** The beep boop GIF, left of Paint. */
 function layoutBeepBoop(anchor: Rect): Rect {
 	const w = 96 + CHROME_X;
 	const h = 96 + CHROME_Y;
@@ -109,7 +96,6 @@ const ERR_W = 260;
 const ERR_H = 128;
 const ERR_COUNT = 5;
 
-/** Five error dialogs right of Paint, snaking right to left along a ︶⁔︶ wave. */
 function layoutErrorStack(paint: Rect): DesktopWindow[] {
 	const baseX = Math.round(paint.x + paint.w + 72) + (ERR_COUNT - 1) * 24;
 	const baseY = Math.round(paint.y + paint.h * 0.86 - ERR_H / 2);
@@ -131,9 +117,7 @@ function layoutTerminalWindow(anchor: Rect, vw: number, vh: number): Rect {
 	return { w, h, ...clampWindowPos(anchor.x + anchor.w + 50, Math.round(anchor.y + (anchor.h - h) / 2), w, vw, vh) };
 }
 
-/** Sized for about five months of the contribution calendar; the rest of the year scrolls. */
 function layoutGitHubWindow(anchor: Rect): Rect {
-	// Keep in sync with GitHubGraph's ActivityCalendar props and github-graph.css padding.
 	const block = 11;
 	const gap = 3;
 	const pad = 8;
@@ -143,7 +127,6 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 }
 
 function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
-	// Desktop aligns this to the actual task button when the app is restored.
 	return { id: "cd-player", title: "cd player", kind: "cd-player", icon: "/icons/cd.png", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
 }
 
@@ -162,11 +145,6 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	return windows.map((w) => w.parentId ? w : { ...w, ...clampWindowPos(w.x, w.y, w.w, vw, vh) });
 }
 
-/**
- * Lays the open windows out for a new viewport. Each keeps its offset from
- * its default place, so user moves survive; windows without a default place
- * follow the adam window. Nested windows keep their place inside their parent.
- */
 export function reflowDesktop(current: DesktopWindow[], previous: DesktopWindow[], next: DesktopWindow[], vw: number, vh: number): DesktopWindow[] {
 	const oldLayout = new Map(previous.map((w) => [w.id, w]));
 	const newLayout = new Map(next.map((w) => [w.id, w]));
@@ -194,7 +172,6 @@ export function reflowDesktop(current: DesktopWindow[], previous: DesktopWindow[
 		const target = newLayout.get(w.id);
 		const oldBase = oldLayout.get(parent.id);
 		const newBase = newLayout.get(parent.id);
-		// The default offset inside the parent can change with the viewport.
 		const shift = old && target && oldBase && newBase;
 		return {
 			...w,
@@ -208,7 +185,6 @@ export function reflowDesktop(current: DesktopWindow[], previous: DesktopWindow[
 	});
 }
 
-/** The PSP, at its artwork's ratio and as large as the desktop allows. */
 export function makeExperienceWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const ratio = 1840 / 855;
 	const maxW = Math.max(0, Math.min(1350, vw - 16));
@@ -218,14 +194,12 @@ export function makeExperienceWindow(z: number, vw: number, vh: number): Desktop
 	return { id: "experience", title: "experience", kind: "experience", icon: "/icons/playstation.svg", ...layoutCentered(w, h, vw, vh), z };
 }
 
-/** A shell folder window, independent of the items stored inside it. */
 export function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const w = Math.min(760, Math.max(240, vw - 24));
 	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
 	return { id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.png", z, ...layoutCentered(w, h, vw, vh) };
 }
 
-/** Explorer opens left of the adam window with their bottoms aligned, or centred if there is no room. */
 export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: number, vh: number): DesktopWindow {
 	const gap = 35;
 	const leftSpace = anchor ? anchor.x - gap - MARGIN : 0;
@@ -242,7 +216,6 @@ export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: numb
 	};
 }
 
-/** Places the overlay photo inside the "move me" window so it lines up with the Paint photo below. */
 export function altCropStyle(child: Pick<DesktopWindow, "x" | "y">, parent: Rect) {
 	const img = paintImageBounds(parent);
 	return { width: img.w, height: img.h, left: img.x - (child.x + FRAME_X), top: img.y - (child.y + FRAME_Y) };

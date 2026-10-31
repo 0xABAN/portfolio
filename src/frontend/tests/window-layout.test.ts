@@ -73,7 +73,6 @@ test("reflow preserves dragged offsets, nested placement, and user window state"
 	}
 	assert.equal(result.find((w) => w.id === "terminal")?.minimized, true);
 	assert.equal(result.find((w) => w.id === "terminal")?.z, 88);
-	// The 32px taskbar makes the resized Paint width odd; its center shifts by 0.5px.
 	assert.deepEqual(result.find((w) => w.id === "explorer"), { ...current.at(-1), x: 220.5, y: 120 });
 	const restored = reflowDesktop(result, next, previous, 1440, 900);
 	assert.deepEqual(restored, current);

@@ -4,13 +4,8 @@ import { ChatInputError, FAILURE_REPLIES, MessageTooLongError, parseMessages } f
 import { streamReply } from "@/lib/chat/model";
 import { sseEvent } from "@/lib/chat/sse";
 
-/** The model's GPU takes about 90 s to start from zero, so allow the plan's full 300 s. */
 export const maxDuration = 300;
 
-/**
- * Streams Adam's reply as "token" events, then "done", or "error" if the model fails. Every
- * failure's `detail` is one of FAILURE_REPLIES, which the terminal shows as Adam's reply.
- */
 export async function POST(req: Request) {
 	let messages;
 	try {
@@ -29,7 +24,6 @@ export async function POST(req: Request) {
 	const refusal = await checkChatTime(req, "message");
 	if (refusal) return refusal;
 
-	// Writes stop once the visitor disconnects; req.signal then cancels the model request too.
 	let open = true;
 	const stream = new ReadableStream<Uint8Array>({
 		async start(controller) {
@@ -43,7 +37,6 @@ export async function POST(req: Request) {
 				}
 				send(sseEvent("done", {}));
 			} catch (error) {
-				// A visitor who leaves cancels the model request; only other failures are worth logging.
 				if (!req.signal.aborted) console.error("chat: the model's reply failed:", error);
 				send(sseEvent("error", { detail: FAILURE_REPLIES.broken }));
 			} finally {

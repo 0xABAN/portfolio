@@ -6,12 +6,10 @@ export function isDecoration(w: DesktopWindow) {
 	return w.kind === "error" || w.id === "new";
 }
 
-/** The z-index just above every window. */
 function nextZ(windows: DesktopWindow[]) {
 	return Math.max(0, ...windows.map((w) => w.z)) + 1;
 }
 
-/** Start and desktop launchers share one create-or-activate path. */
 export function openApp(windows: DesktopWindow[], id: AppId, vw: number, vh: number): DesktopWindow[] {
 	let next = windows;
 	if (!windows.some((w) => w.id === id)) {
@@ -30,7 +28,6 @@ export function restoreDecorations(windows: DesktopWindow[]): DesktopWindow[] {
 	return windows.map((w) => isDecoration(w) && w.minimized ? { ...w, minimized: false, launched: true, z: z++ } : w);
 }
 
-/** Array order is launch order, independent of activation and minimization. */
 export function taskWindows(windows: DesktopWindow[]) {
 	return windows.filter((w) => !w.parentId && !isDecoration(w));
 }
@@ -41,7 +38,6 @@ export function activeWindowId(windows: DesktopWindow[]): string | undefined {
 	return front && !isDecoration(front) ? front.id : undefined;
 }
 
-/** Raise an owned window family together without changing its task order. */
 export function activateWindow(windows: DesktopWindow[], id: string): DesktopWindow[] {
 	const target = windows.find((w) => w.id === id);
 	if (!target) return windows;
@@ -62,10 +58,6 @@ export function minimizeWindowTree(windows: DesktopWindow[], id: string): Deskto
 	return windows.map((w) => w.id === rootId || w.parentId === rootId ? { ...w, minimized: true } : w);
 }
 
-/**
- * Moves a window, clamped to the screen, or to its parent's canvas if it is
- * nested. Windows nested in it move along and stay inside it.
- */
 export function moveWindow(windows: DesktopWindow[], id: string, x: number, y: number, vw: number, vh: number): DesktopWindow[] {
 	const target = windows.find((w) => w.id === id);
 	const parent = windows.find((w) => w.id === target?.parentId);

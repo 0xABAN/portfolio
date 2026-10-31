@@ -1,4 +1,3 @@
-/** Run against the dev server from src/frontend with node; uses installed playwright-cli. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -13,15 +12,12 @@ async function checkFracture(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
-	// Hold the loop back until well after the intro ends: the intro must stay on its last frame meanwhile.
 	await page.route("**/fracture/loop.mp4", async (route) => {
 		await page.waitForTimeout(2500);
 		await route.continue();
 	});
 	await page.locator(".rsod").waitFor();
 	await page.evaluate(() => {
-		// Log each clip's frames as they reach the screen, its playback events and the intro's removal.
-		// The loop only gets its source once the intro can play through.
 		window.wallpaper = [];
 		const log = (...entry) => window.wallpaper.push(entry);
 		new MutationObserver(() => {
@@ -59,5 +55,5 @@ try {
 	browser("open", process.env.FRACTURE_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	console.log(browser("run-code", checkFracture.toString()));
 } finally {
-	try { browser("close"); } catch { /* Preserve the original test failure. */ }
+	try { browser("close"); } catch {}
 }

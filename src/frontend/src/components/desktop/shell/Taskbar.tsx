@@ -6,10 +6,8 @@ import type { AppId } from "../window/state";
 import type { DesktopWindow } from "../window/layout";
 import "./taskbar.css";
 
-/** One POST per page load, so Strict Mode's remount does not count a view twice. Null if it fails. */
 let viewsRequest: Promise<number | null> | null = null;
 
-/** The site's view count; null until the response lands. */
 function useViewCount() {
 	const [views, setViews] = useState<number | null>(null);
 
@@ -26,7 +24,6 @@ function useViewCount() {
 	return views;
 }
 
-/** "3:07 PM", with a plain space where some locales use a narrow one. */
 const formatClock = (date: Date) => date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true }).replace(/\u202f/g, " ");
 const viewFormat = new Intl.NumberFormat("en-US");
 
@@ -43,14 +40,9 @@ type Props = {
 	onRestoreDecorationsAction: () => void;
 	onResetAction: () => void;
 	canRestoreDecorations: boolean;
-	/** Boot trickle: chrome pieces appear once their id is revealed. */
 	revealed: (id: string) => boolean;
 };
 
-/**
- * Tasks shrink to share the strip, as in Windows 95. If they still do not fit,
- * only the strip scrolls, so Start and the tray stay in reach.
- */
 function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapsed }: Pick<Props, "tasks" | "activeId" | "onActivateAction" | "trackLabel" | "bindElapsed">) {
 	const strip = useRef<HTMLDivElement>(null);
 
@@ -63,7 +55,6 @@ function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapse
 			onFocusCapture={(event) => (event.target as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" })}>
 			{tasks.map((w) => {
 				const isCdPlayer = w.id === "cd-player";
-				// The CD Player's task names the track once SoundCloud has described it.
 				const naming = isCdPlayer && trackLabel !== "";
 				const label = naming ? trackLabel : w.title || w.id;
 				return (
@@ -73,7 +64,6 @@ function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapse
 						aria-controls={`desktop-window-${w.id}`}
 						aria-pressed={w.id === activeId}
 						onClick={() => onActivateAction(w.id)}>
-						{/* eslint-disable-next-line @next/next/no-img-element */}
 						{w.icon && <img className="task-btn__icon" src={w.icon} alt="" width={16} height={16} draggable={false} />}
 						<span className="task-btn__label">{label}</span>
 						{isCdPlayer && <span className="task-btn__elapsed" ref={bindElapsed}>0:00</span>}

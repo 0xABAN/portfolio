@@ -1,4 +1,3 @@
-/** Run against the dev server from src/frontend with node; uses installed playwright-cli. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -16,7 +15,6 @@ async function checkLaunches(page) {
 	await page.route((url) => url.hostname === "w.soundcloud.com" && url.pathname === "/player/", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Muted test player</title>" }));
 	await page.locator(".rsod").waitFor();
 	await page.evaluate(() => {
-		// These checks exercise app launching, not audio output.
 		window.Audio = class extends window.Audio {
 			constructor(...args) { super(...args); super.volume = 0; }
 			get volume() { return 0; }
@@ -48,7 +46,7 @@ async function checkLaunches(page) {
 		await page.clock.runFor(1);
 		await win(id).waitFor();
 		check(!(await busy()), `${id} left the desktop busy`);
-		await page.clock.runFor(16); // Let the explicit launch restore keyboard focus.
+		await page.clock.runFor(16);
 	}
 	async function fromStart(label, group = "Programs") {
 		await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -71,8 +69,6 @@ async function checkLaunches(page) {
 		["cd-player", "CD Player", "Programs"],
 		["explorer", "secrets", "Documents"],
 	]) {
-		// Some initial windows extend offscreen; minimize without moving their layout.
-		// The CD Player may already have hidden itself when the mouse moved away.
 		const minimize = win(id).getByRole("button", { name: "Minimize", exact: true });
 		if (await minimize.count()) await minimize.dispatchEvent("click");
 		await delayed(id, id === "explorer" ? 500 : 1500, () => fromStart(label, group));
@@ -88,7 +84,6 @@ async function checkLaunches(page) {
 	const opened = await page.evaluate(() => window.openedLinks.map(([url]) => url));
 	check(opened.length === 2 && opened.every((url) => url === resume), "resume.doc did not link to the resume on GitHub");
 
-	// playwright-cli waits on a page timer after run-code returns.
 	await page.clock.resume();
 	return "PASS: desktop, every Start app, Explorer files, exact delays, hourglass, busy-click guard and immediate taskbar restores";
 }
@@ -97,5 +92,5 @@ try {
 	browser("open", process.env.LAUNCH_TEST_URL || "http://localhost:3000", "--browser", "chrome");
 	console.log(browser("run-code", checkLaunches.toString()));
 } finally {
-	try { browser("close"); } catch { /* Preserve the original test failure. */ }
+	try { browser("close"); } catch {}
 }

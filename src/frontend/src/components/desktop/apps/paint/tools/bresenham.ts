@@ -1,11 +1,5 @@
-/**
- * Bresenham iterator — from jspaint image-manipulation.js
- * https://github.com/1j01/jspaint/blob/master/src/image-manipulation.js
- */
-
 type PointCb = (x: number, y: number) => void;
 
-/** Dense brushes also stamp the orthogonal mid-step, including duplicate pixels. */
 export function bresenhamLine(
 	x1: number,
 	y1: number,

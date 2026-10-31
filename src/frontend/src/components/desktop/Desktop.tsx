@@ -21,15 +21,12 @@ import { activateWindow, activeWindowId, isDecoration, minimizeWindowTree, moveW
 import { TASKBAR_H, altCropStyle, layoutDesktop, reflowDesktop, type DesktopWindow } from "./window/layout";
 import "./desktop.css";
 
-/** Apps that open a shell file; launching fails while that file is deleted. */
 const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", experience: "experience" };
 const FILE_NOT_FOUND = "The file or folder could not be found. Restore it from the Recycle Bin before opening it.";
 
-/** Fake load times, like a slow 90s PC; folders open faster than programs. */
 const FOLDER_LOAD_MS = 500;
 const APP_LOAD_MS = 1500;
 
-/** Windows, the taskbar and dialogs handle their own drops. */
 function isDesktopSurface(target: EventTarget) {
 	return !(target as HTMLElement).closest(".win, .taskbar, dialog");
 }
@@ -42,7 +39,6 @@ function DesktopWorkspace() {
 	const shell = useShell();
 	const { getState, notice } = shell;
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
-	// Boot mounts this client-only, so window is available on first paint
 	const [windows, setWindows] = useState<DesktopWindow[]>(() => layoutDesktop(window.innerWidth, window.innerHeight));
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
@@ -50,7 +46,6 @@ function DesktopWorkspace() {
 	const binFull = shell.state.entries.length > 0;
 	const [secretsOpened, setSecretsOpened] = useState(false);
 	const revealed = useDesktopReveal();
-	// Sparks fly from the impact, so they wait for the wallpaper to show.
 	const [wallpaperShown, setWallpaperShown] = useState(false);
 	const showWallpaper = useCallback(() => setWallpaperShown(true), []);
 	const cdWindow = windows.find((w) => w.id === "cd-player");
@@ -83,7 +78,6 @@ function DesktopWorkspace() {
 			const target = event.target;
 			if (!(target instanceof HTMLElement) || (!desktop?.contains(target) && target !== document.body)) return;
 			const input = desktop?.querySelector<HTMLInputElement>(".term__input");
-			// Keep startup and deliberately removed Terminal windows unchanged.
 			if (!input) return;
 			const ownsInput = target.isContentEditable || target.closest(
 				'input, textarea, select, [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]',
@@ -97,8 +91,6 @@ function DesktopWorkspace() {
 			}
 
 			target.closest<HTMLElement>("[popover]")?.hidePopover();
-			// Restore visibility before the browser inserts this first character.
-			// Native insertion preserves selection, editing and React's onChange.
 			flushSync(() => {
 				setWindows((current) => activateWindow(current, "terminal"));
 			});
@@ -109,7 +101,6 @@ function DesktopWorkspace() {
 		return () => window.removeEventListener("keydown", onTyping);
 	}, []);
 
-	// Closing the CD Player quits its music: the player follows whether its window exists.
 	const closeWindow = useCallback((id: string) => {
 		setWindows((prev) => {
 			const next = prev.filter((w) => w.id !== id && w.parentId !== id);
@@ -133,13 +124,10 @@ function DesktopWorkspace() {
 		setWindows((prev) => minimizeWindowTree(prev, id));
 	}, []);
 
-	/** Measure after the task exists, including launches after a full quit. */
 	const focusWindow = useCallback((id: string) => {
 		requestAnimationFrame(() => {
 			const root = document.getElementById(`desktop-window-${id}`);
-			// Typing or another activation can win before this scheduled focus runs.
 			if (!root || root.dataset.active !== "true" || root.hasAttribute("inert")) return;
-			// Only explicit launches/restores may move keyboard focus.
 			root.focus({ preventScroll: true });
 			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
 		});
@@ -150,11 +138,9 @@ function DesktopWorkspace() {
 		focusWindow(id);
 	}, [focusWindow]);
 
-	/** All launchers share the wait; taskbar restores deliberately bypass it. */
 	const launchApp = useCallback((id: AppId, sourceId?: string) => {
 		if (launchTimer.current !== null) return;
 		const required = sourceId ?? APP_FILES[id];
-		// The desktop always exists; any other source can be deleted, even mid-launch.
 		const missing = () => required !== undefined && required !== "desktop" && !getState().nodes.some((node) => node.id === required);
 
 		if (missing()) {
@@ -189,7 +175,6 @@ function DesktopWorkspace() {
 		else if (item.href) window.open(item.href, "_blank", "noopener,noreferrer");
 	}, [launchApp, getState, notice]);
 
-	/** Start opens a document through its shell file, so a deleted file stays unavailable. */
 	const openFile = useCallback((id: string) => {
 		if (getState().nodes.some((node) => node.id === id)) openShell(id);
 		else notice(FILE_NOT_FOUND, "file not found");
@@ -207,7 +192,6 @@ function DesktopWorkspace() {
 	});
 	const activeId = activeWindowId(visibleWindows);
 	const tasks = taskWindows(visibleWindows);
-	// The CD Player is a taskbar flyout: pinned above its task, and hidden when the mouse strays.
 	useTaskFlyout("cd-player", visibleWindows.some((w) => w.id === "cd-player" && !w.minimized), tasks.map((w) => w.id).join(), setWindows);
 	const renderWindow = (w: DesktopWindow) => {
 		const parent = windows.find((p) => p.id === w.parentId);
@@ -216,7 +200,6 @@ function DesktopWorkspace() {
 			active={(w.parentId ?? w.id) === activeId}
 			minimized={Boolean(w.minimized)}
 			variant={w.kind === "terminal" ? "dos" : w.kind === "error" ? "error" : undefined}
-			// Nested crop + parent-of-nested need live React geometry while dragging
 			liveMove={Boolean(w.parentId || windows.some((c) => c.parentId === w.id))}
 			minimizable={w.id !== "alt"}
 			frameless={w.kind === "experience"}

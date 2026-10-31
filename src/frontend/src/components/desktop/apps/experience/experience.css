@@ -10,7 +10,6 @@
 	pointer-events: none;
 }
 
-/* Exactly over the artwork's screen opening (439–1399 × 113–681 of 1840 × 855), so its frame is even on every side. */
 .psp__screen {
 	position: absolute;
 	top: 13.22%;
@@ -93,7 +92,6 @@
 	}
 }
 
-/* The current category's artwork, under shades that keep the menu legible. */
 .psp-xmb__artwork,
 .psp-xmb__shade {
 	position: absolute;
@@ -188,7 +186,6 @@
 	background: currentColor;
 }
 
-/* The categories share the row equally, so it stays centred at every screen size. */
 .psp-xmb__categories {
 	position: absolute;
 	top: 13%;
