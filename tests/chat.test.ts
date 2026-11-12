@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { allowChat, ChatInputError, completionText, CONVERSATION_GAP_MS, DAILY_CHAT_MS, MAX_MESSAGE_CHARS, MessageTooLongError, parseMessages, type Store } from "@/lib/chat";
+import {
+	allowChat,
+	ChatInputError,
+	completionText,
+	CONVERSATION_GAP_MS,
+	DAILY_CHAT_MS,
+	MAX_MESSAGE_CHARS,
+	MessageTooLongError,
+	parseMessages,
+	type Store,
+} from "@/lib/chat";
 
 const user = (content: string) => ({ role: "user", content });
 const assistant = (content: string) => ({ role: "assistant", content });

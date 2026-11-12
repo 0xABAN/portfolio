@@ -413,7 +413,13 @@ export function Terminal() {
 					aria-label="DOS font credits" title="DOS font credits">?</a>
 			</div>
 			<div className="term__status" role="status">{clipboardStatus}</div>
-			<div className="term__body" ref={bodyRef} onClick={() => { if (window.getSelection()?.isCollapsed) inputRef.current?.focus(); }}>
+			<div
+				className="term__body"
+				ref={bodyRef}
+				onClick={() => {
+					if (window.getSelection()?.isCollapsed) inputRef.current?.focus();
+				}}
+			>
 				{lines.map((line) => (
 					<span key={line.id} className={line.text ? "term__line" : "term__line term__line--blank"}>
 						{line.segments?.map((segment, i) => (

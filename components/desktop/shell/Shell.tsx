@@ -1,17 +1,42 @@
-import { createContext, useContext, useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { deleteNodes, entryId, initialShellState, itemOf, moveNodes, parseShellState, purgeEntries, restoreEntries, selectedRoots, STORAGE_KEY, type ShellState } from "./files";
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useId,
+	useRef,
+	useState,
+	type DragEvent,
+	type KeyboardEvent,
+	type MouseEvent,
+	type ReactNode,
+} from "react";
+import {
+	deleteNodes,
+	entryId,
+	initialShellState,
+	itemOf,
+	moveNodes,
+	parseShellState,
+	purgeEntries,
+	restoreEntries,
+	selectedRoots,
+	STORAGE_KEY,
+	type ShellState,
+} from "./files";
 import { desktopScale } from "../viewport";
 import "./controls.css";
 
 type ShellDialog = { title: string; message: string; accept?: () => void };
 type ShellDrag = { kind: "nodes" | "entries"; ids: string[] };
 const DRAG_TYPE = "application/x-portfolio-shell";
+const RESET_PROMPT = "Reset all portfolio files? This brings back permanently deleted items. Your icon arrangement will be kept.";
+const DAMAGED_STATE = "The saved desktop could not be read, so the portfolio starts fresh. Your next change replaces the saved copy.";
 
 function loadState(): { state: ShellState; error?: string } {
 	try {
 		return { state: parseShellState(window.localStorage.getItem(STORAGE_KEY)) };
 	} catch {
-		return { state: initialShellState(), error: "The saved desktop could not be read, so the portfolio starts fresh. Your next change replaces the saved copy." };
+		return { state: initialShellState(), error: DAMAGED_STATE };
 	}
 }
 
@@ -19,7 +44,9 @@ function useShellController() {
 	const [loaded] = useState(loadState);
 	const [state, setState] = useState(loaded.state);
 	const current = useRef(state);
-	const [dialog, setDialog] = useState<ShellDialog | null>(() => loaded.error ? { title: "desktop storage", message: loaded.error } : null);
+	const [dialog, setDialog] = useState<ShellDialog | null>(() => {
+		return loaded.error ? { title: "desktop storage", message: loaded.error } : null;
+	});
 	const drag = useRef<ShellDrag | null>(null);
 
 	function notice(message: string, title = "recycle bin") {
@@ -27,7 +54,11 @@ function useShellController() {
 	}
 
 	function confirm(message: string, action: () => void, title = "confirm file delete") {
-		setDialog({ title, message, accept: () => { setDialog(null); action(); } });
+		const accept = () => {
+			setDialog(null);
+			action();
+		};
+		setDialog({ title, message, accept });
 	}
 
 	function save(next: ShellState) {
@@ -78,7 +109,8 @@ function useShellController() {
 	}
 
 	function canDrop(event: DragEvent, destination: string) {
-		return Boolean(drag.current && event.dataTransfer.types.includes(DRAG_TYPE) && (destination !== "bin" || drag.current.kind === "nodes"));
+		if (!drag.current || !event.dataTransfer.types.includes(DRAG_TYPE)) return false;
+		return destination !== "bin" || drag.current.kind === "nodes";
 	}
 
 	function drop(event: DragEvent, destination: string) {
@@ -96,9 +128,7 @@ function useShellController() {
 		state, dialog, closeDialog: () => setDialog(null),
 		getState: () => current.current, notice, recycle, purge, restore,
 		empty: () => purge(current.current.entries.map(entryId), "confirm multiple file delete"),
-		reset: () => confirm("Reset all portfolio files? This brings back permanently deleted items. Your icon arrangement will be kept.", () => {
-			save(initialShellState());
-		}, "reset portfolio"),
+		reset: () => confirm(RESET_PROMPT, () => save(initialShellState()), "reset portfolio"),
 		startDrag, endDrag: () => { drag.current = null; }, canDrop, drop,
 	};
 }
@@ -121,7 +151,9 @@ export function ShellDialogs() {
 	return dialog && <MessageDialog {...dialog} onClose={shell.closeDialog} />;
 }
 
-function MessageDialog({ title, message, accept, onClose }: { title: string; message: string; accept?: () => void; onClose: () => void }) {
+type MessageDialogProps = ShellDialog & { onClose: () => void };
+
+function MessageDialog({ title, message, accept, onClose }: MessageDialogProps) {
 	const ref = useRef<HTMLDialogElement>(null);
 	const titleId = useId();
 
@@ -137,17 +169,31 @@ function MessageDialog({ title, message, accept, onClose }: { title: string; mes
 		};
 	}, []);
 
-	return <dialog ref={ref} className="shell-dialog chrome-raised" aria-labelledby={titleId} data-shell-surface=""
-		onCancel={(event) => { event.preventDefault(); onClose(); }}>
-		<header className="win-titlebar"><span id={titleId} className="win-titlebar__text">{title}</span>
-			<button type="button" className="win-min win-close chrome-raised" aria-label={`Close ${title}`} onClick={onClose}>×</button>
-		</header>
-		<div className="shell-dialog__message"><span className="shell-dialog__symbol" aria-hidden="true">{accept ? "?" : "!"}</span><p>{message}</p></div>
-		<div className="shell-dialog__buttons">
-			{accept && <button type="button" className="chrome-raised" onClick={accept}>Yes</button>}
-			<button type="button" className="chrome-raised" autoFocus onClick={onClose}>{accept ? "No" : "OK"}</button>
-		</div>
-	</dialog>;
+	return (
+		<dialog
+			ref={ref}
+			className="shell-dialog chrome-raised"
+			aria-labelledby={titleId}
+			data-shell-surface=""
+			onCancel={(event) => {
+				event.preventDefault();
+				onClose();
+			}}
+		>
+			<header className="win-titlebar">
+				<span id={titleId} className="win-titlebar__text">{title}</span>
+				<button type="button" className="win-min win-close chrome-raised" aria-label={`Close ${title}`} onClick={onClose}>×</button>
+			</header>
+			<div className="shell-dialog__message">
+				<span className="shell-dialog__symbol" aria-hidden="true">{accept ? "?" : "!"}</span>
+				<p>{message}</p>
+			</div>
+			<div className="shell-dialog__buttons">
+				{accept && <button type="button" className="chrome-raised" onClick={accept}>Yes</button>}
+				<button type="button" className="chrome-raised" autoFocus onClick={onClose}>{accept ? "No" : "OK"}</button>
+			</div>
+		</dialog>
+	);
 }
 
 export function useShellSelection(ids: string[], names: string[]) {
@@ -220,11 +266,30 @@ export function useShellSelection(ids: string[], names: string[]) {
 		}
 	}
 
-	return { selected, select, forItem, onKeyDown, all: () => setSelection(ids), clear: () => setSelection([]), invert: () => setSelection(ids.filter((id) => !selected.includes(id))) };
+	return {
+		selected,
+		select,
+		forItem,
+		onKeyDown,
+		all: () => setSelection(ids),
+		clear: () => setSelection([]),
+		invert: () => setSelection(ids.filter((id) => !selected.includes(id))),
+	};
 }
 
 export type MenuCommand = { label: string; action: () => void; disabled?: boolean; checked?: boolean; radio?: boolean } | "separator";
 export type MenuPosition = { x: number; y: number };
+type Command = Exclude<MenuCommand, "separator">;
+
+function commandRole({ checked, radio }: Command) {
+	if (checked === undefined) return "menuitem";
+	return radio ? "menuitemradio" : "menuitemcheckbox";
+}
+
+function commandMark({ checked, radio }: Command) {
+	if (!checked) return "";
+	return radio ? "•" : "✓";
+}
 
 export function menuPosition(event: MouseEvent<HTMLElement>): MenuPosition {
 	event.preventDefault();
@@ -238,7 +303,9 @@ export function keyboardMenuPosition(event: KeyboardEvent<HTMLElement>): MenuPos
 	return { x: rect.left, y: rect.bottom };
 }
 
-export function ShellMenu({ label, commands, position, onClose }: { label: string; commands: MenuCommand[]; position: MenuPosition; onClose: () => void }) {
+type ShellMenuProps = { label: string; commands: MenuCommand[]; position: MenuPosition; onClose: () => void };
+
+export function ShellMenu({ label, commands, position, onClose }: ShellMenuProps) {
 	const ref = useRef<HTMLDivElement>(null);
 	const close = useRef(onClose);
 	useEffect(() => { close.current = onClose; }, [onClose]);
@@ -260,9 +327,13 @@ export function ShellMenu({ label, commands, position, onClose }: { label: strin
 		const delta = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
 		if (delta || event.key === "Home" || event.key === "End") {
 			event.preventDefault();
-			items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + delta + items.length) % items.length]?.focus();
+			let next = (index + delta + items.length) % items.length;
+			if (event.key === "Home") next = 0;
+			if (event.key === "End") next = items.length - 1;
+			items[next]?.focus();
 		} else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-			const buttons = Array.from(event.currentTarget.closest('[role="menubar"]')?.querySelectorAll<HTMLButtonElement>("[data-shell-menu]") ?? []);
+			const menubar = event.currentTarget.closest('[role="menubar"]');
+			const buttons = Array.from(menubar?.querySelectorAll<HTMLButtonElement>("[data-shell-menu]") ?? []);
 			const active = buttons.findIndex((button) => button.getAttribute("aria-expanded") === "true");
 			if (active >= 0) {
 				event.preventDefault();
@@ -274,35 +345,73 @@ export function ShellMenu({ label, commands, position, onClose }: { label: strin
 			close.current();
 		} else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
 			const item = items.find((item) => item.textContent?.trim().toLowerCase().startsWith(event.key.toLowerCase()));
-			if (item) { event.preventDefault(); item.click(); }
+			if (item) {
+				event.preventDefault();
+				item.click();
+			}
 		}
 		event.stopPropagation();
 	}
 
-	return <div ref={ref} className="shell-menu chrome-raised" popover="auto" role="menu" aria-label={label} data-shell-surface=""
-		onKeyDown={onKey} onToggle={(event) => { if (event.newState === "closed") close.current(); }}>
-		{commands.map((command, index) => command === "separator" ? <hr key={index} /> :
-			<button key={command.label} type="button" role={command.checked === undefined ? "menuitem" : command.radio ? "menuitemradio" : "menuitemcheckbox"} aria-checked={command.checked} disabled={command.disabled}
-				onClick={() => { close.current(); command.action(); }}>
-				<span className="shell-menu__check" aria-hidden="true">{command.checked ? command.radio ? "•" : "✓" : ""}</span>{command.label}
-			</button>)}
-	</div>;
+	return (
+		<div
+			ref={ref}
+			className="shell-menu chrome-raised"
+			popover="auto"
+			role="menu"
+			aria-label={label}
+			data-shell-surface=""
+			onKeyDown={onKey}
+			onToggle={(event) => {
+				if (event.newState === "closed") close.current();
+			}}
+		>
+			{commands.map((command, index) => command === "separator" ? <hr key={index} /> : (
+				<button
+					key={command.label}
+					type="button"
+					role={commandRole(command)}
+					aria-checked={command.checked}
+					disabled={command.disabled}
+					onClick={() => {
+						close.current();
+						command.action();
+					}}
+				>
+					<span className="shell-menu__check" aria-hidden="true">{commandMark(command)}</span>
+					{command.label}
+				</button>
+			))}
+		</div>
+	);
 }
 
 export function MenuButton({ label, commands }: { label: string; commands: MenuCommand[] }) {
 	const [position, setPosition] = useState<MenuPosition | null>(null);
-	return <>
-		<button type="button" role="menuitem" data-shell-menu={label[0].toLowerCase()} aria-haspopup="menu" aria-expanded={Boolean(position)} onClick={(event) => {
-			const rect = event.currentTarget.getBoundingClientRect();
-			setPosition({ x: rect.left, y: rect.bottom });
-		}}><u>{label[0]}</u>{label.slice(1)}</button>
-		{position && <ShellMenu label={label} commands={commands} position={position} onClose={() => setPosition(null)} />}
-	</>;
+	return (
+		<>
+			<button
+				type="button"
+				role="menuitem"
+				data-shell-menu={label[0].toLowerCase()}
+				aria-haspopup="menu"
+				aria-expanded={Boolean(position)}
+				onClick={(event) => {
+					const rect = event.currentTarget.getBoundingClientRect();
+					setPosition({ x: rect.left, y: rect.bottom });
+				}}
+			>
+				<u>{label[0]}</u>{label.slice(1)}
+			</button>
+			{position && <ShellMenu label={label} commands={commands} position={position} onClose={() => setPosition(null)} />}
+		</>
+	);
 }
 
 export function menuShortcut(event: KeyboardEvent<HTMLElement>) {
 	if (!event.altKey || event.key.length !== 1) return false;
-	const button = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-shell-menu]")).find((button) => button.dataset.shellMenu === event.key.toLowerCase());
+	const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-shell-menu]"));
+	const button = buttons.find((candidate) => candidate.dataset.shellMenu === event.key.toLowerCase());
 	if (!button) return false;
 	event.preventDefault();
 	button.click();

@@ -1,6 +1,18 @@
 import { useState, type KeyboardEvent } from "react";
 import { ancestorsOf, byCatalogOrder, itemOf, shellPath } from "../shell/files";
-import { MenuButton, ShellMenu, keyboardMenuPosition, menuPosition, menuShortcut, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "../shell/Shell";
+import {
+	MenuButton,
+	ShellMenu,
+	keyboardMenuPosition,
+	menuPosition,
+	menuShortcut,
+	useShell,
+	useShellSelection,
+	type MenuCommand,
+	type MenuPosition,
+} from "../shell/Shell";
+
+const ABOUT = "Single-click to select, double-click or press Enter to open. Use Delete to recycle and Shift+Delete to delete permanently. Drag deleted items out of the Recycle Bin to recover them here.";
 
 type Props = {
 	folderId: string;
@@ -24,54 +36,133 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 			{ label: "Delete", disabled: !ids.length, action: () => shell.recycle(ids) },
 		];
 	}
+
+	const selectAll: MenuCommand = { label: "Select All", disabled: !files.length, action: selection.all };
+
 	function onKey(event: KeyboardEvent<HTMLDivElement>) {
 		if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="menu"], dialog')) return;
 		if (menuShortcut(event)) return;
-		if (event.key === "Delete") { event.preventDefault(); shell.recycle(selected, event.shiftKey); }
-		else if (event.key === "Enter" && (event.target as HTMLElement).dataset.shellItem) {
+
+		if (event.key === "Delete") {
+			event.preventDefault();
+			shell.recycle(selected, event.shiftKey);
+		} else if (event.key === "Enter" && (event.target as HTMLElement).dataset.shellItem) {
 			event.preventDefault();
 			if (selected.length === 1) onOpenAction(selected[0]);
-		} else if (event.key === "Backspace") { event.preventDefault(); up(); }
-		else if (event.shiftKey && event.key === "F10") setContext({ position: keyboardMenuPosition(event), ids: selected });
-		else selection.onKeyDown(event);
+		} else if (event.key === "Backspace") {
+			event.preventDefault();
+			up();
+		} else if (event.shiftKey && event.key === "F10") {
+			setContext({ position: keyboardMenuPosition(event), ids: selected });
+		} else {
+			selection.onKeyDown(event);
+		}
 	}
 
-	return <div className="shell-browser" aria-label="File explorer" data-shell-surface="" onKeyDown={onKey}>
-		<div className="shell-menubar" role="menubar" aria-label="Explorer menus">
-			<MenuButton label="File" commands={commands(selected)} />
-			<MenuButton label="Edit" commands={[
-				{ label: "Select All", disabled: !files.length, action: selection.all },
-				{ label: "Invert Selection", disabled: !files.length, action: selection.invert },
-			]} />
-			<MenuButton label="View" commands={[{ label: "Up One Level", disabled: folderId === "desktop", action: up }]} />
-			<MenuButton label="Help" commands={[{ label: "About Explorer", action: () => shell.notice("Single-click to select, double-click or press Enter to open. Use Delete to recycle and Shift+Delete to delete permanently. Drag deleted items out of the Recycle Bin to recover them here.", "about explorer") }]} />
+	return (
+		<div className="shell-browser" aria-label="File explorer" data-shell-surface="" onKeyDown={onKey}>
+			<div className="shell-menubar" role="menubar" aria-label="Explorer menus">
+				<MenuButton label="File" commands={commands(selected)} />
+				<MenuButton label="Edit" commands={[
+					selectAll,
+					{ label: "Invert Selection", disabled: !files.length, action: selection.invert },
+				]} />
+				<MenuButton label="View" commands={[
+					{ label: "Up One Level", disabled: folderId === "desktop", action: up },
+				]} />
+				<MenuButton label="Help" commands={[
+					{ label: "About Explorer", action: () => shell.notice(ABOUT, "about explorer") },
+				]} />
+			</div>
+
+			<div className="shell-toolbar" role="toolbar" aria-label="Explorer">
+				<button type="button" disabled={folderId === "desktop"} onClick={up}>Up</button>
+				<button type="button" disabled={!selected.length} onClick={() => shell.recycle(selected)}>Delete</button>
+				<span className="shell-path" title={path}>{path}</span>
+			</div>
+
+			<div
+				className="shell-list"
+				role="listbox"
+				aria-label="Files"
+				aria-multiselectable="true"
+				tabIndex={files.length ? -1 : 0}
+				onClick={(event) => {
+					if (event.target === event.currentTarget) selection.clear();
+				}}
+				onContextMenu={(event) => {
+					if ((event.target as HTMLElement).closest("[data-shell-item]")) return;
+					selection.clear();
+					setContext({ position: menuPosition(event), ids: [] });
+				}}
+				onDragOver={(event) => {
+					if (missing || !shell.canDrop(event, folderId)) return;
+					event.preventDefault();
+					event.dataTransfer.dropEffect = "move";
+				}}
+				onDrop={(event) => {
+					if (!missing) shell.drop(event, folderId);
+				}}
+			>
+				{missing && (
+					<div className="shell-missing">
+						<p>This folder has been deleted or moved to the Recycle Bin.</p>
+						<button type="button" className="chrome-raised" onClick={() => onOpenAction("recycle-bin")}>Open Recycle Bin</button>
+					</div>
+				)}
+
+				{files.map((node, index) => {
+					const item = itemOf(node);
+					const isFolder = item.kind === "folder";
+					return (
+						<button
+							key={node.id}
+							type="button"
+							role="option"
+							className="shell-item"
+							aria-selected={selected.includes(node.id)}
+							aria-label={item.name}
+							data-shell-item={node.id}
+							tabIndex={index === 0 ? 0 : -1}
+							draggable
+							onClick={(event) => selection.select(node.id, event)}
+							onDoubleClick={() => onOpenAction(node.id)}
+							onContextMenu={(event) => {
+								event.stopPropagation();
+								setContext({ position: menuPosition(event), ids: selection.forItem(node.id) });
+							}}
+							onDragStart={(event) => shell.startDrag(event, { kind: "nodes", ids: selection.forItem(node.id) })}
+							onDragEnd={shell.endDrag}
+							onDragOver={(event) => {
+								if (!isFolder || !shell.canDrop(event, node.id)) return;
+								event.preventDefault();
+								event.stopPropagation();
+							}}
+							onDrop={(event) => {
+								if (isFolder) shell.drop(event, node.id);
+							}}
+						>
+							<span className="shell-item__name">
+								<img src={item.icon} alt="" width={16} height={16} draggable={false} />
+								<span>{item.name}</span>
+							</span>
+						</button>
+					);
+				})}
+			</div>
+
+			<div className="shell-status" aria-live="polite">
+				<span>{selected.length ? `${selected.length} object(s) selected` : `${files.length} object(s)`}</span>
+			</div>
+
+			{context && (
+				<ShellMenu
+					label="File context menu"
+					position={context.position}
+					commands={context.ids.length ? commands(context.ids) : [selectAll]}
+					onClose={() => setContext(null)}
+				/>
+			)}
 		</div>
-		<div className="shell-toolbar" role="toolbar" aria-label="Explorer">
-			<button type="button" disabled={folderId === "desktop"} onClick={up}>Up</button>
-			<button type="button" disabled={!selected.length} onClick={() => shell.recycle(selected)}>Delete</button>
-			<span className="shell-path" title={path}>{path}</span>
-		</div>
-		<div className="shell-list" role="listbox" aria-label="Files" aria-multiselectable="true" tabIndex={files.length ? -1 : 0}
-			onClick={(event) => { if (event.target === event.currentTarget) selection.clear(); }}
-			onContextMenu={(event) => { if (!(event.target as HTMLElement).closest("[data-shell-item]")) { selection.clear(); setContext({ position: menuPosition(event), ids: [] }); } }}
-			onDragOver={(event) => { if (!missing && shell.canDrop(event, folderId)) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; } }}
-			onDrop={(event) => { if (!missing) shell.drop(event, folderId); }}>
-			{missing && <div className="shell-missing"><p>This folder has been deleted or moved to the Recycle Bin.</p><button type="button" className="chrome-raised" onClick={() => onOpenAction("recycle-bin")}>Open Recycle Bin</button></div>}
-			{files.map((node, index) => {
-				const item = itemOf(node);
-				return <button key={node.id} type="button" role="option" className="shell-item" aria-selected={selected.includes(node.id)} aria-label={item.name} data-shell-item={node.id} tabIndex={index === 0 ? 0 : -1}
-					onClick={(event) => selection.select(node.id, event)} onDoubleClick={() => onOpenAction(node.id)}
-					onContextMenu={(event) => { event.stopPropagation(); setContext({ position: menuPosition(event), ids: selection.forItem(node.id) }); }}
-					draggable onDragStart={(event) => shell.startDrag(event, { kind: "nodes", ids: selection.forItem(node.id) })} onDragEnd={shell.endDrag}
-					onDragOver={(event) => { if (item.kind === "folder" && shell.canDrop(event, node.id)) { event.preventDefault(); event.stopPropagation(); } }}
-					onDrop={(event) => { if (item.kind === "folder") shell.drop(event, node.id); }}>
-					<span className="shell-item__name">
-						<img src={item.icon} alt="" width={16} height={16} draggable={false} /><span>{item.name}</span>
-					</span>
-				</button>;
-			})}
-		</div>
-		<div className="shell-status" aria-live="polite"><span>{selected.length ? `${selected.length} object(s) selected` : `${files.length} object(s)`}</span></div>
-		{context && <ShellMenu label="File context menu" position={context.position} commands={context.ids.length ? commands(context.ids) : [{ label: "Select All", disabled: !files.length, action: selection.all }]} onClose={() => setContext(null)} />}
-	</div>;
+	);
 }

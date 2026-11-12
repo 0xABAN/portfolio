@@ -16,10 +16,34 @@ export const WORK: readonly Project[] = [
 ];
 
 const PROJECTS: readonly Project[] = [
-	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/psp/thumbnails/yadl.webp", href: `${GITHUB_URL}/YADL` },
-	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/psp/thumbnails/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
-	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/psp/thumbnails/maestro.webp", href: `${GITHUB_URL}/maestro` },
-	{ id: "github", title: "github", blurb: "everything else i've built", src: "/psp/thumbnails/github.svg", href: GITHUB_URL },
+	{
+		id: "yadl",
+		title: "yadl",
+		blurb: "agent-driven vision annotation",
+		src: "/psp/thumbnails/yadl.webp",
+		href: `${GITHUB_URL}/YADL`,
+	},
+	{
+		id: "definitive",
+		title: "definitive multiplayer",
+		blurb: "terraria mod built in a week, 3k+ downloads",
+		src: "/psp/thumbnails/definitive-multiplayer.webp",
+		href: `${GITHUB_URL}/DefinitiveMultiplayer`,
+	},
+	{
+		id: "maestro",
+		title: "maestro",
+		blurb: "ByteDance 2nd place (solo hacker)",
+		src: "/psp/thumbnails/maestro.webp",
+		href: `${GITHUB_URL}/maestro`,
+	},
+	{
+		id: "github",
+		title: "github",
+		blurb: "everything else i've built",
+		src: "/psp/thumbnails/github.svg",
+		href: GITHUB_URL,
+	},
 ];
 
 type PspCategoryId = "jobs" | "projects" | "settings" | "photo" | "music";
@@ -87,7 +111,7 @@ export function reducer(state: ViewState, action: ViewAction): ViewState {
 		case "select-item":
 			return { ...state, itemIndex: action.index, optionsOpen: false, optionsIndex: 0 };
 		case "option":
-			return state.optionsOpen ? { ...state, optionsIndex: wrap(state.optionsIndex + action.delta, 2) } : state;
+			return state.optionsOpen ? { ...state, optionsIndex: wrap(state.optionsIndex + action.delta, OPTIONS.length) } : state;
 		case "toggle-options":
 			return { ...state, optionsOpen: !state.optionsOpen, optionsIndex: 0 };
 	}
@@ -127,6 +151,8 @@ const KEYS: Record<string, "left" | "right" | "up" | "down" | "enter" | "back" |
 	Enter: "enter", x: "enter", Escape: "back", Backspace: "back", o: "options",
 };
 
+const OPTIONS = ["Open link", "Close"];
+
 function openExternal(href?: string) {
 	if (href) window.open(href, "_blank", "noopener,noreferrer");
 }
@@ -164,8 +190,9 @@ function PspXmb({ ready }: { ready: boolean }) {
 
 		if (state.optionsOpen) {
 			if (action === "up" || action === "down") dispatch({ type: "option", delta: step });
-			else if (action === "back" || Number(indexOf(".psp-xmb__options button") ?? state.optionsIndex) !== 0) dispatch({ type: "toggle-options" });
-			else openExternal(project?.href);
+			else if (action === "back" || Number(indexOf(".psp-xmb__options button") ?? state.optionsIndex) !== 0) {
+				dispatch({ type: "toggle-options" });
+			} else openExternal(project?.href);
 		} else if (action === "left" || action === "right") {
 			dispatch({ type: "category", delta: step });
 		} else if (action === "up" || action === "down") {
@@ -175,10 +202,15 @@ function PspXmb({ ready }: { ready: boolean }) {
 		} else if (action === "enter") {
 			const categoryIndex = indexOf(".psp-xmb__category");
 			const itemIndex = indexOf(".psp-xmb__item");
-			if (categoryIndex !== undefined) dispatch({ type: "select-category", index: Number(categoryIndex) });
-			else if (itemIndex !== undefined && Number(itemIndex) !== state.itemIndex) dispatch({ type: "select-item", index: Number(itemIndex) });
-			else if (itemIndex === undefined && target.closest(".psp-xmb__select")) dispatch({ type: "toggle-options" });
-			else openExternal(project?.href);
+			if (categoryIndex !== undefined) {
+				dispatch({ type: "select-category", index: Number(categoryIndex) });
+			} else if (itemIndex !== undefined && Number(itemIndex) !== state.itemIndex) {
+				dispatch({ type: "select-item", index: Number(itemIndex) });
+			} else if (itemIndex === undefined && target.closest(".psp-xmb__select")) {
+				dispatch({ type: "toggle-options" });
+			} else {
+				openExternal(project?.href);
+			}
 		}
 	}
 
@@ -197,7 +229,13 @@ function PspXmb({ ready }: { ready: boolean }) {
 			onKeyDown={onKeyDown}
 		>
 			{CATEGORIES.map((entry) => entry.artwork && (
-				<img key={entry.id} className={entry === category ? "psp-xmb__artwork is-current" : "psp-xmb__artwork"} src={entry.artwork} alt="" draggable={false} />
+				<img
+					key={entry.id}
+					className={entry === category ? "psp-xmb__artwork is-current" : "psp-xmb__artwork"}
+					src={entry.artwork}
+					alt=""
+					draggable={false}
+				/>
 			))}
 			{category.artwork && <div className="psp-xmb__shade" aria-hidden="true" />}
 			<div className="psp-xmb__wave" aria-hidden="true" />
@@ -207,7 +245,11 @@ function PspXmb({ ready }: { ready: boolean }) {
 					<button
 						key={entry.id}
 						type="button"
-						className={["psp-xmb__category", index === state.categoryIndex ? "is-selected" : "", entry.disabled ? "is-disabled" : ""].filter(Boolean).join(" ")}
+						className={[
+							"psp-xmb__category",
+							index === state.categoryIndex && "is-selected",
+							entry.disabled && "is-disabled",
+						].filter(Boolean).join(" ")}
 						role="tab"
 						aria-selected={index === state.categoryIndex}
 						aria-disabled={entry.disabled || undefined}
@@ -249,11 +291,24 @@ function PspXmb({ ready }: { ready: boolean }) {
 			</div>
 			{state.optionsOpen ? (
 				<div className="psp-xmb__options" role="menu">
-					<button className={state.optionsIndex === 0 ? "is-selected" : ""} type="button" role="menuitem" tabIndex={-1} data-index={0} onClick={() => openExternal(project?.href)}>Open link</button>
-					<button className={state.optionsIndex === 1 ? "is-selected" : ""} type="button" role="menuitem" tabIndex={-1} data-index={1} onClick={() => dispatch({ type: "toggle-options" })}>Close</button>
+					{OPTIONS.map((label, index) => (
+						<button
+							key={label}
+							className={state.optionsIndex === index ? "is-selected" : ""}
+							type="button"
+							role="menuitem"
+							tabIndex={-1}
+							data-index={index}
+							onClick={() => index === 0 ? openExternal(project?.href) : dispatch({ type: "toggle-options" })}
+						>
+							{label}
+						</button>
+					))}
 				</div>
 			) : null}
-			<button className="psp-xmb__select" type="button" tabIndex={-1} onClick={() => dispatch({ type: "toggle-options" })}>SELECT&nbsp; Options</button>
+			<button className="psp-xmb__select" type="button" tabIndex={-1} onClick={() => dispatch({ type: "toggle-options" })}>
+				SELECT&nbsp; Options
+			</button>
 		</div>
 	);
 }

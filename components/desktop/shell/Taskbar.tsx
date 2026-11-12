@@ -47,7 +47,9 @@ function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAct
 		const direction = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
 		if (direction || event.key === "Home" || event.key === "End") {
 			event.preventDefault();
-			const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + direction + items.length) % items.length;
+			let next = (index + direction + items.length) % items.length;
+			if (event.key === "Home") next = 0;
+			if (event.key === "End") next = items.length - 1;
 			items[next]?.focus();
 		} else if (event.key === "ArrowRight" && target.dataset.group) {
 			event.preventDefault();
@@ -73,21 +75,36 @@ function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAct
 
 	return (
 		<>
-			<button type="button" className="start-btn chrome-raised" aria-label="Start" aria-haspopup="menu" aria-expanded={open} popoverTarget="start-menu"
+			<button
+				type="button"
+				className="start-btn chrome-raised"
+				aria-label="Start"
+				aria-haspopup="menu"
+				aria-expanded={open}
+				popoverTarget="start-menu"
 				onKeyDown={(event) => {
 					if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
 					event.preventDefault();
 					menu.current!.showPopover();
 					menuItems(menu.current!).at(event.key === "ArrowUp" ? -1 : 0)?.focus();
-				}}>
+				}}
+			>
 				<img className="start-btn__logo" src="/icons/windows.svg" alt="" width={16} height={14} draggable={false} />
 				<span className="start-btn__label">Start</span>
 			</button>
-			<div ref={menu} id="start-menu" className="start-menu" popover="auto" role="menu" aria-label="Start menu" onKeyDown={onKey}
+			<div
+				ref={menu}
+				id="start-menu"
+				className="start-menu"
+				popover="auto"
+				role="menu"
+				aria-label="Start menu"
+				onKeyDown={onKey}
 				onToggle={(event) => {
 					setOpen(event.newState === "open");
 					if (event.newState === "closed") setGroup(null);
-				}}>
+				}}
+			>
 				<div className="start-menu__brand" aria-hidden="true">Windows<strong>95</strong></div>
 				<div className="start-menu__items">
 					{GROUPS.map((entry) => (
@@ -103,9 +120,14 @@ function StartButton({ onLaunchAction, onOpenFileAction, onRestoreDecorationsAct
 							{group === entry.label && (
 								<div className="start-menu__submenu" role="menu" aria-label={entry.label}>
 									{entry.items.map((item) => (
-										<button key={item.label} type="button" role="menuitem"
-											onClick={() => run(() => "file" in item ? onOpenFileAction(item.file) : onLaunchAction(item.app))}>
-											<img src={item.icon} alt="" width={16} height={16} /><span>{item.label}</span>
+										<button
+											key={item.label}
+											type="button"
+											role="menuitem"
+											onClick={() => run(() => "file" in item ? onOpenFileAction(item.file) : onLaunchAction(item.app))}
+										>
+											<img src={item.icon} alt="" width={16} height={16} />
+											<span>{item.label}</span>
 										</button>
 									))}
 								</div>
@@ -163,7 +185,9 @@ type Props = {
 	revealed: (id: string) => boolean;
 };
 
-function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapsed }: Pick<Props, "tasks" | "activeId" | "onActivateAction" | "trackLabel" | "bindElapsed">) {
+type WindowTasksProps = Pick<Props, "tasks" | "activeId" | "onActivateAction" | "trackLabel" | "bindElapsed">;
+
+function WindowTasks({ tasks, activeId, onActivateAction, trackLabel, bindElapsed }: WindowTasksProps) {
 	const strip = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -211,7 +235,12 @@ export function Taskbar({ muted, onToggleMuteAction, revealed: show, ...props }:
 			</div>
 			<div className="taskbar__right">
 				{show("tb:views") && views != null && (
-					<span className="taskbar__views" title="Site views" aria-label={`${viewFormat.format(views)} site views`} suppressHydrationWarning>
+					<span
+						className="taskbar__views"
+						title="Site views"
+						aria-label={`${viewFormat.format(views)} site views`}
+						suppressHydrationWarning
+					>
 						{viewFormat.format(views)}<span className="taskbar__views-label"> views</span>
 					</span>
 				)}

@@ -1,4 +1,14 @@
-import { memo, useEffect, useLayoutEffect, useRef, type Dispatch, type FocusEvent, type PointerEvent, type ReactNode, type SetStateAction } from "react";
+import {
+	memo,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	type Dispatch,
+	type FocusEvent,
+	type PointerEvent,
+	type ReactNode,
+	type SetStateAction,
+} from "react";
 import { desktopScale } from "./viewport";
 import { minimizeWindowTree, type DesktopWindow } from "./windows";
 import "./window.css";
@@ -97,7 +107,9 @@ export const Window = memo(function Window({
 		}
 	}
 
-	const dragHandlers = onMoveAction ? { onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag } : {};
+	const dragHandlers = onMoveAction
+		? { onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag }
+		: {};
 
 	return (
 		<section

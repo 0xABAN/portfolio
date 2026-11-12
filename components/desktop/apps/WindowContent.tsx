@@ -35,7 +35,9 @@ type Props = {
 	folderId: string;
 };
 
-export const WindowContent = memo(function WindowContent({ id, kind, src, active, cropStyle, audio, onMinimize, onClose, onOpenShell, folderId }: Props) {
+export const WindowContent = memo(function WindowContent({
+	id, kind, src, active, cropStyle, audio, onMinimize, onClose, onOpenShell, folderId,
+}: Props) {
 	switch (kind) {
 		case "cd-player":
 			return audio ? <CdPlayer {...audio} /> : null;

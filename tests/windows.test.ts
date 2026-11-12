@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { activateWindow, activeWindowId, clampWindowPos, layoutDesktop, makeExperienceWindow, makeExplorerWindow, minimizeWindowTree, nestBounds, openApp, reflowDesktop, restoreDecorations, taskWindows, TASKBAR_H, type AppId, type DesktopWindow } from "@/components/desktop/windows";
+import {
+	activateWindow,
+	activeWindowId,
+	clampWindowPos,
+	layoutDesktop,
+	makeExperienceWindow,
+	makeExplorerWindow,
+	minimizeWindowTree,
+	nestBounds,
+	openApp,
+	reflowDesktop,
+	restoreDecorations,
+	taskWindows,
+	TASKBAR_H,
+	type AppId,
+	type DesktopWindow,
+} from "@/components/desktop/windows";
 
 test("secrets opens left of the current adam window with aligned bottom borders", () => {
 	for (const [width, height] of [[1920, 1080], [1440, 900]]) {

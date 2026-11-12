@@ -127,12 +127,38 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 }
 
 function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
-	return { id: "cd-player", title: "cd player", kind: "cd-player", icon: "/icons/cd.webp", z, w: Math.min(360, vw - 16), h: 188, x: 8, y: Math.max(0, vh - TASKBAR_H - 188 - 4) };
+	const h = 188;
+	return {
+		id: "cd-player",
+		title: "cd player",
+		kind: "cd-player",
+		icon: "/icons/cd.webp",
+		z,
+		w: Math.min(360, vw - 16),
+		h,
+		x: 8,
+		y: Math.max(0, vh - TASKBAR_H - h - 4),
+	};
 }
 
 export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
-	const me = { id: "me", title: "adam-paint", z: 2, kind: "paint" as const, src: "/desktop/street.webp", icon: "/icons/paint.webp", ...layoutMeWindow(vw, vh) };
-	const terminal = { id: "terminal", title: "MS-DOS Prompt", z: 12, kind: "terminal" as const, icon: "/icons/terminal.svg", ...layoutTerminalWindow(me, vw, vh) };
+	const me = {
+		id: "me",
+		title: "adam-paint",
+		z: 2,
+		kind: "paint" as const,
+		src: "/desktop/street.webp",
+		icon: "/icons/paint.webp",
+		...layoutMeWindow(vw, vh),
+	};
+	const terminal = {
+		id: "terminal",
+		title: "MS-DOS Prompt",
+		z: 12,
+		kind: "terminal" as const,
+		icon: "/icons/terminal.svg",
+		...layoutTerminalWindow(me, vw, vh),
+	};
 	const windows: DesktopWindow[] = [
 		me,
 		{ id: "alt", title: "move me", z: 3, parentId: "me", ...layoutAltOnParent(me) },
@@ -145,7 +171,13 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 	return windows.map((w) => w.parentId ? w : { ...w, ...clampWindowPos(w.x, w.y, w.w, vw, vh) });
 }
 
-export function reflowDesktop(current: DesktopWindow[], previous: DesktopWindow[], next: DesktopWindow[], vw: number, vh: number): DesktopWindow[] {
+export function reflowDesktop(
+	current: DesktopWindow[],
+	previous: DesktopWindow[],
+	next: DesktopWindow[],
+	vw: number,
+	vh: number,
+): DesktopWindow[] {
 	const oldLayout = new Map(previous.map((w) => [w.id, w]));
 	const newLayout = new Map(next.map((w) => [w.id, w]));
 	const oldAnchor = oldLayout.get("me");
@@ -191,13 +223,27 @@ export function makeExperienceWindow(z: number, vw: number, vh: number): Desktop
 	const maxH = Math.max(0, vh - TASKBAR_H - 16);
 	const w = Math.max(1, Math.min(maxW, Math.floor(maxH * ratio)));
 	const h = Math.max(1, Math.round(w / ratio));
-	return { id: "experience", title: "experience", kind: "experience", icon: "/icons/playstation.svg", ...layoutCentered(w, h, vw, vh), z };
+	return {
+		id: "experience",
+		title: "experience",
+		kind: "experience",
+		icon: "/icons/playstation.svg",
+		...layoutCentered(w, h, vw, vh),
+		z,
+	};
 }
 
 function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const w = Math.min(760, Math.max(240, vw - 24));
 	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
-	return { id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.webp", z, ...layoutCentered(w, h, vw, vh) };
+	return {
+		id: "recycle-bin",
+		title: "recycle bin",
+		kind: "recycle-bin",
+		icon: "/icons/recycle-bin-empty.webp",
+		z,
+		...layoutCentered(w, h, vw, vh),
+	};
 }
 
 export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: number, vh: number): DesktopWindow {

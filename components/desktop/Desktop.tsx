@@ -8,7 +8,22 @@ import { DesktopIcons } from "./shell/DesktopIcons";
 import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { useTaskFlyout, Window } from "./Window";
-import { TASKBAR_H, activateWindow, activeWindowId, altCropStyle, isDecoration, layoutDesktop, minimizeWindowTree, moveWindow, openApp, reflowDesktop, restoreDecorations, taskWindows, type AppId, type DesktopWindow } from "./windows";
+import {
+	TASKBAR_H,
+	activateWindow,
+	activeWindowId,
+	altCropStyle,
+	isDecoration,
+	layoutDesktop,
+	minimizeWindowTree,
+	moveWindow,
+	openApp,
+	reflowDesktop,
+	restoreDecorations,
+	taskWindows,
+	type AppId,
+	type DesktopWindow,
+} from "./windows";
 import { desktopScale, desktopSize } from "./viewport";
 import "./desktop.css";
 
@@ -125,7 +140,8 @@ function DesktopWorkspace() {
 			const root = document.getElementById(`desktop-window-${id}`);
 			if (!root || root.dataset.active !== "true" || root.hasAttribute("inert")) return;
 			root.focus({ preventScroll: true });
-			if (document.activeElement === root) root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
+			if (document.activeElement !== root) return;
+			root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
 		});
 	}, []);
 
@@ -161,10 +177,21 @@ function DesktopWorkspace() {
 	}, [focusWindow, getState, notice]);
 
 	const openShell = useCallback((id: string) => {
-		if (id === "desktop") { launchApp("explorer", "desktop"); return; }
-		if (id === "recycle-bin") { launchApp("recycle-bin"); return; }
+		if (id === "desktop") {
+			launchApp("explorer", "desktop");
+			return;
+		}
+		if (id === "recycle-bin") {
+			launchApp("recycle-bin");
+			return;
+		}
+
 		const node = getState().nodes.find((node) => node.id === id);
-		if (!node) { notice("This item is no longer available.", "file not found"); return; }
+		if (!node) {
+			notice("This item is no longer available.", "file not found");
+			return;
+		}
+
 		const item = itemOf(node);
 		if (item.open) launchApp(item.open, node.id);
 		else if (item.href) window.open(item.href, "_blank", "noopener,noreferrer");
@@ -183,8 +210,9 @@ function DesktopWorkspace() {
 	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
 	const visibleWindows = windows.filter(isBootVisible).map((w) => {
 		if (w.kind === "recycle-bin") return { ...w, icon: binFull ? BIN_ICON.full : BIN_ICON.empty };
-		if (w.kind === "explorer") return { ...w, title: explorerFolder === "desktop" ? "desktop" : explorerNode ? itemOf(explorerNode).name : w.title };
-		return w;
+		if (w.kind !== "explorer") return w;
+		if (explorerFolder === "desktop") return { ...w, title: "desktop" };
+		return explorerNode ? { ...w, title: itemOf(explorerNode).name } : w;
 	});
 	const activeId = activeWindowId(visibleWindows);
 	const tasks = taskWindows(visibleWindows);
@@ -216,9 +244,13 @@ function DesktopWorkspace() {
 	const desktop = desktopSize();
 
 	return (
-		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ zoom: scale, "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
+		<div
+			className={busy ? "desktop desktop--busy" : "desktop"}
+			style={{ zoom: scale, "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
 			onDragOver={(event) => {
-				if (isDesktopSurface(event.target) && shell.canDrop(event, "desktop")) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }
+				if (!isDesktopSurface(event.target) || !shell.canDrop(event, "desktop")) return;
+				event.preventDefault();
+				event.dataTransfer.dropEffect = "move";
 			}}
 			onDrop={(event) => {
 				if (isDesktopSurface(event.target)) shell.drop(event, "desktop");

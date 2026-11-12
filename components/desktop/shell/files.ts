@@ -153,8 +153,11 @@ export function moveNodes(state: ShellState, ids: readonly string[], destination
 export function parseShellState(raw: string | null): ShellState {
 	if (raw === null) return initialShellState();
 	const state = JSON.parse(raw) as ShellState;
-	const known = (nodes: unknown) => Array.isArray(nodes) && nodes.every((node: ShellNode) => ITEM_BY_ID.has(node?.id) && typeof node.parentId === "string");
-	if (!known(state?.nodes) || !Array.isArray(state.entries) || !state.entries.every((entry) => known(entry?.nodes) && entry.nodes.length > 0)) {
+	const known = (nodes: unknown) => Array.isArray(nodes)
+		&& nodes.every((node: ShellNode) => ITEM_BY_ID.has(node?.id) && typeof node.parentId === "string");
+	const entriesValid = Array.isArray(state?.entries)
+		&& state.entries.every((entry) => known(entry?.nodes) && entry.nodes.length > 0);
+	if (!known(state?.nodes) || !entriesValid) {
 		throw new Error("The saved desktop is damaged.");
 	}
 	return state;

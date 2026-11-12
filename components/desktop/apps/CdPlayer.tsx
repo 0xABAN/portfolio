@@ -435,7 +435,9 @@ function Field({ label, value, onPrev, onNext }: { label: string; value: string;
 	);
 }
 
-export function CdPlayer({ track, playing, volume, bindElapsed, togglePlay, playPrev, playNext, setVolume, stop }: ReturnType<typeof useCdPlayerAudio>) {
+export function CdPlayer({
+	track, playing, volume, bindElapsed, togglePlay, playPrev, playNext, setVolume, stop,
+}: ReturnType<typeof useCdPlayerAudio>) {
 	const controls: [label: string, action: () => void, glyph: string][] = [
 		["Previous track", playPrev, "prev"],
 		["Next track", playNext, "next"],

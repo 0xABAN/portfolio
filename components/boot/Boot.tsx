@@ -38,7 +38,10 @@ function Rsod({ onContinue }: { onContinue: () => void }) {
 	return (
 		<button type="button" className="rsod" onClick={onContinue}>
 			<StopScreen
-				body={<>A fatal exception 0E has occurred at 0028:C002AD13 in VXD VFAT(01) +<br />0000A3D7. The current application will be terminated.</>}
+				body={<>
+					A fatal exception 0E has occurred at 0028:C002AD13 in VXD VFAT(01) +<br />
+					0000A3D7. The current application will be terminated.
+				</>}
 				items={[
 					"Press any key to terminate the current application.",
 					<>Press CTRL+ALT+DEL again to restart your computer. You will<br />lose any unsaved information in all applications.</>,

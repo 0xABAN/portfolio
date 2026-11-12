@@ -86,10 +86,17 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 	function onKeyDown(event: KeyboardEvent<HTMLUListElement>) {
 		if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="menu"], dialog')) return;
 		const ids = selection.selected;
-		if (event.key === "Delete") { event.preventDefault(); shell.recycle(ids, event.shiftKey); }
-		else if (event.key === "Enter") { event.preventDefault(); if (ids.length === 1) open(ids[0]); }
-		else if (event.shiftKey && event.key === "F10") setContext({ position: keyboardMenuPosition(event), ids });
-		else selection.onKeyDown(event);
+		if (event.key === "Delete") {
+			event.preventDefault();
+			shell.recycle(ids, event.shiftKey);
+		} else if (event.key === "Enter") {
+			event.preventDefault();
+			if (ids.length === 1) open(ids[0]);
+		} else if (event.shiftKey && event.key === "F10") {
+			setContext({ position: keyboardMenuPosition(event), ids });
+		} else {
+			selection.onKeyDown(event);
+		}
 	}
 
 	function onContextMenu(event: MouseEvent<HTMLElement>, id?: string) {
@@ -98,10 +105,16 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 		setContext({ position: menuPosition(event), ids: id ? selection.forItem(id) : [] });
 	}
 
-	return {
-		...selection, onKeyDown, onContextMenu,
-		menu: context && <ShellMenu label="Desktop context menu" commands={commands(context.ids)} position={context.position} onClose={() => setContext(null)} />,
-	};
+	const menu = context && (
+		<ShellMenu
+			label="Desktop context menu"
+			commands={commands(context.ids)}
+			position={context.position}
+			onClose={() => setContext(null)}
+		/>
+	);
+
+	return { ...selection, onKeyDown, onContextMenu, menu };
 }
 
 function DeskIconGlyph({ src, label, notification = false }: { src: string; label: string; notification?: boolean }) {
@@ -202,7 +215,10 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					event.dataTransfer.dropEffect = "move";
 				}}
 				onDrop={(event) => {
-					if (!draggingId) { shell.drop(event, "desktop"); return; }
+					if (!draggingId) {
+						shell.drop(event, "desktop");
+						return;
+					}
 					event.preventDefault();
 					const bounds = event.currentTarget.getBoundingClientRect();
 					const scale = desktopScale();
@@ -249,7 +265,8 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 									setBinHot(true);
 									return;
 								}
-								if ((!draggingId && !(icon.open === "explorer" && shell.canDrop(event, icon.id))) || draggingId === icon.id) return;
+								const folderDrop = icon.open === "explorer" && shell.canDrop(event, icon.id);
+								if ((!draggingId && !folderDrop) || draggingId === icon.id) return;
 								event.preventDefault();
 								event.dataTransfer.dropEffect = "move";
 							}}
@@ -258,9 +275,10 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 								markDeskIconInteraction(icon);
 								event.preventDefault();
 								event.stopPropagation();
+								const cell = positions[icon.id];
 								if (icon.recycle) shell.drop(event, "bin");
 								else if (icon.open === "explorer" && draggingId !== RECYCLE_BIN.id) shell.drop(event, icon.id);
-								else if (draggingId && draggingId !== icon.id) moveDeskIconToCell(draggingId, positions[icon.id].col, positions[icon.id].row);
+								else if (draggingId && draggingId !== icon.id) moveDeskIconToCell(draggingId, cell.col, cell.row);
 								shell.endDrag();
 								setBinHot(false);
 								setDraggingId(null);
@@ -271,7 +289,8 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 									event.dataTransfer.setData("text/plain", icon.id);
 									event.dataTransfer.effectAllowed = "move";
 								} else {
-									shell.startDrag(event, { kind: "nodes", ids: desktopSelection.forItem(icon.id).filter((id) => id !== RECYCLE_BIN.id) });
+									const ids = desktopSelection.forItem(icon.id).filter((id) => id !== RECYCLE_BIN.id);
+									shell.startDrag(event, { kind: "nodes", ids });
 								}
 								setDraggingId(icon.id);
 							}}

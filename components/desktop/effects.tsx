@@ -114,8 +114,10 @@ const SPARKS = Array.from({ length: 24 }, (_, index) => {
 	const angle = (index * 83) % 360;
 	const spin = (index * 67) % 540 - 270;
 
-	const pose = (progress: number, dx: number, dy: number, scale: string) =>
-		`transform: translate3d(${round(x * progress + dx)}vmin, ${round(y * progress + dy)}vmin, 0) rotate(${round(angle + spin * progress)}deg) scale(${scale});`;
+	const pose = (progress: number, dx: number, dy: number, scale: string) => {
+		const translate = `translate3d(${round(x * progress + dx)}vmin, ${round(y * progress + dy)}vmin, 0)`;
+		return `transform: ${translate} rotate(${round(angle + spin * progress)}deg) scale(${scale});`;
+	};
 
 	const name = `desktop-spark-${index}`;
 	const keyframes = `@keyframes ${name} {
