@@ -48,18 +48,28 @@ let lineId = 0;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-async function typewrite(text: string, onTick: (typed: string) => void, alive: () => boolean, charMs: number, spaceMs: number) {
+async function typewrite(
+	text: string,
+	onTick: (typed: string) => void,
+	alive: () => boolean,
+	charMs: number,
+	spaceMs: number,
+) {
 	let typed = "";
 	let pending = 0;
+
 	for (const ch of text) {
 		if (!alive()) return;
+
 		typed += ch;
 		if (++pending >= 3 || ch === " ") {
 			onTick(typed);
 			pending = 0;
 		}
+
 		await sleep(ch === " " ? spaceMs : charMs);
 	}
+
 	if (pending) onTick(typed);
 }
 
@@ -81,6 +91,7 @@ async function wakeAdam(): Promise<string | null> {
 
 	while (Date.now() < giveUp) {
 		let res: Response;
+
 		try {
 			res = await fetch("/api/chat/wake", { method: "POST", signal: AbortSignal.timeout(WAKE_CHECK_TIMEOUT_MS) });
 		} catch {
@@ -93,12 +104,14 @@ async function wakeAdam(): Promise<string | null> {
 		if (res.status === 204) return null;
 		if (res.status !== 202) return refusalReply(res);
 	}
+
 	return FAILURE_REPLIES.broken;
 }
 
 async function streamChat(messages: ChatMessage[], onToken: (token: string) => void) {
 	const stall = new AbortController();
 	let stallTimer = setTimeout(() => stall.abort(), REPLY_STALL_MS);
+
 	const fail = (): never => {
 		throw new ChatFailure(stall.signal.aborted ? FAILURE_REPLIES.broken : FAILURE_REPLIES.unreachable);
 	};
@@ -110,33 +123,40 @@ async function streamChat(messages: ChatMessage[], onToken: (token: string) => v
 			body: JSON.stringify({ messages }),
 			signal: stall.signal,
 		}).catch(fail);
+
 		if (!res.ok) throw new ChatFailure(await refusalReply(res));
 		if (!res.body) throw new ChatFailure(FAILURE_REPLIES.broken);
 
 		const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
 		let buffer = "";
 		let event = "message";
+
 		for (;;) {
 			const { done, value } = await reader.read().catch(fail);
 			if (done) return;
+
 			clearTimeout(stallTimer);
 			stallTimer = setTimeout(() => stall.abort(), REPLY_STALL_MS);
 
 			const lines = (buffer + value).split("\n");
 			buffer = lines.pop() ?? "";
+
 			for (const raw of lines) {
 				const line = raw.replace(/\r$/, "");
+
 				if (line.startsWith("event:")) {
 					event = line.slice(6).trim();
 					continue;
 				}
 				if (!line.startsWith("data:")) continue;
+
 				let data: { content?: string; detail?: string };
 				try {
 					data = JSON.parse(line.slice(5));
 				} catch {
 					continue;
 				}
+
 				if (event === "token" && data.content) onToken(data.content);
 				else if (event === "error") throw new ChatFailure(data.detail || FAILURE_REPLIES.broken);
 				event = "message";
@@ -147,6 +167,26 @@ async function streamChat(messages: ChatMessage[], onToken: (token: string) => v
 	}
 }
 
+function CopyIcon() {
+	return (
+		<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
+			<path fill="#fff" stroke="#000" d="M1.5 1.5h8v10h-8zM5.5 4.5h8v10h-8z" />
+			<path stroke="currentColor" d="M7 7.5h5M7 9.5h5M7 11.5h4" />
+		</svg>
+	);
+}
+
+function PasteIcon() {
+	return (
+		<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
+			<path fill="#808000" stroke="#000" d="M2.5 2.5h10v12h-10z" />
+			<path fill="#c0c0c0" stroke="#000" d="M5.5.5h4v3h-4z" />
+			<path fill="#fff" stroke="#000" d="M6.5 6.5h8v9h-8z" />
+			<path stroke="currentColor" d="M8 9.5h5M8 11.5h5M8 13.5h3" />
+		</svg>
+	);
+}
+
 export function Terminal() {
 	const [lines, setLines] = useState<Line[]>([]);
 	const [input, setInput] = useState("");
@@ -154,8 +194,10 @@ export function Terminal() {
 	const [booted, setBooted] = useState(false);
 	const [history, setHistory] = useState<ChatMessage[]>([]);
 	const [clipboardStatus, setClipboardStatus] = useState("");
+
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
+
 	const submittedInput = useRef<string[]>([]);
 	const recallIndex = useRef<number | null>(null);
 	const draft = useRef("");
@@ -188,13 +230,16 @@ export function Terminal() {
 	const showAsleep = useCallback((faceId: number, since: number) => {
 		const statusId = append("");
 		let frame = 0;
+
 		const draw = () => {
-			setLineSegments(faceId, [{ text: BOT + ASLEEP }, { text: SNORE[frame++ % SNORE.length], tone: "snore" }]);
+			const snore = SNORE[frame++ % SNORE.length];
+			setLineSegments(faceId, [{ text: BOT + ASLEEP }, { text: snore, tone: "snore" }]);
 			setLineSegments(statusId, [
 				{ text: `${" ".repeat(BOT.length)}asleep, waking him up · ` },
 				{ text: elapsed(since), tone: "time" },
 			]);
 		};
+
 		draw();
 		const timer = setInterval(draw, SNORE_MS);
 
@@ -210,40 +255,54 @@ export function Terminal() {
 
 		const wakeStarted = Date.now();
 		let wakeSettled = false;
-		const wakeup = wakeAdam().finally(() => { wakeSettled = true; });
+		const wakeup = wakeAdam().finally(() => {
+			wakeSettled = true;
+		});
 
 		async function typeCommand(command: string) {
 			const id = append(SHELL);
+			const show = (typed: string) => {
+				if (alive) setLineText(id, SHELL + typed);
+			};
+
 			await sleep(225);
-			await typewrite(command, (typed) => { if (alive) setLineText(id, SHELL + typed); }, () => alive, 40, 55);
+			await typewrite(command, show, () => alive, 40, 55);
 			await sleep(110);
 		}
 
 		void (async () => {
 			await sleep(175);
+
 			for (const text of COPYRIGHT) {
 				if (!alive) return;
 				append(text);
 				await sleep(text ? 105 : 70);
 			}
 			if (!alive) return;
+
 			await typeCommand("help");
 			if (!alive) return;
+
 			COMMANDS.forEach(append);
 			await sleep(250);
 			if (!alive) return;
+
 			await typeCommand("ADAM.EXE");
 			if (!alive) return;
+
 			append("");
 			await sleep(GREETING_DELAY_MS);
 			if (!alive) return;
+
 			let face: number | undefined;
 			if (!wakeSettled) {
 				face = append(BOT);
 				stopNap = showAsleep(face, wakeStarted);
 			}
+
 			const failure = await wakeup;
 			if (!alive) return;
+
 			stopNap?.();
 			stopNap = undefined;
 
@@ -260,12 +319,15 @@ export function Terminal() {
 				setHistory([{ role: "assistant", content: GREETING }]);
 				lastHeard.current = Date.now();
 			}
+
 			await sleep(175);
 			if (!alive) return;
+
 			append("");
 			setBusy(false);
 			setBooted(true);
 		})();
+
 		return () => {
 			alive = false;
 			stopNap?.();
@@ -284,28 +346,35 @@ export function Terminal() {
 		else if (name === "help") HELP.forEach(append);
 		else if (name === "ver") [WINDOWS_VERSION, ""].forEach(append);
 		else return false;
+
 		return true;
 	}
 
 	async function submit(event?: FormEvent) {
 		event?.preventDefault();
+
 		const text = input.trim();
 		if (busy || !text) return;
 
 		submittedInput.current.push(text);
 		append(`${YOU}${text}`);
 		editInput("");
+
 		if (runLocal(text)) return;
 
 		const conversation: ChatMessage[] = [...history, { role: "user", content: text }];
 		setBusy(true);
+
 		let reply = "";
 		const replyId = append(BOT + "...");
 
 		const sent = Date.now();
 		const mayBeAsleep = sent - lastHeard.current > AWAKE_FOR_MS;
 		let stopNap: (() => void) | undefined;
-		const napping = setTimeout(() => { stopNap = showAsleep(replyId, sent); }, ASLEEP_AFTER_MS);
+		const napping = setTimeout(() => {
+			stopNap = showAsleep(replyId, sent);
+		}, ASLEEP_AFTER_MS);
+
 		const endNap = () => {
 			clearTimeout(napping);
 			stopNap?.();
@@ -317,18 +386,23 @@ export function Terminal() {
 				const failure = await wakeAdam();
 				if (failure) throw new ChatFailure(failure);
 			}
+
 			await streamChat(conversation, (token) => {
 				endNap();
 				reply += token;
 				setLineText(replyId, BOT + reply);
 			});
+
 			if (!reply.trim()) throw new ChatFailure(FAILURE_REPLIES.silent);
+
 			setHistory([...conversation, { role: "assistant", content: reply }]);
 			lastHeard.current = Date.now();
 		} catch (error) {
 			lastHeard.current = 0;
 			if (!(error instanceof ChatFailure)) console.error(error);
-			setLineText(replyId, BOT + (error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken));
+
+			const message = error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken;
+			setLineText(replyId, BOT + message);
 		} finally {
 			endNap();
 			append("");
@@ -337,7 +411,9 @@ export function Terminal() {
 	}
 
 	function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-		if (busy || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+		const modified = event.ctrlKey || event.metaKey || event.altKey || event.shiftKey;
+		if (busy || event.nativeEvent.isComposing || modified) return;
+
 		if (event.key === "Enter") {
 			event.preventDefault();
 			void submit();
@@ -346,12 +422,15 @@ export function Terminal() {
 			editInput("");
 		} else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
 			event.preventDefault();
+
 			const entries = submittedInput.current;
 			if (!entries.length) return;
 
 			const current = recallIndex.current ?? entries.length;
 			if (recallIndex.current === null) draft.current = input;
-			const next = Math.max(0, Math.min(entries.length, current + (event.key === "ArrowUp" ? -1 : 1)));
+
+			const step = event.key === "ArrowUp" ? -1 : 1;
+			const next = Math.max(0, Math.min(entries.length, current + step));
 			recallIndex.current = next === entries.length ? null : next;
 			setInput(next === entries.length ? draft.current : entries[next]);
 		}
@@ -360,9 +439,12 @@ export function Terminal() {
 	async function copy() {
 		const field = inputRef.current;
 		const selectedInput = field?.value.slice(field.selectionStart ?? 0, field.selectionEnd ?? 0);
+
 		const selection = window.getSelection();
-		const selectedOutput = selection && bodyRef.current?.contains(selection.anchorNode)
-			&& bodyRef.current.contains(selection.focusNode) ? selection.toString() : "";
+		const body = bodyRef.current;
+		const selectionInBody = selection && body?.contains(selection.anchorNode) && body.contains(selection.focusNode);
+		const selectedOutput = selectionInBody ? selection.toString() : "";
+
 		const transcript = [...lines.map((line) => line.text), busy ? "" : YOU + input].join("\n");
 
 		try {
@@ -380,7 +462,9 @@ export function Terminal() {
 		try {
 			const text = await navigator.clipboard.readText();
 			if (field !== inputRef.current || field.readOnly) return;
-			field.setRangeText(text.replace(/[\r\n]+/g, " "), field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
+
+			const oneLine = text.replace(/[\r\n]+/g, " ");
+			field.setRangeText(oneLine, field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
 			editInput(field.value);
 			field.focus({ preventScroll: true });
 		} catch {
@@ -393,26 +477,44 @@ export function Terminal() {
 			<div className="term__toolbar" role="group" aria-label="MS-DOS controls">
 				<span className="term__font-size">8 x 16</span>
 				<span className="term__separator" aria-hidden="true" />
-				<button type="button" className="term__tool" aria-label="Copy" title="Copy selection or transcript"
-					onPointerDown={(event) => event.preventDefault()} onClick={() => void copy()}>
-					<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
-						<path fill="#fff" stroke="#000" d="M1.5 1.5h8v10h-8zM5.5 4.5h8v10h-8z" />
-						<path stroke="currentColor" d="M7 7.5h5M7 9.5h5M7 11.5h4" />
-					</svg>
+
+				<button
+					type="button"
+					className="term__tool"
+					aria-label="Copy"
+					title="Copy selection or transcript"
+					onPointerDown={(event) => event.preventDefault()}
+					onClick={() => void copy()}
+				>
+					<CopyIcon />
 				</button>
-				<button type="button" className="term__tool" aria-label="Paste" title="Paste into the prompt" disabled={busy}
-					onPointerDown={(event) => event.preventDefault()} onClick={() => void paste()}>
-					<svg viewBox="0 0 16 16" aria-hidden="true" shapeRendering="crispEdges">
-						<path fill="#808000" stroke="#000" d="M2.5 2.5h10v12h-10z" />
-						<path fill="#c0c0c0" stroke="#000" d="M5.5.5h4v3h-4z" />
-						<path fill="#fff" stroke="#000" d="M6.5 6.5h8v9h-8z" />
-						<path stroke="currentColor" d="M8 9.5h5M8 11.5h5M8 13.5h3" />
-					</svg>
+
+				<button
+					type="button"
+					className="term__tool"
+					aria-label="Paste"
+					title="Paste into the prompt"
+					disabled={busy}
+					onPointerDown={(event) => event.preventDefault()}
+					onClick={() => void paste()}
+				>
+					<PasteIcon />
 				</button>
-				<a className="term__tool" href="/fonts/ibm-vga-LICENSE.txt" target="_blank" rel="noreferrer"
-					aria-label="DOS font credits" title="DOS font credits">?</a>
+
+				<a
+					className="term__tool"
+					href="/fonts/ibm-vga-LICENSE.txt"
+					target="_blank"
+					rel="noreferrer"
+					aria-label="DOS font credits"
+					title="DOS font credits"
+				>
+					?
+				</a>
 			</div>
+
 			<div className="term__status" role="status">{clipboardStatus}</div>
+
 			<div
 				className="term__body"
 				ref={bodyRef}
@@ -427,6 +529,7 @@ export function Terminal() {
 						)) ?? (line.text || "\u00a0")}
 					</span>
 				))}
+
 				{booted && (
 					<form className="term__input-row" onSubmit={submit} aria-busy={busy} data-empty={!input}>
 						<span className="term__prompt" aria-hidden="true">{YOU}</span>

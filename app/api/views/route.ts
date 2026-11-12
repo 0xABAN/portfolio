@@ -8,6 +8,7 @@ async function production(method: "GET" | "POST", headers: Record<string, string
 	try {
 		const res = await fetch("https://advm.dev/api/views", { method, headers, cache: "no-store" });
 		if (!res.ok) return 0;
+
 		const { count } = (await res.json()) as { count?: number };
 		return typeof count === "number" ? count : 0;
 	} catch {
@@ -18,6 +19,7 @@ async function production(method: "GET" | "POST", headers: Record<string, string
 async function viewCount(): Promise<number> {
 	const store = redis();
 	if (!store) return production("GET");
+
 	try {
 		return (await store.get<number>(KEY)) ?? 0;
 	} catch {
@@ -32,6 +34,7 @@ async function recordView(req: Request): Promise<number> {
 
 	const store = redis();
 	if (!store) return production("POST", { "user-agent": userAgent, "x-forwarded-for": ip });
+
 	try {
 		const isNew = await store.set(`${KEY}:seen:${ip}`, 1, { nx: true, ex: 24 * 60 * 60 });
 		return isNew === null ? viewCount() : store.incr(KEY);

@@ -54,28 +54,38 @@ export const Window = memo(function Window({
 	useLayoutEffect(() => {
 		const el = rootRef.current!;
 		el.style.zIndex = String(z);
+
 		if (drag.current && !drag.current.live) return;
+
 		Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
 	}, [x, y, w, h, z]);
 
 	function startDrag(event: PointerEvent<HTMLElement>) {
 		if ((event.target as HTMLElement).closest(".win-min, [data-no-window-drag]")) return;
+
 		const el = rootRef.current!;
 		event.currentTarget.setPointerCapture(event.pointerId);
 		el.toggleAttribute("data-dragging", true);
+
 		const scale = desktopScale();
 		drag.current = {
-			offsetX: event.clientX / scale - el.offsetLeft, offsetY: event.clientY / scale - el.offsetTop,
-			x: el.offsetLeft, y: el.offsetTop, live: liveMove, frame: 0,
+			offsetX: event.clientX / scale - el.offsetLeft,
+			offsetY: event.clientY / scale - el.offsetTop,
+			x: el.offsetLeft,
+			y: el.offsetTop,
+			live: liveMove,
+			frame: 0,
 		};
 	}
 
 	function moveDrag(event: PointerEvent<HTMLElement>) {
 		const d = drag.current;
 		if (!d) return;
+
 		const scale = desktopScale();
 		d.x = event.clientX / scale - d.offsetX;
 		d.y = event.clientY / scale - d.offsetY;
+
 		if (!d.live) {
 			Object.assign(rootRef.current!.style, { left: `${d.x}px`, top: `${d.y}px` });
 		} else if (!d.frame) {
@@ -89,15 +99,21 @@ export const Window = memo(function Window({
 	function endDrag(event: PointerEvent<HTMLElement>) {
 		const d = drag.current;
 		if (!d) return;
+
 		cancelAnimationFrame(d.frame);
 		drag.current = null;
 		rootRef.current!.removeAttribute("data-dragging");
-		if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+
+		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+			event.currentTarget.releasePointerCapture(event.pointerId);
+		}
+
 		moveRef.current?.(id, d.x, d.y);
 	}
 
 	function onFocusCapture(event: FocusEvent<HTMLElement>) {
 		onActivateAction(id);
+
 		const target = event.target as HTMLElement;
 		if (target === event.currentTarget) {
 			if (lastFocus.current?.isConnected) lastFocus.current.focus({ preventScroll: true });
@@ -132,46 +148,80 @@ export const Window = memo(function Window({
 				<header className="win-titlebar" {...(dragAnywhere ? {} : dragHandlers)}>
 					{icon && <img className="win-titlebar__icon" src={icon} alt="" draggable={false} />}
 					<span className="win-titlebar__text">{title}</span>
+
 					{minimizable && (
-						<button type="button" className="win-min chrome-raised" aria-label="Minimize"
-							onClick={() => onMinimizeAction(id)} onPointerDown={(event) => event.stopPropagation()} />
+						<button
+							type="button"
+							className="win-min chrome-raised"
+							aria-label="Minimize"
+							onClick={() => onMinimizeAction(id)}
+							onPointerDown={(event) => event.stopPropagation()}
+						/>
 					)}
+
 					{onCloseAction && (
-						<button type="button" className="win-min win-close chrome-raised" aria-label={`Close ${title}`}
-							onClick={() => onCloseAction(id)} onPointerDown={(event) => event.stopPropagation()}>×</button>
+						<button
+							type="button"
+							className="win-min win-close chrome-raised"
+							aria-label={`Close ${title}`}
+							onClick={() => onCloseAction(id)}
+							onPointerDown={(event) => event.stopPropagation()}
+						>
+							×
+						</button>
 					)}
 				</header>
 			)}
+
 			<div className={frameless ? "win__client" : "win__client chrome-sunken"}>{children}</div>
 		</section>
 	);
 });
 
 const HIDE_DISTANCE = 120;
+const FLYOUT_GAP = 4;
 
 function distanceTo(rect: DOMRect, x: number, y: number) {
-	return Math.hypot(Math.max(rect.left - x, 0, x - rect.right), Math.max(rect.top - y, 0, y - rect.bottom));
+	const dx = Math.max(rect.left - x, 0, x - rect.right);
+	const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+	return Math.hypot(dx, dy);
 }
 
-export function useTaskFlyout(id: string, shown: boolean, taskOrder: string, setWindows: Dispatch<SetStateAction<DesktopWindow[]>>) {
+export function useTaskFlyout(
+	id: string,
+	shown: boolean,
+	taskOrder: string,
+	setWindows: Dispatch<SetStateAction<DesktopWindow[]>>,
+) {
 	useLayoutEffect(() => {
 		if (!shown) return;
+
 		const place = () => {
 			const task = document.querySelector(`[data-task-id="${id}"]`);
 			const layer = document.querySelector(".desktop__windows");
 			if (!task || !layer) return;
+
 			task.scrollIntoView({ block: "nearest", inline: "nearest" });
 			const anchor = task.getBoundingClientRect();
 			const origin = layer.getBoundingClientRect();
+
 			setWindows((current) => {
 				const flyout = current.find((w) => w.id === id);
 				if (!flyout) return current;
+
 				const scale = desktopScale();
-				const x = (Math.max(4, Math.min(anchor.left, window.innerWidth - flyout.w * scale - 4)) - origin.left) / scale;
-				const y = (Math.max(0, anchor.top - flyout.h * scale - 4) - origin.top) / scale;
-				return x === flyout.x && y === flyout.y ? current : current.map((w) => (w === flyout ? { ...w, x, y } : w));
+				const maxLeft = window.innerWidth - flyout.w * scale - FLYOUT_GAP;
+				const left = Math.max(FLYOUT_GAP, Math.min(anchor.left, maxLeft));
+				const top = Math.max(0, anchor.top - flyout.h * scale - FLYOUT_GAP);
+
+				const x = (left - origin.left) / scale;
+				const y = (top - origin.top) / scale;
+				if (x === flyout.x && y === flyout.y) return current;
+
+				return current.map((w) => (w === flyout ? { ...w, x, y } : w));
 			});
 		};
+
 		place();
 		window.addEventListener("resize", place);
 		return () => window.removeEventListener("resize", place);
@@ -179,17 +229,26 @@ export function useTaskFlyout(id: string, shown: boolean, taskOrder: string, set
 
 	useEffect(() => {
 		if (!shown) return;
+
 		let armed = false;
+
 		const onPointerMove = (event: globalThis.PointerEvent) => {
 			if (event.pointerType !== "mouse" || event.buttons) return;
+
 			const flyout = document.getElementById(`desktop-window-${id}`);
 			const task = document.querySelector(`[data-task-id="${id}"]`);
 			if (!flyout || !task) return;
+
 			const { clientX: x, clientY: y } = event;
-			const distance = Math.min(distanceTo(flyout.getBoundingClientRect(), x, y), distanceTo(task.getBoundingClientRect(), x, y));
+			const distance = Math.min(
+				distanceTo(flyout.getBoundingClientRect(), x, y),
+				distanceTo(task.getBoundingClientRect(), x, y),
+			);
+
 			if (distance <= HIDE_DISTANCE) armed = true;
 			else if (armed) setWindows((current) => minimizeWindowTree(current, id));
 		};
+
 		window.addEventListener("pointermove", onPointerMove, { passive: true });
 		return () => window.removeEventListener("pointermove", onPointerMove);
 	}, [id, shown, setWindows]);

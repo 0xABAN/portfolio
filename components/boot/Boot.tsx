@@ -57,16 +57,21 @@ function Restarting({ onDone }: { onDone: () => void }) {
 
 	useEffect(() => {
 		const step = RESTART_MS / (RESTART_LINES.length + 1);
+		const showLine = (i: number) => window.setTimeout(() => setCount(i + 1), step * (i + 1));
+
 		const timers = [
-			...RESTART_LINES.map((_, i) => window.setTimeout(() => setCount(i + 1), step * (i + 1))),
+			...RESTART_LINES.map((_, i) => showLine(i)),
 			window.setTimeout(onDone, RESTART_MS),
 		];
+
 		return () => timers.forEach(window.clearTimeout);
 	}, [onDone]);
 
 	return (
 		<div className="restarting" role="status" aria-live="polite" aria-label="Restarting">
-			{RESTART_LINES.slice(0, count).map((line, i) => <p key={i} className="restarting__line">{line || "\u00a0"}</p>)}
+			{RESTART_LINES.slice(0, count).map((line, i) => (
+				<p key={i} className="restarting__line">{line || "\u00a0"}</p>
+			))}
 		</div>
 	);
 }
@@ -76,19 +81,24 @@ export function Boot() {
 		const { userAgent, maxTouchPoints } = navigator;
 		const mobile = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk/i.test(userAgent)
 			|| (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);
+
 		return mobile ? "unsupported" : "rsod";
 	});
 
 	useEffect(() => {
 		if (phase !== "rsod") return;
+
 		prefetchFracture();
-		preloads ??= JSON.parse(process.env.PUBLIC_IMAGES!).map((src: string) => Object.assign(new Image(), { src }));
+
+		const images: string[] = JSON.parse(process.env.PUBLIC_IMAGES!);
+		preloads ??= images.map((src) => Object.assign(new Image(), { src }));
 	}, [phase]);
 
 	useEffect(() => {
 		window.addEventListener("keydown", blockTabNavigation, true);
 		return () => window.removeEventListener("keydown", blockTabNavigation, true);
 	}, []);
+
 	const toRestart = useCallback(() => setPhase("restarting"), []);
 	const toDesktop = useCallback(() => setPhase("desktop"), []);
 
@@ -103,6 +113,7 @@ export function Boot() {
 			</main>
 		);
 	}
+
 	if (phase === "rsod") return <Rsod onContinue={toRestart} />;
 	if (phase === "restarting") return <Restarting onDone={toDesktop} />;
 	return <Desktop />;

@@ -20,7 +20,8 @@ export function clientIp(req: Request): string {
 
 export async function checkChatTime(req: Request, request: ChatRequest): Promise<NextResponse | null> {
 	const ip = clientIp(req);
-	if ((process.env.CHAT_UNLIMITED_IPS ?? "").split(",").some((entry) => entry.trim() === ip)) return null;
+	const unlimited = (process.env.CHAT_UNLIMITED_IPS ?? "").split(",").map((entry) => entry.trim());
+	if (unlimited.includes(ip)) return null;
 
 	const store = redis();
 	if (!store) {

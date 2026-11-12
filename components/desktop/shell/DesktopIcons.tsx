@@ -1,8 +1,23 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { DESKTOP_REVEAL_MS } from "../effects";
 import { TASKBAR_H, desktopScale, desktopSize } from "../windows";
-import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, itemOf, type DeskIcon as CatalogIcon, type ShellNode } from "./files";
-import { ShellMenu, keyboardMenuPosition, menuPosition, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "./Shell";
+import {
+	BIN_ICON,
+	DESK_ICONS as FILE_ICONS,
+	byCatalogOrder,
+	itemOf,
+	type DeskIcon as CatalogIcon,
+	type ShellNode,
+} from "./files";
+import {
+	ShellMenu,
+	keyboardMenuPosition,
+	menuPosition,
+	useShell,
+	useShellSelection,
+	type MenuCommand,
+	type MenuPosition,
+} from "./Shell";
 
 type DeskIcon = CatalogIcon & { recycle?: boolean };
 type DeskIconPosition = { col: number; row: number };
@@ -26,42 +41,54 @@ const STEP_Y = CELL_H + 8;
 const ATTENTION_DELAY_MS = 1000;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
-	return [...nodes.filter((node) => node.parentId === "desktop").sort(byCatalogOrder).map((node) => {
+	const onDesktop = nodes.filter((node) => node.parentId === "desktop").sort(byCatalogOrder);
+
+	const icons = onDesktop.map((node) => {
 		const item = itemOf(node);
 		return { id: node.id, label: item.name, src: item.icon, open: item.open, href: item.href };
-	}), RECYCLE_BIN];
+	});
+
+	return [...icons, RECYCLE_BIN];
 }
 
 function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
 	const width = Math.max(CELL_W, vw - 10);
 	const height = Math.max(CELL_H, vh - TASKBAR_H - 28);
+
 	const cols = Math.max(1, Math.floor((width - CELL_W) / STEP_X) + 1);
 	const rows = Math.max(1, Math.floor((height - CELL_H) / STEP_Y) + 1, Math.ceil(count / cols));
+
 	return { cols, rows };
+}
+
+function columnFirstCell(index: number, rows: number): DeskIconPosition {
+	return { col: Math.floor(index / rows), row: index % rows };
 }
 
 function defaultDeskIconPositions(vw: number, vh: number): DeskIconPositions {
 	const { rows } = gridBounds(vw, vh);
-	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, { col: Math.floor(index / rows), row: index % rows }]));
+	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, columnFirstCell(index, rows)]));
 }
 
 function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: number, icons: DeskIcon[]): DeskIconPositions {
 	const { cols, rows } = gridBounds(vw, vh, icons.length);
+	const total = cols * rows;
 	const used = new Set<string>();
 	const next: DeskIconPositions = {};
-	const total = cols * rows;
 
 	for (const [index, icon] of icons.entries()) {
-		const fallback = { col: Math.floor(index / rows), row: index % rows };
-		const source = current[icon.id] ?? fallback;
+		const source = current[icon.id] ?? columnFirstCell(index, rows);
 		const startCol = Math.min(Math.max(source.col, 0), cols - 1);
 		const startRow = Math.min(Math.max(source.row, 0), rows - 1);
+
 		let cell = startRow * cols + startCol;
 		while (used.has(`${cell % cols}:${Math.floor(cell / cols)}`)) cell = (cell + 1) % total;
+
 		const position = { col: cell % cols, row: Math.floor(cell / cols) };
 		next[icon.id] = position;
 		used.add(`${position.col}:${position.row}`);
 	}
+
 	return next;
 }
 
@@ -71,11 +98,15 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
 
 	function commands(ids: string[]): MenuCommand[] {
-		if (ids.length === 1 && ids[0] === "recycle-bin") return [
-			{ label: "Open", action: () => open("recycle-bin") },
-			{ label: "Empty Recycle Bin", disabled: !shell.state.entries.length, action: shell.empty },
-		];
+		if (ids.length === 1 && ids[0] === "recycle-bin") {
+			return [
+				{ label: "Open", action: () => open("recycle-bin") },
+				{ label: "Empty Recycle Bin", disabled: !shell.state.entries.length, action: shell.empty },
+			];
+		}
+
 		if (!ids.length) return [{ label: "Select All", action: selection.all }];
+
 		return [
 			{ label: "Open", disabled: ids.length !== 1, action: () => open(ids[0]) },
 			{ label: "Delete", disabled: !ids.some((id) => id !== "recycle-bin"), action: () => shell.recycle(ids) },
@@ -84,6 +115,7 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 
 	function onKeyDown(event: KeyboardEvent<HTMLUListElement>) {
 		if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="menu"], dialog')) return;
+
 		const ids = selection.selected;
 		if (event.key === "Delete") {
 			event.preventDefault();
@@ -101,6 +133,7 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 	function onContextMenu(event: MouseEvent<HTMLElement>, id?: string) {
 		event.stopPropagation();
 		if (!id) selection.clear();
+
 		setContext({ position: menuPosition(event), ids: id ? selection.forItem(id) : [] });
 	}
 
@@ -121,7 +154,9 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 		<>
 			<span className="desk-icon__art">
 				<img className="desk-icon__img" src={src} alt="" width={64} height={64} draggable={false} />
+
 				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
+
 				{notification && (
 					<span className="desk-icon__bubble" aria-hidden="true">
 						<span className="desk-icon__bubble-x">
@@ -134,6 +169,7 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 					</span>
 				)}
 			</span>
+
 			<span className="desk-icon__label">{label}</span>
 		</>
 	);
@@ -142,6 +178,8 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
 	const shell = useShell();
 	const { getState } = shell;
+	const binFull = shell.state.entries.length > 0;
+
 	const [deskIconPositions, setDeskIconPositions] = useState(() => {
 		const { width, height } = desktopSize();
 		return defaultDeskIconPositions(width, height);
@@ -149,7 +187,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
-	const binFull = shell.state.entries.length > 0;
 
 	useEffect(() => {
 		const start = window.setTimeout(() => setAttention(true), DESKTOP_REVEAL_MS + ATTENTION_DELAY_MS);
@@ -159,22 +196,27 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	useEffect(() => {
 		const resize = () => {
 			const { width, height } = desktopSize();
+			const icons = shellDeskIcons(getState().nodes);
+
 			setDeskIconPositions((current) => ({
 				...current,
-				...normalizeDeskIconPositions(current, width, height, shellDeskIcons(getState().nodes)),
+				...normalizeDeskIconPositions(current, width, height, icons),
 			}));
 		};
+
 		window.addEventListener("resize", resize);
 		return () => window.removeEventListener("resize", resize);
 	}, [getState]);
 
 	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
 	const bounceSecrets = attention && !secretsOpened && !explorerOpen;
+
 	const deskIcons = shellDeskIcons(shell.state.nodes);
 	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
+	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
+
 	const desktop = desktopSize();
 	const positions = normalizeDeskIconPositions(deskIconPositions, desktop.width, desktop.height, deskIcons);
-	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
 
 	function markDeskIconInteraction(icon: DeskIcon) {
 		if (!secretsOpened && icon.id === "secrets") onSecretsOpenedAction();
@@ -183,18 +225,31 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
 		const { cols, rows } = gridBounds(desktop.width, desktop.height, deskIcons.length);
 		const cell = { col: Math.min(Math.max(col, 0), cols - 1), row: Math.min(Math.max(row, 0), rows - 1) };
+
 		setDeskIconPositions((current) => {
 			const source = current[sourceId] ?? positions[sourceId];
 			if (!source) return current;
-			const target = visibleDeskIcons.find((icon) => icon.id !== sourceId
-				&& (current[icon.id] ?? positions[icon.id])?.col === cell.col
-				&& (current[icon.id] ?? positions[icon.id])?.row === cell.row);
+
+			const positionOf = (id: string) => current[id] ?? positions[id];
+			const target = visibleDeskIcons.find((icon) => {
+				const position = positionOf(icon.id);
+				return icon.id !== sourceId && position?.col === cell.col && position?.row === cell.row;
+			});
 			if (target?.id === RECYCLE_BIN.id) return current;
 
 			const next = { ...current, [sourceId]: cell };
 			if (target) next[target.id] = source;
 			return next;
 		});
+	}
+
+	function iconClassName(icon: DeskIcon) {
+		return [
+			"desk-icon shell-desktop-item",
+			icon.id === "secrets" && bounceSecrets && "desk-icon--bounce",
+			icon.recycle && binHot && "desk-icon--drop-hot",
+			draggingId === icon.id && "desk-icon--dragging",
+		].filter(Boolean).join(" ");
 	}
 
 	return (
@@ -206,8 +261,12 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 				aria-multiselectable="true"
 				data-shell-surface=""
 				onKeyDown={desktopSelection.onKeyDown}
-				onContextMenu={(event) => { if (event.target === event.currentTarget) desktopSelection.onContextMenu(event); }}
-				onPointerDown={(event) => { if (event.target === event.currentTarget) desktopSelection.clear(); }}
+				onContextMenu={(event) => {
+					if (event.target === event.currentTarget) desktopSelection.onContextMenu(event);
+				}}
+				onPointerDown={(event) => {
+					if (event.target === event.currentTarget) desktopSelection.clear();
+				}}
 				onDragOver={(event) => {
 					if (!draggingId && !shell.canDrop(event, "desktop")) return;
 					event.preventDefault();
@@ -218,12 +277,15 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 						shell.drop(event, "desktop");
 						return;
 					}
+
 					event.preventDefault();
+
 					const bounds = event.currentTarget.getBoundingClientRect();
 					const scale = desktopScale();
 					const x = (event.clientX - bounds.left) / scale;
 					const y = (event.clientY - bounds.top) / scale;
 					moveDeskIconToCell(draggingId, Math.round((x - CELL_W / 2) / STEP_X), Math.round((y - CELL_H / 2) / STEP_Y));
+
 					shell.endDrag();
 					setDraggingId(null);
 				}}
@@ -236,27 +298,23 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					>
 						<button
 							type="button"
-							className={[
-								"desk-icon shell-desktop-item",
-								icon.id === "secrets" && bounceSecrets ? "desk-icon--bounce" : "",
-								icon.recycle && binHot ? "desk-icon--drop-hot" : "",
-								draggingId === icon.id ? "desk-icon--dragging" : "",
-							].filter(Boolean).join(" ")}
+							className={iconClassName(icon)}
 							title={icon.label}
 							data-app-id={icon.open}
 							data-icon-id={icon.id}
 							data-shell-item={icon.id}
 							data-shortcut={icon.href || icon.open === "cd-player" ? "" : undefined}
+							data-recycle-bin={icon.recycle ? "" : undefined}
 							role="option"
 							aria-selected={desktopSelection.selected.includes(icon.id)}
-							tabIndex={index === 0 ? 0 : -1}
-							data-recycle-bin={icon.recycle ? "" : undefined}
 							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : icon.label}
+							tabIndex={index === 0 ? 0 : -1}
 							draggable
 							onPointerDown={() => markDeskIconInteraction(icon)}
 							onFocus={() => markDeskIconInteraction(icon)}
 							onDragOver={(event) => {
 								markDeskIconInteraction(icon);
+
 								if (icon.recycle) {
 									if (!shell.canDrop(event, "bin")) return;
 									event.preventDefault();
@@ -264,26 +322,33 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 									setBinHot(true);
 									return;
 								}
+
 								const folderDrop = icon.open === "explorer" && shell.canDrop(event, icon.id);
 								if ((!draggingId && !folderDrop) || draggingId === icon.id) return;
+
 								event.preventDefault();
 								event.dataTransfer.dropEffect = "move";
 							}}
-							onDragLeave={() => { if (icon.recycle) setBinHot(false); }}
+							onDragLeave={() => {
+								if (icon.recycle) setBinHot(false);
+							}}
 							onDrop={(event) => {
 								markDeskIconInteraction(icon);
 								event.preventDefault();
 								event.stopPropagation();
+
 								const cell = positions[icon.id];
 								if (icon.recycle) shell.drop(event, "bin");
 								else if (icon.open === "explorer" && draggingId !== RECYCLE_BIN.id) shell.drop(event, icon.id);
 								else if (draggingId && draggingId !== icon.id) moveDeskIconToCell(draggingId, cell.col, cell.row);
+
 								shell.endDrag();
 								setBinHot(false);
 								setDraggingId(null);
 							}}
 							onDragStart={(event) => {
 								markDeskIconInteraction(icon);
+
 								if (icon.recycle) {
 									event.dataTransfer.setData("text/plain", icon.id);
 									event.dataTransfer.effectAllowed = "move";
@@ -291,6 +356,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 									const ids = desktopSelection.forItem(icon.id).filter((id) => id !== RECYCLE_BIN.id);
 									shell.startDrag(event, { kind: "nodes", ids });
 								}
+
 								setDraggingId(icon.id);
 							}}
 							onDragEnd={() => {
@@ -314,6 +380,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					</li>
 				))}
 			</ul>
+
 			{desktopSelection.menu}
 		</>
 	);

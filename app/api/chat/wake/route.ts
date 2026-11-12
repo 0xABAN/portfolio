@@ -11,6 +11,7 @@ export async function POST(req: Request) {
 	if (refusal) return refusal;
 
 	const timeout = AbortSignal.timeout(CHECK_MS);
+
 	try {
 		await wakeModel(AbortSignal.any([req.signal, timeout]));
 	} catch (error) {
@@ -18,5 +19,6 @@ export async function POST(req: Request) {
 		if (!req.signal.aborted) console.error("chat: waking the model failed:", error);
 		return NextResponse.json({ detail: FAILURE_REPLIES.broken }, { status: 502 });
 	}
+
 	return new Response(null, { status: 204 });
 }

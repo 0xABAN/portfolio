@@ -24,10 +24,12 @@ export function Explorer({ folderId, onOpenAction }: Props) {
 	const folder = shell.state.nodes.find((node) => node.id === folderId);
 	const missing = folderId !== "desktop" && !folder;
 	const files = missing ? [] : shell.state.nodes.filter((node) => node.parentId === folderId).sort(byCatalogOrder);
-	const selection = useShellSelection(files.map((node) => node.id), files.map((node) => itemOf(node).name));
-	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
 	const path = shellPath(folder ? [...ancestorsOf(shell.state.nodes, folder), folder] : []);
+
+	const selection = useShellSelection(files.map((node) => node.id), files.map((node) => itemOf(node).name));
 	const selected = selection.selected;
+	const [context, setContext] = useState<{ position: MenuPosition; ids: string[] } | null>(null);
+
 	const up = () => onOpenAction(folder?.parentId ?? "desktop");
 
 	function commands(ids: string[]): MenuCommand[] {

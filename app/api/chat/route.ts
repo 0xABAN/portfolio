@@ -6,6 +6,7 @@ export const maxDuration = 300;
 
 export async function POST(req: Request) {
 	let messages;
+
 	try {
 		const body = (await req.json()) as { messages?: unknown } | null;
 		messages = parseMessages(body?.messages);

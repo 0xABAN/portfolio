@@ -44,10 +44,11 @@ function useShellController() {
 	const [loaded] = useState(loadState);
 	const [state, setState] = useState(loaded.state);
 	const current = useRef(state);
+	const drag = useRef<ShellDrag | null>(null);
+
 	const [dialog, setDialog] = useState<ShellDialog | null>(() => {
 		return loaded.error ? { title: "desktop storage", message: loaded.error } : null;
 	});
-	const drag = useRef<ShellDrag | null>(null);
 
 	function notice(message: string, title = "recycle bin") {
 		setDialog({ title, message });
@@ -58,12 +59,14 @@ function useShellController() {
 			setDialog(null);
 			action();
 		};
+
 		setDialog({ title, message, accept });
 	}
 
 	function save(next: ShellState) {
 		current.current = next;
 		setState(next);
+
 		try {
 			window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 		} catch {
@@ -74,8 +77,10 @@ function useShellController() {
 	function recycle(ids: readonly string[], permanent = false, source: "command" | "drag" = "command") {
 		const roots = selectedRoots(current.current, ids);
 		if (!roots.length) return;
+
 		const target = roots.length === 1 ? `"${itemOf(roots[0]).name}"` : `these ${roots.length} items`;
 		const run = () => save(deleteNodes(current.current, ids, Date.now(), permanent));
+
 		if (permanent) confirm(`Are you sure you want to permanently delete ${target}?`, run);
 		else if (source === "command") confirm(`Are you sure you want to send ${target} to the Recycle Bin?`, run);
 		else run();
@@ -84,9 +89,9 @@ function useShellController() {
 	function purge(ids: readonly string[], title?: string) {
 		const count = current.current.entries.filter((entry) => ids.includes(entryId(entry))).length;
 		if (!count) return;
-		confirm(`Are you sure you want to permanently delete ${count === 1 ? "this item" : `these ${count} items`}?`, () => {
-			save(purgeEntries(current.current, ids));
-		}, title);
+
+		const target = count === 1 ? "this item" : `these ${count} items`;
+		confirm(`Are you sure you want to permanently delete ${target}?`, () => save(purgeEntries(current.current, ids)), title);
 	}
 
 	function restore(ids: readonly string[], destination?: string) {
@@ -103,6 +108,7 @@ function useShellController() {
 
 	function startDrag(event: DragEvent, payload: ShellDrag) {
 		drag.current = payload;
+
 		event.dataTransfer.setData(DRAG_TYPE, JSON.stringify(payload));
 		event.dataTransfer.setData("text/plain", payload.ids[0] ?? "");
 		event.dataTransfer.effectAllowed = "move";
@@ -115,32 +121,48 @@ function useShellController() {
 
 	function drop(event: DragEvent, destination: string) {
 		if (!canDrop(event, destination) || event.dataTransfer.getData(DRAG_TYPE) !== JSON.stringify(drag.current)) return;
+
 		event.preventDefault();
 		event.stopPropagation();
+
 		const payload = drag.current!;
 		drag.current = null;
+
 		if (payload.kind === "entries") restore(payload.ids, destination);
 		else if (destination === "bin") recycle(payload.ids, event.shiftKey, "drag");
 		else move(payload.ids, destination);
 	}
 
 	return {
-		state, dialog, closeDialog: () => setDialog(null),
-		getState: () => current.current, notice, recycle, purge, restore,
+		state,
+		dialog,
+		closeDialog: () => setDialog(null),
+		getState: () => current.current,
+		notice,
+		recycle,
+		purge,
+		restore,
 		empty: () => purge(current.current.entries.map(entryId), "confirm multiple file delete"),
 		reset: () => confirm(RESET_PROMPT, () => save(initialShellState()), "reset portfolio"),
-		startDrag, endDrag: () => { drag.current = null; }, canDrop, drop,
+		startDrag,
+		endDrag: () => {
+			drag.current = null;
+		},
+		canDrop,
+		drop,
 	};
 }
 
 const ShellContext = createContext<ReturnType<typeof useShellController> | null>(null);
 
 export function ShellProvider({ children }: { children: ReactNode }) {
-	return <ShellContext.Provider value={useShellController()}>{children}</ShellContext.Provider>;
+	const shell = useShellController();
+	return <ShellContext.Provider value={shell}>{children}</ShellContext.Provider>;
 }
 
 export function useShell() {
 	const shell = useContext(ShellContext);
+
 	if (!shell) throw new Error("Shell items must be rendered inside ShellProvider.");
 	return shell;
 }
@@ -148,6 +170,7 @@ export function useShell() {
 export function ShellDialogs() {
 	const shell = useShell();
 	const dialog = shell.dialog;
+
 	return dialog && <MessageDialog {...dialog} onClose={shell.closeDialog} />;
 }
 
@@ -162,8 +185,10 @@ function MessageDialog({ title, message, accept, onClose }: MessageDialogProps) 
 		const previous = document.activeElement as HTMLElement | null;
 		const surface = previous?.closest<HTMLElement>("[data-shell-surface]");
 		dialog.showModal();
+
 		return () => {
 			dialog.close();
+
 			const target = previous?.isConnected ? previous : surface?.querySelector<HTMLElement>("[data-shell-item]");
 			target?.focus({ preventScroll: true });
 		};
@@ -196,74 +221,109 @@ function MessageDialog({ title, message, accept, onClose }: MessageDialogProps) 
 	);
 }
 
+type Modifiers = { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean };
+
+const TYPE_AHEAD_MS = 700;
+
+function nearestInDirection(elements: HTMLElement[], current: HTMLElement, key: string) {
+	const rect = current.getBoundingClientRect();
+	const vertical = key === "ArrowUp" || key === "ArrowDown";
+	const direction = key === "ArrowUp" || key === "ArrowLeft" ? -1 : 1;
+
+	const candidates = elements.filter((element) => element !== current).map((element) => {
+		const other = element.getBoundingClientRect();
+		const primary = (vertical ? other.top - rect.top : other.left - rect.left) * direction;
+		const secondary = Math.abs(vertical ? other.left - rect.left : other.top - rect.top);
+		return { element, primary, score: primary + secondary * 4 };
+	});
+
+	const ahead = candidates.filter((candidate) => candidate.primary > 1);
+	return ahead.sort((a, b) => a.score - b.score)[0]?.element;
+}
+
 export function useShellSelection(ids: string[], names: string[]) {
 	const [selection, setSelection] = useState<string[]>([]);
 	const anchor = useRef<string | null>(null);
 	const typed = useRef({ text: "", at: 0 });
 	const selected = selection.filter((id) => ids.includes(id));
 
-	function select(id: string, modifiers: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean } = {}) {
+	function select(id: string, modifiers: Modifiers = {}) {
 		const additive = modifiers.ctrlKey || modifiers.metaKey;
+
 		if (modifiers.shiftKey && anchor.current && ids.includes(anchor.current)) {
 			const from = ids.indexOf(anchor.current);
 			const to = ids.indexOf(id);
 			const range = ids.slice(Math.min(from, to), Math.max(from, to) + 1);
 			setSelection(additive ? [...new Set([...selected, ...range])] : range);
-		} else {
-			anchor.current = id;
-			setSelection(additive ? selected.includes(id) ? selected.filter((key) => key !== id) : [...selected, id] : [id]);
+			return;
 		}
+
+		anchor.current = id;
+
+		if (!additive) setSelection([id]);
+		else if (selected.includes(id)) setSelection(selected.filter((key) => key !== id));
+		else setSelection([...selected, id]);
 	}
 
 	function forItem(id: string) {
 		if (selected.includes(id)) return selected;
+
 		select(id);
 		return [id];
 	}
 
+	function typeAhead(key: string, index: number) {
+		const now = Date.now();
+		const continuing = now - typed.current.at < TYPE_AHEAD_MS;
+		typed.current = { text: (continuing ? typed.current.text : "") + key.toLowerCase(), at: now };
+
+		const match = ids.findIndex((_, offset) => {
+			const name = names[(index + 1 + offset) % ids.length];
+			return name?.toLowerCase().startsWith(typed.current.text);
+		});
+
+		return match >= 0 ? (index + 1 + match) % ids.length : -1;
+	}
+
 	function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-		if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="menu"], dialog, input, select, textarea')) return;
-		const elements = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-shell-item]"));
-		const current = (event.target as HTMLElement).closest<HTMLElement>("[data-shell-item]");
-		const index = elements.indexOf(current!);
-		const id = current?.dataset.shellItem;
-		if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+		const target = event.target as HTMLElement;
+		if (event.defaultPrevented || target.closest('[role="menu"], dialog, input, select, textarea')) return;
+
+		const command = event.ctrlKey || event.metaKey;
+		if (command && event.key.toLowerCase() === "a") {
 			event.preventDefault();
 			setSelection(ids);
 			return;
 		}
-		if (event.altKey || ((event.ctrlKey || event.metaKey) && !event.key.startsWith("Arrow") && event.key !== " ")) return;
+		if (event.altKey || (command && !event.key.startsWith("Arrow") && event.key !== " ")) return;
+
+		const elements = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-shell-item]"));
+		const current = target.closest<HTMLElement>("[data-shell-item]");
+		const index = current ? elements.indexOf(current) : -1;
+		const id = current?.dataset.shellItem;
+
 		let next: HTMLElement | undefined;
-		if (event.key === "Home") next = elements[0];
-		else if (event.key === "End") next = elements.at(-1);
-		else if (event.key.startsWith("Arrow")) {
-			const rect = current?.getBoundingClientRect();
-			const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-			const direction = event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 1;
-			if (rect) {
-				next = elements.filter((element) => element !== current).map((element) => {
-					const other = element.getBoundingClientRect();
-					const primary = (vertical ? other.top - rect.top : other.left - rect.left) * direction;
-					const secondary = Math.abs(vertical ? other.left - rect.left : other.top - rect.top);
-					return { element, primary, score: primary + secondary * 4 };
-				}).filter((candidate) => candidate.primary > 1).sort((a, b) => a.score - b.score)[0]?.element;
-			} else next = elements[0];
+		if (event.key === "Home") {
+			next = elements[0];
+		} else if (event.key === "End") {
+			next = elements.at(-1);
+		} else if (event.key.startsWith("Arrow")) {
 			event.preventDefault();
+			next = current ? nearestInDirection(elements, current, event.key) : elements[0];
 		} else if (event.key === " " && id) {
 			event.preventDefault();
 			select(id, event);
 		} else if (event.key.length === 1 && !event.nativeEvent.isComposing) {
 			event.preventDefault();
-			const now = Date.now();
-			typed.current = { text: (now - typed.current.at < 700 ? typed.current.text : "") + event.key.toLowerCase(), at: now };
-			const match = ids.findIndex((_, offset) => names[(index + 1 + offset) % ids.length]?.toLowerCase().startsWith(typed.current.text));
-			if (match >= 0) next = elements[(index + 1 + match) % ids.length];
+			const match = typeAhead(event.key, index);
+			if (match >= 0) next = elements[match];
 		}
-		if (next) {
-			event.preventDefault();
-			next.focus();
-			if (!event.ctrlKey && !event.metaKey) select(next.dataset.shellItem!, event);
-		}
+
+		if (!next) return;
+
+		event.preventDefault();
+		next.focus();
+		if (!command) select(next.dataset.shellItem!, event);
 	}
 
 	return {
@@ -281,6 +341,8 @@ export type MenuCommand = { label: string; action: () => void; disabled?: boolea
 export type MenuPosition = { x: number; y: number };
 type Command = Exclude<MenuCommand, "separator">;
 
+const MENU_EDGE = 2;
+
 function commandRole({ checked, radio }: Command) {
 	if (checked === undefined) return "menuitem";
 	return radio ? "menuitemradio" : "menuitemcheckbox";
@@ -293,12 +355,14 @@ function commandMark({ checked, radio }: Command) {
 
 export function menuPosition(event: MouseEvent<HTMLElement>): MenuPosition {
 	event.preventDefault();
+
 	const rect = event.currentTarget.getBoundingClientRect();
 	return { x: event.clientX || rect.left, y: event.clientY || rect.bottom };
 }
 
 export function keyboardMenuPosition(event: KeyboardEvent<HTMLElement>): MenuPosition {
 	event.preventDefault();
+
 	const rect = (event.target as HTMLElement).getBoundingClientRect();
 	return { x: rect.left, y: rect.bottom };
 }
@@ -308,25 +372,39 @@ type ShellMenuProps = { label: string; commands: MenuCommand[]; position: MenuPo
 export function ShellMenu({ label, commands, position, onClose }: ShellMenuProps) {
 	const ref = useRef<HTMLDivElement>(null);
 	const close = useRef(onClose);
-	useEffect(() => { close.current = onClose; }, [onClose]);
+
+	useEffect(() => {
+		close.current = onClose;
+	}, [onClose]);
+
 	useEffect(() => {
 		const previous = document.activeElement as HTMLElement | null;
 		const menu = ref.current!;
 		menu.showPopover();
+
 		const bounds = menu.getBoundingClientRect();
 		const scale = desktopScale();
-		menu.style.left = `${Math.max(2, Math.min(position.x, window.innerWidth - bounds.width - 2)) / scale}px`;
-		menu.style.top = `${Math.max(2, Math.min(position.y, window.innerHeight - bounds.height - 2)) / scale}px`;
+		const left = Math.max(MENU_EDGE, Math.min(position.x, window.innerWidth - bounds.width - MENU_EDGE));
+		const top = Math.max(MENU_EDGE, Math.min(position.y, window.innerHeight - bounds.height - MENU_EDGE));
+
+		menu.style.left = `${left / scale}px`;
+		menu.style.top = `${top / scale}px`;
+
 		menu.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
-		return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }); };
+
+		return () => {
+			if (previous?.isConnected) previous.focus({ preventScroll: true });
+		};
 	}, [position.x, position.y]);
 
 	function onKey(event: KeyboardEvent<HTMLDivElement>) {
 		const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
 		const index = items.indexOf(document.activeElement as HTMLButtonElement);
 		const delta = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+
 		if (delta || event.key === "Home" || event.key === "End") {
 			event.preventDefault();
+
 			let next = (index + delta + items.length) % items.length;
 			if (event.key === "Home") next = 0;
 			if (event.key === "End") next = items.length - 1;
@@ -335,21 +413,27 @@ export function ShellMenu({ label, commands, position, onClose }: ShellMenuProps
 			const menubar = event.currentTarget.closest('[role="menubar"]');
 			const buttons = Array.from(menubar?.querySelectorAll<HTMLButtonElement>("[data-shell-menu]") ?? []);
 			const active = buttons.findIndex((button) => button.getAttribute("aria-expanded") === "true");
+
 			if (active >= 0) {
 				event.preventDefault();
 				close.current();
-				buttons[(active + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length]?.click();
+
+				const step = event.key === "ArrowRight" ? 1 : -1;
+				buttons[(active + step + buttons.length) % buttons.length]?.click();
 			}
 		} else if (event.key === "Escape" || event.key === "Tab") {
 			if (event.key === "Escape") event.preventDefault();
 			close.current();
 		} else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
-			const item = items.find((item) => item.textContent?.trim().toLowerCase().startsWith(event.key.toLowerCase()));
+			const key = event.key.toLowerCase();
+			const item = items.find((candidate) => candidate.textContent?.trim().toLowerCase().startsWith(key));
+
 			if (item) {
 				event.preventDefault();
 				item.click();
 			}
 		}
+
 		event.stopPropagation();
 	}
 
@@ -388,6 +472,7 @@ export function ShellMenu({ label, commands, position, onClose }: ShellMenuProps
 
 export function MenuButton({ label, commands }: { label: string; commands: MenuCommand[] }) {
 	const [position, setPosition] = useState<MenuPosition | null>(null);
+
 	return (
 		<>
 			<button
@@ -403,6 +488,7 @@ export function MenuButton({ label, commands }: { label: string; commands: MenuC
 			>
 				<u>{label[0]}</u>{label.slice(1)}
 			</button>
+
 			{position && <ShellMenu label={label} commands={commands} position={position} onClose={() => setPosition(null)} />}
 		</>
 	);
@@ -410,9 +496,11 @@ export function MenuButton({ label, commands }: { label: string; commands: MenuC
 
 export function menuShortcut(event: KeyboardEvent<HTMLElement>) {
 	if (!event.altKey || event.key.length !== 1) return false;
+
 	const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-shell-menu]"));
 	const button = buttons.find((candidate) => candidate.dataset.shellMenu === event.key.toLowerCase());
 	if (!button) return false;
+
 	event.preventDefault();
 	button.click();
 	return true;

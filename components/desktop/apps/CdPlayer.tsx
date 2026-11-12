@@ -43,11 +43,13 @@ export function shuffledOrder(count: number, notFirst?: number): number[] {
 		const j = 1 + Math.floor(Math.random() * (count - 1));
 		[order[0], order[j]] = [order[j], order[0]];
 	}
+
 	return order;
 }
 
 export function stepShuffle({ order, position }: Shuffle, direction: 1 | -1): Shuffle {
 	const next = position + direction;
+
 	if (next >= order.length) return { order: shuffledOrder(order.length, order[position]), position: 0 };
 	if (next < 0) return { order, position: order.length - 1 };
 	return { order, position: next };
@@ -55,6 +57,7 @@ export function stepShuffle({ order, position }: Shuffle, direction: 1 | -1): Sh
 
 export function formatElapsed(sec: number) {
 	if (!Number.isFinite(sec) || sec < 0) sec = 0;
+
 	const s = Math.floor(sec);
 	return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 }
@@ -94,13 +97,16 @@ type Session = {
 let session: Session | null = null;
 let starting: Promise<Session> | null = null;
 let apiPromise: Promise<ScApi> | null = null;
+
 let userVolume = 1;
 let fadeProgress = 0;
+let lastWidgetVolume = -1;
+
 let mediaStarted = false;
 let wantPlaying = false;
 let autoplayBlocked = false;
 let generation = 0;
-let lastWidgetVolume = -1;
+
 let lastElapsed = -1;
 let track: Track | null = null;
 const elapsedNodes = new Set<HTMLElement>();
@@ -116,7 +122,9 @@ const transport = {
 	},
 	async play() {
 		if (!session) return;
+
 		applyVolume(true);
+
 		const index = trackIndex(session);
 		if (session.widgetIndex === index) {
 			await session.widget.play();
@@ -139,14 +147,22 @@ const viewers = new Set<() => void>();
 
 function publish() {
 	const next: View = { playing: !transport.paused, track, muted: transport.muted, volume: userVolume };
-	if (next.playing === view.playing && next.track === view.track && next.muted === view.muted && next.volume === view.volume) return;
+	const unchanged = next.playing === view.playing
+		&& next.track === view.track
+		&& next.muted === view.muted
+		&& next.volume === view.volume;
+	if (unchanged) return;
+
 	view = next;
 	for (const notify of viewers) notify();
 }
 
 function subscribe(notify: () => void) {
 	viewers.add(notify);
-	return () => { viewers.delete(notify); };
+
+	return () => {
+		viewers.delete(notify);
+	};
 }
 
 const trackIndex = (s: Session) => s.shuffle.order[s.shuffle.position] ?? 0;
@@ -155,6 +171,7 @@ const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(r
 function ask<T>(request: (answer: (value: T) => void) => void): Promise<T | undefined> {
 	return new Promise((resolve) => {
 		const timer = window.setTimeout(() => resolve(undefined), GETTER_TIMEOUT_MS);
+
 		request((value) => {
 			window.clearTimeout(timer);
 			resolve(value);
@@ -164,8 +181,10 @@ function ask<T>(request: (answer: (value: T) => void) => void): Promise<T | unde
 
 function applyVolume(force = false) {
 	transport.volume = userVolume * fadeProgress ** 2;
+
 	const out = Math.round((transport.muted ? 0 : transport.volume) * 100);
 	if (out === lastWidgetVolume && !force) return;
+
 	lastWidgetVolume = out;
 	session?.widget.setVolume(out);
 }
@@ -173,64 +192,95 @@ function applyVolume(force = false) {
 function loadApi(): Promise<ScApi> {
 	const existing = (window as { SC?: ScApi }).SC;
 	if (existing?.Widget) return Promise.resolve(existing);
+
 	apiPromise ??= new Promise((resolve, reject) => {
 		const script = document.createElement("script");
 		script.src = API_SRC;
 		script.async = true;
+
 		script.onload = () => {
 			const api = (window as { SC?: ScApi }).SC;
 			if (api?.Widget) resolve(api);
 			else reject(new Error("SoundCloud Widget API missing"));
 		};
 		script.onerror = () => reject(new Error("SoundCloud Widget API failed to load"));
+
 		document.head.append(script);
 	});
+
 	return apiPromise;
+}
+
+const HIDDEN_IFRAME_STYLE = [
+	"position:fixed", "left:0", "top:0", "width:300px", "height:166px",
+	"opacity:0", "pointer-events:none", "border:0", "overflow:hidden",
+].join(";");
+
+function createPlayerIframe() {
+	const iframe = document.createElement("iframe");
+	Object.assign(iframe, { id: "sc-cd-player", title: "SoundCloud", allow: "autoplay; encrypted-media", tabIndex: -1 });
+	iframe.setAttribute("aria-hidden", "true");
+	iframe.style.cssText = HIDDEN_IFRAME_STYLE;
+
+	if (document.querySelector(`script[src="${API_SRC}"]`)) {
+		const query = new URLSearchParams({ url: PLAYLIST_URL, auto_play: "false" });
+		iframe.src = `https://w.soundcloud.com/player/?${query}`;
+	}
+
+	document.body.append(iframe);
+	return iframe;
 }
 
 function ensureSession(): Promise<Session> {
 	if (session) return Promise.resolve(session);
+
 	starting ??= (async () => {
 		const api = await loadApi();
-		const iframe = document.createElement("iframe");
-		Object.assign(iframe, { id: "sc-cd-player", title: "SoundCloud", allow: "autoplay; encrypted-media", tabIndex: -1 });
-		iframe.setAttribute("aria-hidden", "true");
-		iframe.style.cssText = "position:fixed;left:0;top:0;width:300px;height:166px;opacity:0;pointer-events:none;border:0;overflow:hidden";
-		if (document.querySelector(`script[src="${API_SRC}"]`)) {
-			iframe.src = `https://w.soundcloud.com/player/?${new URLSearchParams({ url: PLAYLIST_URL, auto_play: "false" })}`;
-		}
-		document.body.append(iframe);
+		const iframe = createPlayerIframe();
+
 		session = {
-			widget: api.Widget(iframe), iframe, events: api.Widget.Events,
-			sounds: [], shuffle: { order: [], position: 0 }, widgetIndex: 0,
-			ready: Promise.withResolvers(), isReady: false,
+			widget: api.Widget(iframe),
+			iframe,
+			events: api.Widget.Events,
+			sounds: [],
+			shuffle: { order: [], position: 0 },
+			widgetIndex: 0,
+			ready: Promise.withResolvers(),
+			isReady: false,
 		};
 		bindEvents(session);
+
 		return session;
 	})().catch((error) => {
 		starting = null;
 		throw error;
 	});
+
 	return starting;
 }
 
 function bindEvents(s: Session) {
 	const { widget, events } = s;
+
 	widget.bind(events.READY, () => void loadPlaylist(s));
+
 	widget.bind(events.PLAY, () => {
 		transport.paused = false;
 		applyVolume(true);
 		publish();
 		for (const listener of playListeners) listener();
 	});
+
 	widget.bind(events.PAUSE, () => {
 		transport.paused = true;
 		publish();
 	});
+
 	widget.bind(events.FINISH, () => {
 		s.widgetIndex = -1;
 		if (mediaStarted) step(1);
 	});
+
 	widget.bind(events.PLAY_PROGRESS, (data) => {
 		transport.currentTime = Math.floor((data?.currentPosition ?? 0) / 1000);
 		writeElapsed();
@@ -241,16 +291,20 @@ async function loadPlaylist(s: Session) {
 	for (let attempt = 0; attempt < RETRIES && !s.isReady; attempt++) {
 		const sounds = await ask<ScSound[]>((answer) => s.widget.getSounds(answer));
 		if (s !== session) return;
+
 		if (sounds?.length && sounds.every((sound) => sound.title)) {
 			s.sounds = sounds;
 			s.shuffle = { order: shuffledOrder(sounds.length), position: 0 };
 			s.isReady = true;
+
 			showTrack();
 			s.ready.resolve();
 			return;
 		}
+
 		await sleep(RETRY_MS);
 	}
+
 	if (!s.isReady) console.error(`CD Player: SoundCloud did not describe every track of ${PLAYLIST_URL}.`);
 }
 
@@ -262,9 +316,11 @@ function showTrack() {
 
 function step(direction: 1 | -1) {
 	if (!session?.isReady) return;
+
 	generation++;
 	session.shuffle = stepShuffle(session.shuffle, direction);
 	autoplayBlocked = false;
+
 	resetElapsed();
 	showTrack();
 	void startPlayback();
@@ -272,17 +328,22 @@ function step(direction: 1 | -1) {
 
 async function startPlayback() {
 	const current = generation;
-	await (await ensureSession()).ready.promise;
+	const started = await ensureSession();
+	await started.ready.promise;
 	if (current !== generation) return;
+
 	mediaStarted = wantPlaying = true;
 	autoplayBlocked = false;
+
 	try {
 		await transport.play();
 	} catch (error) {
 		if (current !== generation) return;
+
 		autoplayBlocked = error instanceof DOMException && error.name === "NotAllowedError";
 		publish();
 	}
+
 	window.setTimeout(() => {
 		if (current === generation && wantPlaying && transport.paused) autoplayBlocked = true;
 	}, 1000);
@@ -290,6 +351,7 @@ async function startPlayback() {
 
 function writeElapsed() {
 	if (transport.currentTime === lastElapsed) return;
+
 	lastElapsed = transport.currentTime;
 	for (const node of elapsedNodes) node.textContent = formatElapsed(lastElapsed);
 }
@@ -302,15 +364,20 @@ function resetElapsed() {
 
 function bindElapsed(node: HTMLElement | null) {
 	if (!node) return;
+
 	elapsedNodes.add(node);
 	node.textContent = formatElapsed(transport.currentTime);
-	return () => { elapsedNodes.delete(node); };
+
+	return () => {
+		elapsedNodes.delete(node);
+	};
 }
 
 function toggleMute() {
 	transport.muted = !transport.muted;
 	applyVolume();
 	publish();
+
 	if (!transport.muted && transport.paused && mediaStarted) void startPlayback();
 }
 
@@ -321,6 +388,7 @@ function togglePlay() {
 		publish();
 		return;
 	}
+
 	transport.muted = false;
 	applyVolume();
 	publish();
@@ -330,6 +398,7 @@ function togglePlay() {
 function stop() {
 	generation++;
 	wantPlaying = autoplayBlocked = false;
+
 	transport.pause();
 	session?.widget.seekTo(0);
 	resetElapsed();
@@ -338,14 +407,17 @@ function stop() {
 
 function quit() {
 	stop();
+
 	mediaStarted = false;
 	fadeProgress = 0;
 	lastWidgetVolume = -1;
 	transport.volume = 0;
+
 	if (session) {
 		for (const name of Object.values(session.events)) session.widget.unbind(name);
 		session.iframe.remove();
 	}
+
 	session = null;
 	starting = null;
 	showTrack();
@@ -362,9 +434,14 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 
 	useEffect(() => {
 		void ensureSession();
-		const retry = () => { if (autoplayBlocked && !transport.muted) void startPlayback(); };
+
+		const retry = () => {
+			if (autoplayBlocked && !transport.muted) void startPlayback();
+		};
+
 		window.addEventListener("click", retry);
 		window.addEventListener("keydown", retry);
+
 		return () => {
 			window.removeEventListener("click", retry);
 			window.removeEventListener("keydown", retry);
@@ -378,22 +455,28 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 
 	useEffect(() => {
 		if (!running || !bootComplete || fadeProgress === 1) return;
+
 		let frame = 0;
 
 		const beginFade = () => {
 			if (frame || fadeProgress === 1) return;
+
 			const startedAt = performance.now() - fadeProgress * FADE_MS;
 			const fade = (now: number) => {
 				if (!mediaStarted) return;
+
 				fadeProgress = Math.min(1, (now - startedAt) / FADE_MS);
 				applyVolume();
+
 				if (fadeProgress < 1) frame = requestAnimationFrame(fade);
 			};
+
 			frame = requestAnimationFrame(fade);
 		};
 
 		playListeners.add(beginFade);
 		if (!transport.paused && transport.ready) beginFade();
+
 		return () => {
 			cancelAnimationFrame(frame);
 			playListeners.delete(beginFade);
@@ -420,12 +503,15 @@ function Field({ label, value, onPrev, onNext }: { label: string; value: string;
 	return (
 		<div className="cd-player__field">
 			<span className="cd-player__label">{label}</span>
+
 			<div className="cd-player__combo">
 				<div className="cd-player__combo-face chrome-sunken" title={value}>{value}</div>
+
 				<div className="cd-player__spin">
 					<button type="button" className="cd-player__spin-btn chrome-raised" aria-label="Previous track" onClick={onPrev}>
 						<span className="cd-player__spin-ico cd-player__spin-ico--up" />
 					</button>
+
 					<button type="button" className="cd-player__spin-btn chrome-raised" aria-label="Next track" onClick={onNext}>
 						<span className="cd-player__spin-ico cd-player__spin-ico--down" />
 					</button>

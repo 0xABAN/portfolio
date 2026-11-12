@@ -39,7 +39,14 @@ const MENUS = ["File", "Edit", "View", "Image", "Colors", "Help"] as const;
 
 const UNDO_LIMIT = 20;
 
-export function bresenhamLine(x1: number, y1: number, x2: number, y2: number, callback: (x: number, y: number) => void, dense = false): void {
+export function bresenhamLine(
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	callback: (x: number, y: number) => void,
+	dense = false,
+): void {
 	x1 = ~~x1;
 	x2 = ~~x2;
 	y1 = ~~y1;
@@ -54,12 +61,16 @@ export function bresenhamLine(x1: number, y1: number, x2: number, y2: number, ca
 	for (;;) {
 		callback(x1, y1);
 		if (x1 === x2 && y1 === y2) break;
+
 		const e2 = err * 2;
+
 		if (e2 > -dy) {
 			err -= dy;
 			x1 += sx;
 		}
+
 		if (dense) callback(x1, y1);
+
 		if (e2 < dx) {
 			err += dx;
 			y1 += sy;
@@ -74,15 +85,18 @@ type FreehandStyle = { tool: DrawableTool; color: string };
 
 export function resolveStrokeStyle(tool: ToolId, fg: string, bg: string, reverse: boolean): FreehandStyle | null {
 	if (!isDrawable(tool)) return null;
+
 	return { tool, color: reverse || tool === "eraser" ? bg : fg };
 }
 
 function stamp(ctx: CanvasRenderingContext2D, x: number, y: number, { tool, color }: FreehandStyle) {
 	ctx.fillStyle = color;
+
 	if (tool === "pencil") {
 		ctx.fillRect(x, y, 1, 1);
 	} else if (tool === "eraser") {
-		ctx.fillRect(Math.ceil(x - ERASER_SIZE / 2), Math.ceil(y - ERASER_SIZE / 2), ERASER_SIZE, ERASER_SIZE);
+		const half = ERASER_SIZE / 2;
+		ctx.fillRect(Math.ceil(x - half), Math.ceil(y - half), ERASER_SIZE, ERASER_SIZE);
 	} else {
 		ctx.beginPath();
 		ctx.arc(x + 0.5, y + 0.5, BRUSH_SIZE / 2, 0, Math.PI * 2);
@@ -90,8 +104,16 @@ function stamp(ctx: CanvasRenderingContext2D, x: number, y: number, { tool, colo
 	}
 }
 
-function paintSegment(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, style: FreehandStyle) {
-	bresenhamLine(x0, y0, x1, y1, (x, y) => stamp(ctx, x, y, style), style.tool === "brush");
+function paintSegment(
+	ctx: CanvasRenderingContext2D,
+	x0: number,
+	y0: number,
+	x1: number,
+	y1: number,
+	style: FreehandStyle,
+) {
+	const dense = style.tool === "brush";
+	bresenhamLine(x0, y0, x1, y1, (x, y) => stamp(ctx, x, y, style), dense);
 }
 
 type Options = {
@@ -105,6 +127,7 @@ type Options = {
 
 function usePaintCanvas(options: Options) {
 	const { src } = options;
+
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const latest = useRef(options);
@@ -116,6 +139,7 @@ function usePaintCanvas(options: Options) {
 	useEffect(() => {
 		const canvas = canvasRef.current!;
 		const wrap = wrapRef.current!;
+
 		const undo: ImageData[] = [];
 		let ctx: CanvasRenderingContext2D | null = null;
 		let base: HTMLImageElement | null | undefined;
@@ -127,21 +151,26 @@ function usePaintCanvas(options: Options) {
 			const width = Math.round(wrap.clientWidth);
 			const height = Math.round(wrap.clientHeight);
 			if (ctx || base === undefined || width < 2 || height < 2) return;
+
 			canvas.width = width;
 			canvas.height = height;
+
 			const context = canvas.getContext("2d")!;
 			context.imageSmoothingEnabled = false;
+
 			if (base) {
 				context.drawImage(base, 0, 0, width, height);
 			} else {
 				context.fillStyle = "#ffffff";
 				context.fillRect(0, 0, width, height);
 			}
+
 			ctx = context;
 		}
 
 		function pixel(event: PointerEvent) {
 			const clamp = (value: number, size: number) => Math.max(0, Math.min(size - 1, Math.floor(value)));
+
 			return {
 				x: clamp(((event.clientX - rect.left) * canvas.width) / rect.width, canvas.width),
 				y: clamp(((event.clientY - rect.top) * canvas.height) / rect.height, canvas.height),
@@ -150,6 +179,7 @@ function usePaintCanvas(options: Options) {
 
 		function showCoords(text: string) {
 			if (text === coords) return;
+
 			coords = text;
 			const el = latest.current.coordsEl.current;
 			if (el) el.textContent = text;
@@ -157,6 +187,7 @@ function usePaintCanvas(options: Options) {
 
 		function onPointerDown(event: PointerEvent) {
 			if (!ctx || (event.button !== 0 && event.button !== 2)) return;
+
 			const { tool, fg, bg } = latest.current;
 			const style = resolveStrokeStyle(tool, fg, bg, event.button === 2);
 			if (!style) return;
@@ -165,6 +196,7 @@ function usePaintCanvas(options: Options) {
 			canvas.focus({ preventScroll: true });
 			rect = canvas.getBoundingClientRect();
 			canvas.setPointerCapture(event.pointerId);
+
 			undo.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
 			if (undo.length > UNDO_LIMIT) undo.shift();
 
@@ -178,6 +210,7 @@ function usePaintCanvas(options: Options) {
 			const { x, y } = pixel(event);
 			showCoords(`${x}, ${y}`);
 			if (!ctx || !stroke || (x === stroke.x && y === stroke.y)) return;
+
 			paintSegment(ctx, stroke.x, stroke.y, x, y, stroke.style);
 			stroke.x = x;
 			stroke.y = y;
@@ -185,6 +218,7 @@ function usePaintCanvas(options: Options) {
 
 		function onPointerUp(event: PointerEvent) {
 			if (!stroke) return;
+
 			stroke = null;
 			if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 		}
@@ -192,17 +226,26 @@ function usePaintCanvas(options: Options) {
 		function onKeyDown(event: KeyboardEvent) {
 			if (!latest.current.active || !canvas.closest(".win")?.contains(document.activeElement)) return;
 			if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
+
 			const target = event.target as HTMLElement;
 			if (target.isContentEditable || target.matches("input, textarea")) return;
+
 			event.preventDefault();
+
 			const snapshot = undo.pop();
 			if (ctx && snapshot && !stroke) ctx.putImageData(snapshot, 0, 0);
 		}
 
 		const image = new Image();
 		image.decoding = "async";
-		image.onload = () => { base = image; initialize(); };
-		image.onerror = () => { base = null; initialize(); };
+		image.onload = () => {
+			base = image;
+			initialize();
+		};
+		image.onerror = () => {
+			base = null;
+			initialize();
+		};
 		image.src = src;
 
 		const observer = new ResizeObserver(() => {
@@ -213,14 +256,22 @@ function usePaintCanvas(options: Options) {
 
 		const listeners = new AbortController();
 		const signal = listeners.signal;
+
+		const clearCoords = () => {
+			if (!stroke) showCoords("");
+		};
+		const measure = () => {
+			rect = canvas.getBoundingClientRect();
+		};
+
 		canvas.addEventListener("pointerdown", onPointerDown, { signal });
 		canvas.addEventListener("pointermove", onPointerMove, { signal });
 		canvas.addEventListener("pointerup", onPointerUp, { signal });
 		canvas.addEventListener("pointercancel", onPointerUp, { signal });
-		canvas.addEventListener("pointerleave", () => { if (!stroke) showCoords(""); }, { signal });
+		canvas.addEventListener("pointerleave", clearCoords, { signal });
 		canvas.addEventListener("contextmenu", (event) => event.preventDefault(), { signal });
 		window.addEventListener("keydown", onKeyDown, { signal });
-		window.addEventListener("resize", () => { rect = canvas.getBoundingClientRect(); }, { signal });
+		window.addEventListener("resize", measure, { signal });
 
 		return () => {
 			image.onload = image.onerror = null;
@@ -257,6 +308,7 @@ export function Paint({ src, active }: { src: string; active: boolean }) {
 						{TOOLS.map((t, i) => {
 							const drawable = isDrawable(t.id);
 							const selected = tool === t.id;
+
 							return (
 								<button
 									key={t.id}

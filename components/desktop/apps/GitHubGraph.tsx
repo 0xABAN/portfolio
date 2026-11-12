@@ -13,12 +13,14 @@ function loadContributions() {
 		.then(async (res) => {
 			const data = (await res.json()) as { contributions?: Activity[]; error?: string };
 			if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
 			return data.contributions ?? [];
 		})
 		.catch((error: unknown) => {
 			contributionsRequest = null;
 			throw error;
 		});
+
 	return contributionsRequest;
 }
 
@@ -29,11 +31,19 @@ export function GitHubGraph() {
 
 	useEffect(() => {
 		let alive = true;
+
 		loadContributions().then(
-			(rows) => { if (alive) setData(rows); },
-			() => { if (alive) setFailed(true); },
+			(rows) => {
+				if (alive) setData(rows);
+			},
+			() => {
+				if (alive) setFailed(true);
+			},
 		);
-		return () => { alive = false; };
+
+		return () => {
+			alive = false;
+		};
 	}, []);
 
 	useEffect(() => {

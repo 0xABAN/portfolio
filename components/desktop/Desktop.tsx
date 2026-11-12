@@ -38,27 +38,41 @@ function isDesktopSurface(target: EventTarget) {
 	return !(target as HTMLElement).closest(".win, .taskbar, dialog");
 }
 
+function windowVariant(w: DesktopWindow) {
+	if (w.kind === "terminal") return "dos";
+	if (w.kind === "error") return "error";
+	return undefined;
+}
+
 export function Desktop() {
-	return <ShellProvider><DesktopWorkspace /></ShellProvider>;
+	return (
+		<ShellProvider>
+			<DesktopWorkspace />
+		</ShellProvider>
+	);
 }
 
 function DesktopWorkspace() {
 	const shell = useShell();
 	const { getState, notice } = shell;
-	const [explorerFolder, setExplorerFolder] = useState("secrets");
+	const binFull = shell.state.entries.length > 0;
+
 	const [windows, setWindows] = useState<DesktopWindow[]>(() => {
 		const { width, height } = desktopSize();
 		return layoutDesktop(width, height);
 	});
-	const [scale, setScale] = useState(desktopScale);
 	const layoutRef = useRef(windows);
+	const [scale, setScale] = useState(desktopScale);
+
+	const [explorerFolder, setExplorerFolder] = useState("secrets");
+	const [secretsOpened, setSecretsOpened] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
-	const binFull = shell.state.entries.length > 0;
-	const [secretsOpened, setSecretsOpened] = useState(false);
+
 	const revealed = useDesktopReveal();
 	const [wallpaperShown, setWallpaperShown] = useState(false);
 	const showWallpaper = useCallback(() => setWallpaperShown(true), []);
+
 	const cdWindow = windows.find((w) => w.id === "cd-player");
 	const audio = useCdPlayerAudio(revealed("boot-complete"), Boolean(cdWindow));
 
@@ -71,11 +85,13 @@ function DesktopWorkspace() {
 		const resize = () => {
 			const { width, height } = desktopSize();
 			setScale(desktopScale());
+
 			const previous = layoutRef.current;
 			const next = layoutDesktop(width, height);
 			layoutRef.current = next;
 			setWindows((current) => reflowDesktop(current, previous, next, width, height));
 		};
+
 		window.addEventListener("resize", resize);
 		return () => window.removeEventListener("resize", resize);
 	}, []);
@@ -89,8 +105,10 @@ function DesktopWorkspace() {
 
 			const target = event.target;
 			if (!(target instanceof HTMLElement) || (!desktop?.contains(target) && target !== document.body)) return;
+
 			const input = desktop?.querySelector<HTMLInputElement>(".term__input");
 			if (!input) return;
+
 			const ownsInput = target.isContentEditable || target.closest(
 				'input, textarea, select, [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]',
 			);
@@ -106,6 +124,7 @@ function DesktopWorkspace() {
 			flushSync(() => {
 				setWindows((current) => activateWindow(current, "terminal"));
 			});
+
 			if (!input.readOnly) input.focus({ preventScroll: true });
 		}
 
@@ -117,9 +136,11 @@ function DesktopWorkspace() {
 		setWindows((prev) => {
 			const next = prev.filter((w) => w.id !== id && w.parentId !== id);
 			const front = activeWindowId(next);
+
 			requestAnimationFrame(() => {
 				if (front) document.getElementById(`desktop-window-${front}`)?.focus({ preventScroll: true });
 			});
+
 			return next;
 		});
 	}, []);
@@ -140,8 +161,10 @@ function DesktopWorkspace() {
 		requestAnimationFrame(() => {
 			const root = document.getElementById(`desktop-window-${id}`);
 			if (!root || root.dataset.active !== "true" || root.hasAttribute("inert")) return;
+
 			root.focus({ preventScroll: true });
 			if (document.activeElement !== root) return;
+
 			root.querySelector<HTMLElement>('.shell-list[role="listbox"], [data-window-focus]')?.focus({ preventScroll: true });
 		});
 	}, []);
@@ -153,28 +176,38 @@ function DesktopWorkspace() {
 
 	const launchApp = useCallback((id: AppId, sourceId?: string) => {
 		if (launchTimer.current !== null) return;
+
 		const required = sourceId ?? APP_FILES[id];
-		const missing = () => required !== undefined && required !== "desktop" && !getState().nodes.some((node) => node.id === required);
+		const missing = () => {
+			if (required === undefined || required === "desktop") return false;
+			return !getState().nodes.some((node) => node.id === required);
+		};
 
 		if (missing()) {
 			notice(FILE_NOT_FOUND, "file not found");
 			return;
 		}
+
 		if (id === "explorer") setExplorerFolder(required ?? "desktop");
 		setBusy(true);
+
+		const loadMs = id === "explorer" || id === "recycle-bin" ? FOLDER_LOAD_MS : APP_LOAD_MS;
 		launchTimer.current = window.setTimeout(() => {
 			launchTimer.current = null;
+
 			if (missing()) {
 				setBusy(false);
 				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "file not found");
 				return;
 			}
-			const { width, height } = desktopSize();
+
 			if (id === "explorer") setSecretsOpened(true);
+
+			const { width, height } = desktopSize();
 			setWindows((prev) => openApp(prev, id, width, height));
 			setBusy(false);
 			focusWindow(id);
-		}, id === "explorer" || id === "recycle-bin" ? FOLDER_LOAD_MS : APP_LOAD_MS);
+		}, loadMs);
 	}, [focusWindow, getState, notice]);
 
 	const openShell = useCallback((id: string) => {
@@ -215,34 +248,65 @@ function DesktopWorkspace() {
 		if (explorerFolder === "desktop") return { ...w, title: "desktop" };
 		return explorerNode ? { ...w, title: itemOf(explorerNode).name } : w;
 	});
+
 	const activeId = activeWindowId(visibleWindows);
 	const tasks = taskWindows(visibleWindows);
-	useTaskFlyout("cd-player", visibleWindows.some((w) => w.id === "cd-player" && !w.minimized), tasks.map((w) => w.id).join(), setWindows);
+
+	const cdPlayerShown = visibleWindows.some((w) => w.id === "cd-player" && !w.minimized);
+	useTaskFlyout("cd-player", cdPlayerShown, tasks.map((w) => w.id).join(), setWindows);
+
 	const renderWindow = (w: DesktopWindow) => {
 		const parent = windows.find((p) => p.id === w.parentId);
-		return <Window
-			key={w.id} id={w.id} title={w.title} icon={w.icon} x={w.x} y={w.y} w={w.w} h={w.h} z={w.z}
-			active={(w.parentId ?? w.id) === activeId}
-			minimized={Boolean(w.minimized)}
-			variant={w.kind === "terminal" ? "dos" : w.kind === "error" ? "error" : undefined}
-			liveMove={Boolean(w.parentId || windows.some((c) => c.parentId === w.id))}
-			minimizable={w.id !== "alt"}
-			frameless={w.kind === "experience"}
-			dragAnywhere={w.id === "alt"}
-			onActivateAction={activate}
-			onMinimizeAction={minimizeWindow}
-			onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
-			onMoveAction={w.id === "cd-player" ? undefined : move}
-		>
-			<WindowContent id={w.id} kind={w.kind} src={w.src} active={w.id === activeId}
-				audio={w.kind === "cd-player" ? audio : undefined}
-				cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
-				onMinimize={minimizeWindow} onClose={closeWindow} onOpenShell={openShell} folderId={explorerFolder} />
-		</Window>;
+		const hasChildren = windows.some((c) => c.parentId === w.id);
+
+		return (
+			<Window
+				key={w.id}
+				id={w.id}
+				title={w.title}
+				icon={w.icon}
+				x={w.x}
+				y={w.y}
+				w={w.w}
+				h={w.h}
+				z={w.z}
+				active={(w.parentId ?? w.id) === activeId}
+				minimized={Boolean(w.minimized)}
+				variant={windowVariant(w)}
+				liveMove={Boolean(w.parentId) || hasChildren}
+				minimizable={w.id !== "alt"}
+				frameless={w.kind === "experience"}
+				dragAnywhere={w.id === "alt"}
+				onActivateAction={activate}
+				onMinimizeAction={minimizeWindow}
+				onCloseAction={!w.parentId && !isDecoration(w) ? closeWindow : undefined}
+				onMoveAction={w.id === "cd-player" ? undefined : move}
+			>
+				<WindowContent
+					id={w.id}
+					kind={w.kind}
+					src={w.src}
+					active={w.id === activeId}
+					audio={w.kind === "cd-player" ? audio : undefined}
+					cropStyle={w.id === "alt" && parent ? altCropStyle(w, parent) : undefined}
+					onMinimize={minimizeWindow}
+					onClose={closeWindow}
+					onOpenShell={openShell}
+					folderId={explorerFolder}
+				/>
+			</Window>
+		);
 	};
+
 	const pspWindow = visibleWindows.find((w) => w.kind === "experience");
 	const pspIsActive = activeId === "experience";
 	const desktop = desktopSize();
+
+	const dimmerStyle = {
+		zIndex: pspWindow ? pspWindow.z + (pspIsActive ? 0 : 1) : 0,
+		"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / desktop.width) * 100}%` : undefined,
+		"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / desktop.height) * 100}%` : undefined,
+	} as CSSProperties;
 
 	return (
 		<div
@@ -255,24 +319,29 @@ function DesktopWorkspace() {
 			}}
 			onDrop={(event) => {
 				if (isDesktopSurface(event.target)) shell.drop(event, "desktop");
-			}}>
-
+			}}
+		>
 			<FractureBackground onShownAction={showWallpaper} />
-			<DesktopIcons onOpenAction={openShell} onSecretsOpenedAction={() => setSecretsOpened(true)}
-				revealed={revealed} secretsOpened={secretsOpened} explorerOpen={windows.some((w) => w.id === "explorer")} />
+
+			<DesktopIcons
+				onOpenAction={openShell}
+				onSecretsOpenedAction={() => setSecretsOpened(true)}
+				revealed={revealed}
+				secretsOpened={secretsOpened}
+				explorerOpen={windows.some((w) => w.id === "explorer")}
+			/>
+
 			<div className="desktop__windows">
 				<div
 					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
-					style={{
-						zIndex: pspWindow ? pspWindow.z + (pspIsActive ? 0 : 1) : 0,
-						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / desktop.width) * 100}%` : undefined,
-						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / desktop.height) * 100}%` : undefined,
-					} as CSSProperties}
+					style={dimmerStyle}
 					aria-hidden="true"
 				/>
 				{visibleWindows.map(renderWindow)}
 			</div>
+
 			{wallpaperShown ? <DesktopSparks /> : null}
+
 			<Taskbar
 				muted={audio.muted}
 				onToggleMuteAction={audio.toggleMute}
@@ -288,6 +357,7 @@ function DesktopWorkspace() {
 				canRestoreDecorations={windows.some((w) => isDecoration(w) && w.minimized)}
 				revealed={revealed}
 			/>
+
 			{revealed("neko") ? <Neko /> : null}
 			<ShellDialogs />
 		</div>

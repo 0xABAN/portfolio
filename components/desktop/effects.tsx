@@ -43,9 +43,9 @@ export function useDesktopReveal(): (id: string) => boolean {
 	const [revealed, setRevealed] = useState<ReadonlySet<string>>(() => new Set());
 
 	useEffect(() => {
-		const timers = REVEAL_SCHEDULE.map(({ id, at }) => window.setTimeout(() => {
-			setRevealed((prev) => new Set(prev).add(id));
-		}, at));
+		const reveal = (id: string) => setRevealed((prev) => new Set(prev).add(id));
+		const timers = REVEAL_SCHEDULE.map(({ id, at }) => window.setTimeout(() => reveal(id), at));
+
 		return () => timers.forEach(window.clearTimeout);
 	}, []);
 
@@ -99,7 +99,9 @@ const SHAPES = [
 	"10,35 50,0 100,30 75,80 30,100 0,65",
 	"0,25 80,0 100,60 55,50 30,100",
 ].map((points) => {
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="${points}" fill="black"/></svg>`;
+	const polygon = `<polygon points="${points}" fill="black"/>`;
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">${polygon}</svg>`;
+
 	return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 });
 
@@ -110,6 +112,7 @@ const SPARKS = Array.from({ length: 24 }, (_, index) => {
 	const travel = 12 + (index * 11) % 24;
 	const x = Math.cos(heading) * travel;
 	const y = Math.sin(heading) * travel - 6;
+
 	const bend = (index * 13) % 9 - 4;
 	const angle = (index * 83) % 360;
 	const spin = (index * 67) % 540 - 270;
@@ -184,34 +187,45 @@ function moveDir(dx: number, dy: number, dist: number) {
 	const s = dy / dist < -0.5 ? "S" : "";
 	const w = dx / dist > 0.5 ? "W" : "";
 	const e = dx / dist < -0.5 ? "E" : "";
+
 	return `${n}${s}${w}${e}` || "idle";
 }
 
 function pickIdleAnim(x: number, y: number, vw: number, vh: number) {
 	const options = ["sleeping", "scratchSelf"];
+
 	if (x < 32) options.push("scratchWallW");
 	if (y < 32) options.push("scratchWallN");
 	if (x > vw - 32) options.push("scratchWallE");
 	if (y > vh - 32) options.push("scratchWallS");
+
 	return options[Math.floor(Math.random() * options.length)];
+}
+
+function idleSprite(anim: string, frame: number): [string, number] {
+	if (anim !== "sleeping") return [anim, frame];
+	if (frame < 8) return ["tired", 0];
+	return ["sleeping", Math.floor(frame / 4)];
 }
 
 function stepIdle(idle: Idle, x: number, y: number, vw: number, vh: number): [string, number] {
 	idle.time += 1;
+
 	if (idle.time > 10 && Math.floor(Math.random() * 200) === 0 && !idle.anim) {
 		idle.anim = pickIdleAnim(x, y, vw, vh);
 	}
 	if (!idle.anim) return ["idle", 0];
 
 	const sleeping = idle.anim === "sleeping";
-	const sprite: [string, number] = !sleeping ? [idle.anim, idle.frame]
-		: idle.frame < 8 ? ["tired", 0] : ["sleeping", Math.floor(idle.frame / 4)];
+	const sprite = idleSprite(idle.anim, idle.frame);
+
 	if (idle.frame > (sleeping ? 192 : 9)) {
 		idle.anim = null;
 		idle.frame = 0;
 	} else {
 		idle.frame += 1;
 	}
+
 	return sprite;
 }
 
@@ -236,6 +250,7 @@ function runNeko(el: HTMLElement): () => void {
 	const tick = () => {
 		if (!el.isConnected || document.hidden) return;
 		frameCount += 1;
+
 		const dx = nekoX - mouseX;
 		const dy = nekoY - mouseY;
 		const dist = Math.hypot(dx, dy);
@@ -248,6 +263,7 @@ function runNeko(el: HTMLElement): () => void {
 
 		idle.anim = null;
 		idle.frame = 0;
+
 		if (idle.time > 1) {
 			paint("alert", 0);
 			idle.time = Math.min(idle.time, 7) - 1;
@@ -265,6 +281,7 @@ function runNeko(el: HTMLElement): () => void {
 		mouseX = event.clientX / scale;
 		mouseY = event.clientY / scale;
 	};
+
 	const onVisibility = () => {
 		if (!document.hidden) tick();
 	};
@@ -272,6 +289,7 @@ function runNeko(el: HTMLElement): () => void {
 	el.style.backgroundImage = "url(/desktop/neko.webp)";
 	paint("idle", 0);
 	place();
+
 	document.addEventListener("mousemove", onMove, { passive: true });
 	document.addEventListener("visibilitychange", onVisibility);
 	const timer = window.setInterval(tick, TICK_MS);
@@ -285,6 +303,8 @@ function runNeko(el: HTMLElement): () => void {
 
 export const Neko = memo(function Neko() {
 	const elRef = useRef<HTMLDivElement>(null);
+
 	useEffect(() => runNeko(elRef.current!), []);
+
 	return <div ref={elRef} className="neko" aria-hidden />;
 });
