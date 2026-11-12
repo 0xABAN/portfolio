@@ -145,7 +145,7 @@ async function checkAudio(page) {
 	await player.getByRole("button", { name: "Close CD Player" }).click();
 	check(await player.count() === 0 && await task.count() === 0, "Quit left an app window or task behind");
 	check(await page.evaluate(() => document.activeElement?.getAttribute("data-app-id") !== "cd-player"), "Quit focused the desktop shortcut");
-	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Quit did not stop, rewind and unload the music");
+	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.ready), "Quit did not stop, rewind and unload the music");
 	const quitAttempts = (await state()).attempts;
 	await page.clock.runFor(20_000);
 	await page.locator(".taskbar__clock").click();

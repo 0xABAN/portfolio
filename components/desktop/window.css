@@ -64,14 +64,14 @@
 	text-overflow: ellipsis;
 }
 
-.win--dos {
-	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
-	border-color: #dfdfdf #000 #000 #dfdfdf;
-	box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
-}
-
+.win--dos,
 .win--error {
 	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
+}
+
+.win--dos {
+	border-color: #dfdfdf #000 #000 #dfdfdf;
+	box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
 }
 
 .win--dos .win-close,
@@ -161,7 +161,6 @@
 	padding: 14px 16px 12px;
 	background: var(--chrome-face);
 	color: var(--chrome-text);
-	font-family: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
 }
 
 .sysmsg__row {

@@ -3,7 +3,7 @@ import "./cd-player.css";
 
 export const PLAYLIST_URL = "https://soundcloud.com/0x-aban/sets/portfolio";
 
-export type ScSound = {
+type ScSound = {
 	id: number;
 	title?: string;
 	user?: { username?: string };
@@ -111,11 +111,8 @@ const transport = {
 	volume: 0,
 	paused: true,
 	currentTime: 0,
-	get src() {
-		return session ? PLAYLIST_URL : "";
-	},
-	get readyState() {
-		return session?.isReady ? 4 : 0;
+	get ready() {
+		return Boolean(session?.isReady);
 	},
 	async play() {
 		if (!session) return;
@@ -132,7 +129,6 @@ const transport = {
 		session?.widget.pause();
 		transport.paused = true;
 	},
-	getAttribute: (name: string) => (name === "src" ? transport.src || null : null),
 };
 
 if (typeof window !== "undefined") Object.assign(window, { taskbarAudio: transport });
@@ -397,7 +393,7 @@ export function useCdPlayerAudio(bootComplete: boolean, running: boolean) {
 		};
 
 		playListeners.add(beginFade);
-		if (!transport.paused && transport.readyState >= 2) beginFade();
+		if (!transport.paused && transport.ready) beginFade();
 		return () => {
 			cancelAnimationFrame(frame);
 			playListeners.delete(beginFade);

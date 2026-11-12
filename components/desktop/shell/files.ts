@@ -36,7 +36,7 @@ export const DESK_ICONS: DeskIcon[] = [
 	{ id: "secrets", label: "secrets", src: "/icons/folder.webp", open: "explorer" },
 ];
 
-export type ShellItem = {
+type ShellItem = {
 	id: string;
 	name: string;
 	icon: string;
@@ -46,7 +46,7 @@ export type ShellItem = {
 	href?: string;
 };
 
-export const SHELL_ITEMS: readonly ShellItem[] = [
+const SHELL_ITEMS: readonly ShellItem[] = [
 	...DESK_ICONS.map((icon): ShellItem => {
 		const folder = icon.id === "secrets";
 		return {
@@ -59,13 +59,13 @@ export const SHELL_ITEMS: readonly ShellItem[] = [
 	...DOCUMENTS.map((file): ShellItem => ({ ...file, kind: "file" })),
 ];
 
-export const ITEM_BY_ID = new Map(SHELL_ITEMS.map((item) => [item.id, item]));
+const ITEM_BY_ID = new Map(SHELL_ITEMS.map((item) => [item.id, item]));
 const CATALOG_INDEX = new Map(SHELL_ITEMS.map((item, index) => [item.id, index]));
 
 export function byCatalogOrder(a: { id: string }, b: { id: string }) {
 	return CATALOG_INDEX.get(a.id)! - CATALOG_INDEX.get(b.id)!;
 }
-export const DESKTOP_PATH = "C:\\Windows\\Desktop";
+const DESKTOP_PATH = "C:\\Windows\\Desktop";
 export const BIN_ICON = { empty: "/icons/recycle-bin-empty.webp", full: "/icons/recycle-bin-full.webp" };
 
 export const STORAGE_KEY = "portfolio.shell.v3";

@@ -48,7 +48,7 @@ export function nestBounds(parent: Rect & Pick<DesktopWindow, "kind">): Rect {
 	return parent.kind === "paint" ? paintImageBounds(parent) : parent;
 }
 
-export function clampToParent(child: Rect, parent: Rect): Rect {
+function clampToParent(child: Rect, parent: Rect): Rect {
 	return {
 		w: child.w,
 		h: child.h,
@@ -194,7 +194,7 @@ export function makeExperienceWindow(z: number, vw: number, vh: number): Desktop
 	return { id: "experience", title: "experience", kind: "experience", icon: "/icons/playstation.svg", ...layoutCentered(w, h, vw, vh), z };
 }
 
-export function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
+function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const w = Math.min(760, Math.max(240, vw - 24));
 	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
 	return { id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", icon: "/icons/recycle-bin-empty.webp", z, ...layoutCentered(w, h, vw, vh) };

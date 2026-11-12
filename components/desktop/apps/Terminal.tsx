@@ -326,7 +326,6 @@ export function Terminal() {
 			setHistory([...conversation, { role: "assistant", content: reply }]);
 			lastHeard.current = Date.now();
 		} catch (error) {
-			endNap();
 			lastHeard.current = 0;
 			if (!(error instanceof ChatFailure)) console.error(error);
 			setLineText(replyId, BOT + (error instanceof ChatFailure ? error.message : FAILURE_REPLIES.broken));

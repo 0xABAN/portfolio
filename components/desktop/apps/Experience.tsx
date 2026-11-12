@@ -6,7 +6,7 @@ export type Project = {
 	id: string;
 	title: string;
 	blurb: string;
-	src?: string;
+	src: string;
 	href?: string;
 };
 
@@ -15,7 +15,7 @@ export const WORK: readonly Project[] = [
 	{ id: "ibm", title: "ibm", blurb: "ai eng co-op @ ibm 2025-2026", src: "/psp/thumbnails/ibm.webp" },
 ];
 
-export const PROJECTS: readonly Project[] = [
+const PROJECTS: readonly Project[] = [
 	{ id: "yadl", title: "yadl", blurb: "agent-driven vision annotation", src: "/psp/thumbnails/yadl.webp", href: `${GITHUB_URL}/YADL` },
 	{ id: "definitive", title: "definitive multiplayer", blurb: "terraria mod built in a week, 3k+ downloads", src: "/psp/thumbnails/definitive-multiplayer.webp", href: `${GITHUB_URL}/DefinitiveMultiplayer` },
 	{ id: "maestro", title: "maestro", blurb: "ByteDance 2nd place (solo hacker)", src: "/psp/thumbnails/maestro.webp", href: `${GITHUB_URL}/maestro` },
@@ -23,12 +23,11 @@ export const PROJECTS: readonly Project[] = [
 ];
 
 type PspCategoryId = "jobs" | "projects" | "settings" | "photo" | "music";
-type PspIconName = PspCategoryId | "folder";
 
 type PspCategory = {
 	id: PspCategoryId;
 	label: string;
-	icon: PspIconName;
+	icon: PspCategoryId;
 	items: readonly Project[];
 	artwork?: string;
 	disabled?: boolean;
@@ -94,16 +93,15 @@ export function reducer(state: ViewState, action: ViewAction): ViewState {
 	}
 }
 
-const ICON_PATHS: Record<PspIconName, ReactNode> = {
+const ICON_PATHS: Record<PspCategoryId, ReactNode> = {
 	jobs: <><rect x="7" y="14" width="34" height="25" rx="2" /><path d="M17 14v-4h14v4M7 22h34M21 22v4h6v-4" /></>,
 	projects: <><path d="M5 13h13l4 4h21v20H5z" /><path d="M5 18h38" /></>,
 	settings: <><path d="m24 6 3 4 5-1 2 5-4 3 1 5 5 2-2 5-5-1-3 4-4-3-4 3-3-4-5 1-2-5 4-2-1-5-4-3 2-5 5 1 3-4z" /><circle cx="24" cy="24" r="6" /></>,
 	photo: <><rect x="6" y="8" width="36" height="32" rx="2" /><circle cx="16" cy="18" r="3" /><path d="m8 35 10-10 7 7 5-5 10 8" /></>,
 	music: <><path d="M18 34V11l20-4v23" /><circle cx="12" cy="35" r="6" /><circle cx="32" cy="31" r="6" /></>,
-	folder: <><path d="M5 13h13l4 4h17v19H5z" /><path d="M5 18h34" /></>,
 };
 
-function Icon({ name }: { name: PspIconName }) {
+function Icon({ name }: { name: PspCategoryId }) {
 	return <svg className="psp-xmb__icon" viewBox="0 0 48 48" aria-hidden="true">{ICON_PATHS[name]}</svg>;
 }
 
@@ -133,7 +131,7 @@ function openExternal(href?: string) {
 	if (href) window.open(href, "_blank", "noopener,noreferrer");
 }
 
-export function PspXmb({ ready }: { ready: boolean }) {
+function PspXmb({ ready }: { ready: boolean }) {
 	const [state, dispatch] = useReducer(reducer, undefined, initialState);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const selectedItemRef = useRef<HTMLButtonElement>(null);
@@ -240,9 +238,7 @@ export function PspXmb({ ready }: { ready: boolean }) {
 								else if (index !== state.itemIndex) dispatch({ type: "select-item", index });
 							}}
 						>
-							{entry.src ? (
-								<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
-							) : <Icon name="folder" />}
+							<img className="psp-xmb__item-image" src={entry.src} alt="" draggable={false} />
 							<span className="psp-xmb__item-content">
 								<strong>{entry.title}</strong>
 								<span>{entry.blurb}</span>

@@ -22,7 +22,7 @@ export const TOOLS = [
 
 export type ToolId = (typeof TOOLS)[number]["id"];
 
-export type DrawableTool = Extract<ToolId, "pencil" | "brush" | "eraser">;
+type DrawableTool = Extract<ToolId, "pencil" | "brush" | "eraser">;
 
 export function isDrawable(tool: ToolId): tool is DrawableTool {
 	return tool === "pencil" || tool === "brush" || tool === "eraser";
@@ -33,9 +33,9 @@ export const PALETTE = [
 	"rgb(255,255,255)", "rgb(192,192,192)", "rgb(255,0,0)", "rgb(255,255,0)", "rgb(0,255,0)", "rgb(0,255,255)", "rgb(0,0,255)", "rgb(255,0,255)", "rgb(255,255,128)", "rgb(0,255,128)", "rgb(128,255,255)", "rgb(128,128,255)", "rgb(255,0,128)", "rgb(255,128,64)",
 ] as const;
 
-export const MENUS = ["File", "Edit", "View", "Image", "Colors", "Help"] as const;
+const MENUS = ["File", "Edit", "View", "Image", "Colors", "Help"] as const;
 
-export const UNDO_LIMIT = 20;
+const UNDO_LIMIT = 20;
 
 export function bresenhamLine(x1: number, y1: number, x2: number, y2: number, callback: (x: number, y: number) => void, dense = false): void {
 	x1 = ~~x1;
@@ -68,7 +68,7 @@ export function bresenhamLine(x1: number, y1: number, x2: number, y2: number, ca
 const BRUSH_SIZE = 4;
 const ERASER_SIZE = 6;
 
-export type FreehandStyle = { tool: DrawableTool; color: string };
+type FreehandStyle = { tool: DrawableTool; color: string };
 
 export function resolveStrokeStyle(tool: ToolId, fg: string, bg: string, reverse: boolean): FreehandStyle | null {
 	if (!isDrawable(tool)) return null;
@@ -88,7 +88,7 @@ function stamp(ctx: CanvasRenderingContext2D, x: number, y: number, { tool, colo
 	}
 }
 
-export function paintSegment(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, style: FreehandStyle) {
+function paintSegment(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, style: FreehandStyle) {
 	bresenhamLine(x0, y0, x1, y1, (x, y) => stamp(ctx, x, y, style), style.tool === "brush");
 }
 

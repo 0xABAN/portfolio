@@ -378,10 +378,10 @@ async function checkTaskbar(page) {
 	const music = task("cd-player");
 	const player = win("cd-player");
 	const audioState = () => page.evaluate(() => {
-		const { paused, muted, volume, src } = window.taskbarAudio;
-		return JSON.stringify({ paused, muted, volume, src, actions: window.audioActions.length });
+		const { paused, muted, volume, ready } = window.taskbarAudio;
+		return JSON.stringify({ paused, muted, volume, ready, actions: window.audioActions.length });
 	});
-	await page.waitForFunction(() => window.taskbarAudio.readyState >= 2 && window.taskbarAudio.volume === 1);
+	await page.waitForFunction(() => window.taskbarAudio.ready && window.taskbarAudio.volume === 1);
 	const elapsed = music.locator(".task-btn__elapsed");
 	const firstElapsed = await elapsed.innerText();
 	check((await music.getAttribute("title")).includes(" - "), "CD task lost its artist and track label");
@@ -488,7 +488,7 @@ async function checkTaskbar(page) {
 	check(await volume.evaluate((el) => el === document.activeElement) && await input.inputValue() === "aZd", "Typing redirect intercepted a slider");
 	await player.getByRole("button", { name: "Close CD Player" }).click();
 	check(await player.count() === 0 && await music.count() === 0, "Close did not remove the app and its task");
-	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.getAttribute("src")), "Close did not quit the audio transport");
+	check(await page.evaluate(() => window.taskbarAudio.paused && window.taskbarAudio.currentTime === 0 && !window.taskbarAudio.ready), "Close did not quit the audio transport");
 	await page.waitForFunction(() => !document.getElementById("desktop-window-cd-player") && document.activeElement?.getAttribute("data-app-id") !== "cd-player");
 	await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
