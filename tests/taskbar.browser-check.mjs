@@ -109,7 +109,7 @@ async function checkTaskbar(page) {
 	const bubbleBody = bubble.locator(".desk-icon__bubble-body");
 	check(await bubbleBody.innerText() === "don't click me!", "Secrets speech bubble has the wrong text");
 	check(await bubble.evaluate(async (el) => {
-		await document.fonts.load('italic 700 14px "Rose Tinted"');
+		await document.fonts.load('italic 700 28px "Rose Tinted"');
 		const style = getComputedStyle(el);
 		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
 		const text = getComputedStyle(el.querySelector(".desk-icon__bubble-text"));
@@ -117,14 +117,14 @@ async function checkTaskbar(page) {
 		art.src = "/desktop/secrets-bubble.svg";
 		await art.decode();
 		return art.naturalWidth === 120 && art.naturalHeight === 58
-			&& document.fonts.check('italic 700 14px "Rose Tinted"')
+			&& document.fonts.check('italic 700 28px "Rose Tinted"')
 			&& body.fontFamily.includes("Rose Tinted")
-			&& body.fontSize === "14px" && body.fontStyle === "italic" && body.fontWeight === "700"
+			&& body.fontSize === "28px" && body.fontStyle === "italic" && body.fontWeight === "700"
 			&& text.transform !== "none"
-			&& style.top === "-32px"
-			&& style.width === "200px" && style.height === "78px"
+			&& style.top === "-107px"
+			&& style.width === "324px" && style.height === "156px"
 			&& style.zIndex === "4"
-			&& body.paddingLeft === "50px" && body.paddingRight === "30px"
+			&& body.paddingLeft === "62px" && body.paddingRight === "22px"
 			&& body.backgroundImage.includes("/desktop/secrets-bubble.svg")
 			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
@@ -148,8 +148,13 @@ async function checkTaskbar(page) {
 		await settle();
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
 		const bounds = await bubble.boundingBox();
-		check(bounds.width <= 206 && bounds.height <= 83, "Secrets bubble is too large");
-		check(bounds.x >= art.x + art.width && bounds.x + bounds.width <= width, "Secrets bubble is not beside the folder or clips off-screen");
+		check(bounds.width <= 330 && bounds.height <= 160, "Secrets bubble is too large");
+		check(bounds.x + bounds.width <= width, "Secrets bubble clips off-screen");
+
+		const tipX = bounds.x + bounds.width * (1 / 104);
+		const tipY = bounds.y + bounds.height * (48 / 50);
+		const tipNearFolder = Math.abs(tipX - (art.x + art.width)) <= 6 && tipY > art.y && tipY < art.y + art.height;
+		check(tipNearFolder, `Secrets bubble's tail no longer points at the folder at ${width}px`);
 	}
 	await page.setViewportSize({ width: 1710, height: 900 });
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
