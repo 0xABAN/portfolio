@@ -178,8 +178,8 @@
 
 .desk-icon__bubble {
 	position: absolute;
-	left: calc(100% + 8px);
-	top: -69px;
+	left: calc(100% + 13px);
+	top: -72px;
 	width: 243px;
 	height: 117px;
 	z-index: 4;
@@ -257,7 +257,7 @@
 
 @media (max-width: 520px) {
 	.desk-icon__bubble {
-		top: -41px;
+		top: -44px;
 		width: 180px;
 		height: 87px;
 	}

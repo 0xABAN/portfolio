@@ -121,7 +121,7 @@ async function checkTaskbar(page) {
 			&& body.fontFamily.includes("Rose Tinted")
 			&& body.fontSize === "21px" && body.fontStyle === "italic" && body.fontWeight === "700"
 			&& text.transform !== "none"
-			&& style.top === "-69px"
+			&& style.top === "-72px"
 			&& style.width === "243px" && style.height === "117px"
 			&& style.zIndex === "4"
 			&& body.paddingLeft === "47px" && body.paddingRight === "17px"
@@ -154,7 +154,7 @@ async function checkTaskbar(page) {
 		const tipX = bounds.x + bounds.width * (1 / 104);
 		const tipY = bounds.y + bounds.height * (48 / 50);
 		const gap = tipX - (art.x + art.width);
-		const pointsAtFolder = gap >= 2 && gap <= 14 && tipY > art.y && tipY < art.y + art.height;
+		const pointsAtFolder = gap >= 5 && gap <= 18 && tipY > art.y && tipY < art.y + art.height;
 		check(pointsAtFolder, `Secrets bubble's tail should point at the folder from a small gap at ${width}px (gap ${gap})`);
 	}
 	await page.setViewportSize({ width: 1710, height: 900 });
