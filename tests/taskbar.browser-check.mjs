@@ -402,7 +402,7 @@ async function checkTaskbar(page) {
 		const { paused, muted, volume, ready } = window.taskbarAudio;
 		return JSON.stringify({ paused, muted, volume, ready, actions: window.audioActions.length });
 	});
-	await page.waitForFunction(() => window.taskbarAudio.ready && window.taskbarAudio.volume === 1);
+	await page.waitForFunction(() => window.taskbarAudio.ready && Math.abs(window.taskbarAudio.volume - 0.35) < 0.005);
 	const elapsed = music.locator(".task-btn__elapsed");
 	const firstElapsed = await elapsed.innerText();
 	check((await music.getAttribute("title")).includes(" - "), "CD task lost its artist and track label");

@@ -83,12 +83,12 @@ async function checkAudio(page) {
 	await page.clock.runFor(100);
 	near((await state()).volume, 0);
 	await page.clock.runFor(5000);
-	near((await state()).volume, 0.25);
+	near((await state()).volume, 0.0875);
 	await speaker.click();
 	check((await state()).muted, "Mute did not immediately silence the fade");
 	await task.click();
 	const volume = player.getByRole("slider", { name: "Volume" });
-	check(await volume.inputValue() === "1", "Fade moved the user's volume slider");
+	check(await volume.inputValue() === "0.35", "The volume slider did not start at the 35% default");
 	await volume.fill("0.4");
 	near((await state()).volume, 0.1);
 	const oldTrack = await task.getAttribute("title");
@@ -115,7 +115,7 @@ async function checkAudio(page) {
 	await page.clock.runFor(100);
 	await page.clock.runFor(10_032);
 	check((await state()).muted, "Muting during boot was overridden by the fade");
-	near((await state()).volume, 1);
+	near((await state()).volume, 0.35);
 
 	await boot(true);
 	await page.clock.runFor(10_200);
@@ -124,9 +124,9 @@ async function checkAudio(page) {
 	await page.locator(".taskbar__clock").click();
 	check(await page.evaluate(() => window.audioStarted), "A gesture did not retry blocked autoplay");
 	await page.clock.runFor(5000);
-	near((await state()).volume, 0.25);
+	near((await state()).volume, 0.0875);
 	await page.clock.runFor(5032);
-	near((await state()).volume, 1);
+	near((await state()).volume, 0.35);
 
 	await boot(true);
 	await task.click();
@@ -161,7 +161,7 @@ async function checkAudio(page) {
 	check(await page.evaluate(() => window.audioStarted), "Desktop icon did not restart the closed player");
 	check(await player.isVisible() && await task.getAttribute("aria-pressed") === "true", "Relaunch did not open and activate the app");
 	await page.clock.runFor(5000);
-	near((await state()).volume, 0.25);
+	near((await state()).volume, 0.0875);
 
 	await boot(true);
 	await task.click();
