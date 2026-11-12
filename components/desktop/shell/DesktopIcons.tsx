@@ -1,5 +1,4 @@
-import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { DESKTOP_REVEAL_MS } from "../effects";
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { TASKBAR_H, desktopScale, desktopSize } from "../windows";
 import {
 	BIN_ICON,
@@ -36,7 +35,6 @@ const CELL_W = 96;
 const CELL_H = 112;
 const STEP_X = CELL_W + 8;
 const STEP_Y = CELL_H + 8;
-const ATTENTION_DELAY_MS = 1000;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	const onDesktop = nodes.filter((node) => node.parentId === "desktop").sort(byCatalogOrder);
@@ -142,7 +140,9 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 	return { ...selection, onKeyDown, onContextMenu, menu };
 }
 
-function DeskIconGlyph({ src, label, notification = false }: { src: string; label: string; notification?: boolean }) {
+type GlyphProps = { src: string; label: string; notification?: boolean; bubble?: boolean };
+
+function DeskIconGlyph({ src, label, notification = false, bubble = false }: GlyphProps) {
 	return (
 		<>
 			<span className="desk-icon__art">
@@ -150,7 +150,7 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 
 				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
 
-				{notification && (
+				{bubble && (
 					<span className="desk-icon__bubble" aria-hidden="true">
 						<span className="desk-icon__bubble-x">
 							<span className="desk-icon__bubble-y">
@@ -175,15 +175,10 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const [deskIconPositions, setDeskIconPositions] = useState<DeskIconPositions>({});
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
-	const [attention, setAttention] = useState(false);
-
-	useEffect(() => {
-		const start = window.setTimeout(() => setAttention(true), DESKTOP_REVEAL_MS + ATTENTION_DELAY_MS);
-		return () => window.clearTimeout(start);
-	}, []);
 
 	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
-	const bounceSecrets = attention && !secretsOpened && !explorerOpen;
+	const noticeShown = revealed("secrets-notice");
+	const bounceSecrets = noticeShown && !secretsOpened && !explorerOpen;
 
 	const deskIcons = shellDeskIcons(shell.state.nodes);
 	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
@@ -349,6 +344,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 								src={icon.recycle ? (binFull ? BIN_ICON.full : BIN_ICON.empty) : icon.src}
 								label={icon.label}
 								notification={hasNotification(icon.id)}
+								bubble={noticeShown && hasNotification(icon.id)}
 							/>
 						</button>
 					</li>

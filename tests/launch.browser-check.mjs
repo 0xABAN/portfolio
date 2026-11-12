@@ -21,6 +21,11 @@ async function checkLaunches(page) {
 	await page.clock.runFor(900);
 	await page.locator(".taskbar").waitFor();
 	await page.clock.runFor(2100);
+	await page.locator(".neko").waitFor({ state: "attached" });
+	check(await page.locator(".desk-icon__bubble").count() === 0, "The secrets bubble appeared before the rest of the desktop finished loading");
+	await page.clock.runFor(1000);
+	await page.locator(".desk-icon__bubble").waitFor();
+	check(await page.locator(".desk-icon--bounce").count() === 1, "The secrets folder did not start bouncing with its bubble");
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 
 	const win = (id) => page.locator(`#desktop-window-${id}`);

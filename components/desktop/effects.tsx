@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "
 import { desktopScale, desktopSize } from "./windows";
 import "./effects.css";
 
-export const DESKTOP_REVEAL_MS = 2100;
+const DESKTOP_REVEAL_MS = 2100;
 
 const REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "tb:start", at: 40 },
@@ -35,6 +35,7 @@ const REVEAL_SCHEDULE: readonly { id: string; at: number }[] = [
 	{ id: "sysmsg-4", at: 2060 },
 	{ id: "neko", at: DESKTOP_REVEAL_MS },
 	{ id: "boot-complete", at: DESKTOP_REVEAL_MS },
+	{ id: "secrets-notice", at: DESKTOP_REVEAL_MS + 1000 },
 ];
 
 const SCHEDULED = new Set(REVEAL_SCHEDULE.map(({ id }) => id));
