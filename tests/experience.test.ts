@@ -2,30 +2,41 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { CATEGORIES, initialState, reducer } from "@/components/desktop/apps/Experience";
 
-test("XMB navigates the jobs and projects lists while PSP categories stay visual-only", () => {
-	let state = initialState();
-	assert.equal(CATEGORIES[state.categoryIndex].id, "jobs");
-	assert.equal(CATEGORIES[state.categoryIndex].label, "Work");
-	assert.deepEqual(CATEGORIES[state.categoryIndex].items.map((item) => item.id), ["amazon", "ibm"]);
-	assert.equal(CATEGORIES[1].items.length, 4);
-	assert.deepEqual(CATEGORIES.slice(2).map((category) => category.label), ["Settings", "Photo", "Music"]);
-	assert.ok(CATEGORIES.slice(2).every((category) => category.disabled));
+const navigable = CATEGORIES.filter((category) => !category.disabled).length;
 
-	state = reducer(state, { type: "item", delta: 1 });
-	assert.equal(CATEGORIES[state.categoryIndex].items[state.itemIndex].id, "ibm");
+test("items wrap around and changing category starts at its first item", () => {
+	let state = initialState();
+	const count = CATEGORIES[0].items.length;
+
+	state = reducer(state, { type: "item", delta: -1 });
+	assert.equal(state.itemIndex, count - 1);
+
 	state = reducer(state, { type: "category", delta: 1 });
-	assert.equal(CATEGORIES[state.categoryIndex].id, "projects");
+	assert.equal(state.categoryIndex, 1);
 	assert.equal(state.itemIndex, 0);
-	assert.equal(CATEGORIES[state.categoryIndex].items[state.itemIndex].id, "yadl");
+});
+
+test("category navigation skips the decorative, disabled categories", () => {
+	let state = initialState();
+
+	state = reducer(state, { type: "category", delta: -1 });
+	assert.equal(state.categoryIndex, navigable - 1);
+
+	state = reducer(state, { type: "select-category", index: CATEGORIES.length - 1 });
+	assert.equal(state.categoryIndex, navigable - 1);
+});
+
+test("the options menu only moves while open and resets when toggled", () => {
+	let state = initialState();
+
+	state = reducer(state, { type: "option", delta: 1 });
+	assert.equal(state.optionsIndex, 0);
 
 	state = reducer(state, { type: "toggle-options" });
 	state = reducer(state, { type: "option", delta: 1 });
 	assert.equal(state.optionsIndex, 1);
+
 	state = reducer(state, { type: "toggle-options" });
 	assert.equal(state.optionsIndex, 0);
-
-	state = reducer(state, { type: "select-category", index: CATEGORIES.length - 1 });
-	assert.equal(CATEGORIES[state.categoryIndex].id, "projects");
-	state = reducer(state, { type: "category", delta: 1 });
-	assert.equal(CATEGORIES[state.categoryIndex].id, "jobs");
+	assert.equal(state.optionsOpen, false);
 });

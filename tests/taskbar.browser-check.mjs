@@ -131,6 +131,7 @@ async function checkTaskbar(page) {
 	}), "Secrets speech bubble lost its Rose Tinted font, angle, or existing artwork");
 	for (const width of [1440, 390, 320]) {
 		await page.setViewportSize({ width, height: 900 });
+		await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
 		const bounds = await bubble.boundingBox();
 		check(bounds.width <= 206 && bounds.height <= 83, "Secrets bubble is too large");

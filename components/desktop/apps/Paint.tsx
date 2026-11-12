@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import "./paint.css";
 
-export const TOOLS = [
+const TOOLS = [
 	{ id: "free-form-select", name: "Free-Form Select" },
 	{ id: "select", name: "Select" },
 	{ id: "eraser", name: "Eraser" },
@@ -20,15 +20,15 @@ export const TOOLS = [
 	{ id: "rounded-rectangle", name: "Rounded Rectangle" },
 ] as const;
 
-export type ToolId = (typeof TOOLS)[number]["id"];
+type ToolId = (typeof TOOLS)[number]["id"];
 
 type DrawableTool = Extract<ToolId, "pencil" | "brush" | "eraser">;
 
-export function isDrawable(tool: ToolId): tool is DrawableTool {
+function isDrawable(tool: ToolId): tool is DrawableTool {
 	return tool === "pencil" || tool === "brush" || tool === "eraser";
 }
 
-export const PALETTE = [
+const PALETTE = [
 	"rgb(0,0,0)", "rgb(128,128,128)", "rgb(128,0,0)", "rgb(128,128,0)", "rgb(0,128,0)", "rgb(0,128,128)", "rgb(0,0,128)",
 	"rgb(128,0,128)", "rgb(128,128,64)", "rgb(0,64,64)", "rgb(0,128,255)", "rgb(0,64,128)", "rgb(64,0,255)", "rgb(128,64,0)",
 	"rgb(255,255,255)", "rgb(192,192,192)", "rgb(255,0,0)", "rgb(255,255,0)", "rgb(0,255,0)", "rgb(0,255,255)", "rgb(0,0,255)",
@@ -39,7 +39,7 @@ const MENUS = ["File", "Edit", "View", "Image", "Colors", "Help"] as const;
 
 const UNDO_LIMIT = 20;
 
-export function bresenhamLine(
+function bresenhamLine(
 	x1: number,
 	y1: number,
 	x2: number,

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import "./cd-player.css";
 
-export const PLAYLIST_URL = "https://soundcloud.com/0x-aban/sets/portfolio";
+const PLAYLIST_URL = "https://soundcloud.com/0x-aban/sets/portfolio";
 
 type ScSound = {
 	id: number;
