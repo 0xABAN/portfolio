@@ -13,9 +13,8 @@
 	--cursor-hand: url("/cursors/hand.svg") 7 1, pointer;
 	--cursor-wait: url("/cursors/wait.cur") 15 15, wait;
 
-	position: relative;
-	min-height: 100dvh;
-	width: 100%;
+	position: fixed;
+	inset: 0;
 	background: var(--desktop-bg);
 	overflow: hidden;
 	font-family: "Win95 UI", Tahoma, sans-serif;

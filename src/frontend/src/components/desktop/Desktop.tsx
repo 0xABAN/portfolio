@@ -9,6 +9,7 @@ import { Taskbar } from "./shell/Taskbar";
 import { WindowContent } from "./apps/WindowContent";
 import { useTaskFlyout, Window } from "./Window";
 import { TASKBAR_H, activateWindow, activeWindowId, altCropStyle, isDecoration, layoutDesktop, minimizeWindowTree, moveWindow, openApp, reflowDesktop, restoreDecorations, taskWindows, type AppId, type DesktopWindow } from "./windows";
+import { desktopScale, desktopSize } from "./viewport";
 import "./desktop.css";
 
 const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", experience: "experience" };
@@ -29,7 +30,11 @@ function DesktopWorkspace() {
 	const shell = useShell();
 	const { getState, notice } = shell;
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
-	const [windows, setWindows] = useState<DesktopWindow[]>(() => layoutDesktop(window.innerWidth, window.innerHeight));
+	const [windows, setWindows] = useState<DesktopWindow[]>(() => {
+		const { width, height } = desktopSize();
+		return layoutDesktop(width, height);
+	});
+	const [scale, setScale] = useState(desktopScale);
 	const layoutRef = useRef(windows);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
@@ -48,7 +53,8 @@ function DesktopWorkspace() {
 
 	useEffect(() => {
 		const resize = () => {
-			const { innerWidth: width, innerHeight: height } = window;
+			const { width, height } = desktopSize();
+			setScale(desktopScale());
 			const previous = layoutRef.current;
 			const next = layoutDesktop(width, height);
 			layoutRef.current = next;
@@ -146,9 +152,9 @@ function DesktopWorkspace() {
 				notice("The file was deleted while opening. Restore it from the Recycle Bin first.", "file not found");
 				return;
 			}
-			const { innerWidth, innerHeight } = window;
+			const { width, height } = desktopSize();
 			if (id === "explorer") setSecretsOpened(true);
-			setWindows((prev) => openApp(prev, id, innerWidth, innerHeight));
+			setWindows((prev) => openApp(prev, id, width, height));
 			setBusy(false);
 			focusWindow(id);
 		}, id === "explorer" || id === "recycle-bin" ? FOLDER_LOAD_MS : APP_LOAD_MS);
@@ -170,7 +176,8 @@ function DesktopWorkspace() {
 	}, [openShell, getState, notice]);
 
 	const move = useCallback((id: string, x: number, y: number) => {
-		setWindows((prev) => moveWindow(prev, id, x, y, window.innerWidth, window.innerHeight));
+		const { width, height } = desktopSize();
+		setWindows((prev) => moveWindow(prev, id, x, y, width, height));
 	}, []);
 
 	const explorerNode = shell.state.nodes.find((node) => node.id === explorerFolder);
@@ -206,9 +213,10 @@ function DesktopWorkspace() {
 	};
 	const pspWindow = visibleWindows.find((w) => w.kind === "experience");
 	const pspIsActive = activeId === "experience";
+	const desktop = desktopSize();
 
 	return (
-		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
+		<div className={busy ? "desktop desktop--busy" : "desktop"} style={{ zoom: scale, "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
 			onDragOver={(event) => {
 				if (isDesktopSurface(event.target) && shell.canDrop(event, "desktop")) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }
 			}}
@@ -224,8 +232,8 @@ function DesktopWorkspace() {
 					className={pspIsActive ? "desktop__psp-dimmer desktop__psp-dimmer--active" : "desktop__psp-dimmer"}
 					style={{
 						zIndex: pspWindow ? pspWindow.z + (pspIsActive ? 0 : 1) : 0,
-						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / window.innerWidth) * 100}%` : undefined,
-						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / window.innerHeight) * 100}%` : undefined,
+						"--psp-dimmer-x": pspWindow ? `${((pspWindow.x + pspWindow.w / 2) / desktop.width) * 100}%` : undefined,
+						"--psp-dimmer-y": pspWindow ? `${((pspWindow.y + pspWindow.h / 2) / desktop.height) * 100}%` : undefined,
 					} as CSSProperties}
 					aria-hidden="true"
 				/>

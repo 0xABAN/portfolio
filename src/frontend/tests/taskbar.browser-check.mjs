@@ -3,7 +3,7 @@ import { runCheck } from "./browser.mjs";
 async function checkTaskbar(page) {
 	const check = (value, message) => { if (!value) throw new Error(message); };
 	const waitForLaunch = () => page.locator(".desktop--busy").waitFor({ state: "hidden" });
-	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.setViewportSize({ width: 1710, height: 900 });
 	await page.route("**/api/chat/wake", (route) => route.fulfill({ status: 204 }));
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 2717 } }));
 	await page.evaluate(() => {
@@ -136,7 +136,7 @@ async function checkTaskbar(page) {
 		check(bounds.width <= 206 && bounds.height <= 83, "Secrets bubble is too large");
 		check(bounds.x >= art.x + art.width && bounds.x + bounds.width <= width, "Secrets bubble is not beside the folder or clips off-screen");
 	}
-	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.setViewportSize({ width: 1710, height: 900 });
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
 		window.openedLinks = [];

@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { desktopScale, desktopSize } from "./viewport";
 import "./effects.css";
 
 export const DESKTOP_REVEAL_MS = 2100;
@@ -236,9 +237,10 @@ function runNeko(el: HTMLElement): () => void {
 		const dx = nekoX - mouseX;
 		const dy = nekoY - mouseY;
 		const dist = Math.hypot(dx, dy);
+		const { width, height } = desktopSize();
 
 		if (dist < 48) {
-			paint(...stepIdle(idle, nekoX, nekoY, innerWidth, innerHeight));
+			paint(...stepIdle(idle, nekoX, nekoY, width, height));
 			return;
 		}
 
@@ -251,14 +253,15 @@ function runNeko(el: HTMLElement): () => void {
 		}
 
 		paint(moveDir(dx, dy, dist), frameCount);
-		nekoX = Math.min(Math.max(16, nekoX - (dx / dist) * SPEED), innerWidth - 16);
-		nekoY = Math.min(Math.max(16, nekoY - (dy / dist) * SPEED), innerHeight - 16);
+		nekoX = Math.min(Math.max(16, nekoX - (dx / dist) * SPEED), width - 16);
+		nekoY = Math.min(Math.max(16, nekoY - (dy / dist) * SPEED), height - 16);
 		place();
 	};
 
 	const onMove = (event: MouseEvent) => {
-		mouseX = event.clientX;
-		mouseY = event.clientY;
+		const scale = desktopScale();
+		mouseX = event.clientX / scale;
+		mouseY = event.clientY / scale;
 	};
 	const onVisibility = () => {
 		if (!document.hidden) tick();

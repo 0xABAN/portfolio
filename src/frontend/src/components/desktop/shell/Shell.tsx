@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { deleteNodes, entryId, initialShellState, itemOf, moveNodes, parseShellState, purgeEntries, restoreEntries, selectedRoots, STORAGE_KEY, type ShellState } from "./files";
+import { desktopScale } from "../viewport";
 import "./controls.css";
 
 type ShellDialog = { title: string; message: string; accept?: () => void };
@@ -246,8 +247,9 @@ export function ShellMenu({ label, commands, position, onClose }: { label: strin
 		const menu = ref.current!;
 		menu.showPopover();
 		const bounds = menu.getBoundingClientRect();
-		menu.style.left = `${Math.max(2, Math.min(position.x, window.innerWidth - bounds.width - 2))}px`;
-		menu.style.top = `${Math.max(2, Math.min(position.y, window.innerHeight - bounds.height - 2))}px`;
+		const scale = desktopScale();
+		menu.style.left = `${Math.max(2, Math.min(position.x, window.innerWidth - bounds.width - 2)) / scale}px`;
+		menu.style.top = `${Math.max(2, Math.min(position.y, window.innerHeight - bounds.height - 2)) / scale}px`;
 		menu.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
 		return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }); };
 	}, [position.x, position.y]);

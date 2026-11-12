@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { DESKTOP_REVEAL_MS } from "../effects";
+import { desktopScale, desktopSize } from "../viewport";
 import { TASKBAR_H } from "../windows";
 import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, itemOf, type DeskIcon as CatalogIcon, type ShellNode } from "./files";
 import { ShellMenu, keyboardMenuPosition, menuPosition, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "./Shell";
@@ -129,7 +130,10 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
 	const shell = useShell();
 	const { getState } = shell;
-	const [deskIconPositions, setDeskIconPositions] = useState(() => defaultDeskIconPositions(window.innerWidth, window.innerHeight));
+	const [deskIconPositions, setDeskIconPositions] = useState(() => {
+		const { width, height } = desktopSize();
+		return defaultDeskIconPositions(width, height);
+	});
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
@@ -142,7 +146,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 
 	useEffect(() => {
 		const resize = () => {
-			const { innerWidth: width, innerHeight: height } = window;
+			const { width, height } = desktopSize();
 			setDeskIconPositions((current) => ({
 				...current,
 				...normalizeDeskIconPositions(current, width, height, shellDeskIcons(getState().nodes)),
@@ -156,7 +160,8 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const bounceSecrets = attention && !secretsOpened && !explorerOpen;
 	const deskIcons = shellDeskIcons(shell.state.nodes);
 	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
-	const positions = normalizeDeskIconPositions(deskIconPositions, window.innerWidth, window.innerHeight, deskIcons);
+	const desktop = desktopSize();
+	const positions = normalizeDeskIconPositions(deskIconPositions, desktop.width, desktop.height, deskIcons);
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
 
 	function markDeskIconInteraction(icon: DeskIcon) {
@@ -164,7 +169,7 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	}
 
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
-		const { cols, rows } = gridBounds(window.innerWidth, window.innerHeight, deskIcons.length);
+		const { cols, rows } = gridBounds(desktop.width, desktop.height, deskIcons.length);
 		const cell = { col: Math.min(Math.max(col, 0), cols - 1), row: Math.min(Math.max(row, 0), rows - 1) };
 		setDeskIconPositions((current) => {
 			const source = current[sourceId] ?? positions[sourceId];
@@ -200,7 +205,10 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 					if (!draggingId) { shell.drop(event, "desktop"); return; }
 					event.preventDefault();
 					const bounds = event.currentTarget.getBoundingClientRect();
-					moveDeskIconToCell(draggingId, Math.round((event.clientX - bounds.left - CELL_W / 2) / STEP_X), Math.round((event.clientY - bounds.top - CELL_H / 2) / STEP_Y));
+					const scale = desktopScale();
+					const x = (event.clientX - bounds.left) / scale;
+					const y = (event.clientY - bounds.top) / scale;
+					moveDeskIconToCell(draggingId, Math.round((x - CELL_W / 2) / STEP_X), Math.round((y - CELL_H / 2) / STEP_Y));
 					shell.endDrag();
 					setDraggingId(null);
 				}}

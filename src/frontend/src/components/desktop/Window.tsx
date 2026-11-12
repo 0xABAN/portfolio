@@ -1,4 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useRef, type Dispatch, type FocusEvent, type PointerEvent, type ReactNode, type SetStateAction } from "react";
+import { desktopScale } from "./viewport";
 import { minimizeWindowTree, type DesktopWindow } from "./windows";
 import "./window.css";
 
@@ -53,8 +54,9 @@ export const Window = memo(function Window({
 		const el = rootRef.current!;
 		event.currentTarget.setPointerCapture(event.pointerId);
 		el.toggleAttribute("data-dragging", true);
+		const scale = desktopScale();
 		drag.current = {
-			offsetX: event.clientX - el.offsetLeft, offsetY: event.clientY - el.offsetTop,
+			offsetX: event.clientX / scale - el.offsetLeft, offsetY: event.clientY / scale - el.offsetTop,
 			x: el.offsetLeft, y: el.offsetTop, live: liveMove, frame: 0,
 		};
 	}
@@ -62,8 +64,9 @@ export const Window = memo(function Window({
 	function moveDrag(event: PointerEvent<HTMLElement>) {
 		const d = drag.current;
 		if (!d) return;
-		d.x = event.clientX - d.offsetX;
-		d.y = event.clientY - d.offsetY;
+		const scale = desktopScale();
+		d.x = event.clientX / scale - d.offsetX;
+		d.y = event.clientY / scale - d.offsetY;
 		if (!d.live) {
 			Object.assign(rootRef.current!.style, { left: `${d.x}px`, top: `${d.y}px` });
 		} else if (!d.frame) {
@@ -152,8 +155,9 @@ export function useTaskFlyout(id: string, shown: boolean, taskOrder: string, set
 			setWindows((current) => {
 				const flyout = current.find((w) => w.id === id);
 				if (!flyout) return current;
-				const x = Math.max(4, Math.min(anchor.left, window.innerWidth - flyout.w - 4)) - origin.left;
-				const y = Math.max(0, anchor.top - flyout.h - 4) - origin.top;
+				const scale = desktopScale();
+				const x = (Math.max(4, Math.min(anchor.left, window.innerWidth - flyout.w * scale - 4)) - origin.left) / scale;
+				const y = (Math.max(0, anchor.top - flyout.h * scale - 4) - origin.top) / scale;
 				return x === flyout.x && y === flyout.y ? current : current.map((w) => (w === flyout ? { ...w, x, y } : w));
 			});
 		};
