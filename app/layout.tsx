@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
 	metadataBase: new URL("https://advm.dev"),
 	title: "portfolio",
-	description: "Adam Torres Encarnacion's portfolio: a Windows 95 desktop you can poke around in.",
+	description: "my portfolio: a win95 emulator you can play with",
 	openGraph: {
 		images: [{
 			url: "/og/beep-boop.gif",
