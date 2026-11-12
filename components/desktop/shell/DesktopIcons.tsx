@@ -3,7 +3,6 @@ import { DESKTOP_REVEAL_MS } from "../effects";
 import { TASKBAR_H, desktopScale, desktopSize } from "../windows";
 import {
 	BIN_ICON,
-	DESK_ICONS as FILE_ICONS,
 	byCatalogOrder,
 	itemOf,
 	type DeskIcon as CatalogIcon,
@@ -32,7 +31,6 @@ type Props = {
 };
 
 const RECYCLE_BIN: DeskIcon = { id: "recycle-bin", label: "Recycle Bin", src: BIN_ICON.empty, recycle: true };
-const DESK_ICONS: CatalogIcon[] = [...FILE_ICONS, RECYCLE_BIN];
 
 const CELL_W = 96;
 const CELL_H = 112;
@@ -51,7 +49,7 @@ function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	return [...icons, RECYCLE_BIN];
 }
 
-function gridBounds(vw: number, vh: number, count = DESK_ICONS.length) {
+function gridBounds(vw: number, vh: number, count: number) {
 	const width = Math.max(CELL_W, vw - 10);
 	const height = Math.max(CELL_H, vh - TASKBAR_H - 28);
 
@@ -65,11 +63,6 @@ function columnFirstCell(index: number, rows: number): DeskIconPosition {
 	return { col: Math.floor(index / rows), row: index % rows };
 }
 
-function defaultDeskIconPositions(vw: number, vh: number): DeskIconPositions {
-	const { rows } = gridBounds(vw, vh);
-	return Object.fromEntries(DESK_ICONS.map((icon, index) => [icon.id, columnFirstCell(index, rows)]));
-}
-
 function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: number, icons: DeskIcon[]): DeskIconPositions {
 	const { cols, rows } = gridBounds(vw, vh, icons.length);
 	const total = cols * rows;
@@ -81,10 +74,10 @@ function normalizeDeskIconPositions(current: DeskIconPositions, vw: number, vh: 
 		const startCol = Math.min(Math.max(source.col, 0), cols - 1);
 		const startRow = Math.min(Math.max(source.row, 0), rows - 1);
 
-		let cell = startRow * cols + startCol;
-		while (used.has(`${cell % cols}:${Math.floor(cell / cols)}`)) cell = (cell + 1) % total;
+		let cell = startCol * rows + startRow;
+		while (used.has(`${Math.floor(cell / rows)}:${cell % rows}`)) cell = (cell + 1) % total;
 
-		const position = { col: cell % cols, row: Math.floor(cell / cols) };
+		const position = { col: Math.floor(cell / rows), row: cell % rows };
 		next[icon.id] = position;
 		used.add(`${position.col}:${position.row}`);
 	}
@@ -177,13 +170,9 @@ function DeskIconGlyph({ src, label, notification = false }: { src: string; labe
 
 export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
 	const shell = useShell();
-	const { getState } = shell;
 	const binFull = shell.state.entries.length > 0;
 
-	const [deskIconPositions, setDeskIconPositions] = useState(() => {
-		const { width, height } = desktopSize();
-		return defaultDeskIconPositions(width, height);
-	});
+	const [deskIconPositions, setDeskIconPositions] = useState<DeskIconPositions>({});
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [attention, setAttention] = useState(false);
@@ -192,21 +181,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 		const start = window.setTimeout(() => setAttention(true), DESKTOP_REVEAL_MS + ATTENTION_DELAY_MS);
 		return () => window.clearTimeout(start);
 	}, []);
-
-	useEffect(() => {
-		const resize = () => {
-			const { width, height } = desktopSize();
-			const icons = shellDeskIcons(getState().nodes);
-
-			setDeskIconPositions((current) => ({
-				...current,
-				...normalizeDeskIconPositions(current, width, height, icons),
-			}));
-		};
-
-		window.addEventListener("resize", resize);
-		return () => window.removeEventListener("resize", resize);
-	}, [getState]);
 
 	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
 	const bounceSecrets = attention && !secretsOpened && !explorerOpen;

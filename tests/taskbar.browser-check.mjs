@@ -129,9 +129,23 @@ async function checkTaskbar(page) {
 			&& body.imageRendering === "pixelated"
 			&& style.pointerEvents === "none";
 	}), "Secrets speech bubble lost its Rose Tinted font, angle, or existing artwork");
+	const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+	const iconLayout = () => page.locator(".desktop__icons > li").evaluateAll((items) => items.map((li) => `${li.style.left},${li.style.top}`).join(" "));
+	const layoutBeforeSqueeze = await iconLayout();
+	await page.setViewportSize({ width: 700, height: 400 });
+	await settle();
+	await page.setViewportSize({ width: 1710, height: 900 });
+	await settle();
+	check(await iconLayout() === layoutBeforeSqueeze, "Shrinking the window permanently rearranged the desktop icons");
+
+	await page.setViewportSize({ width: 1241, height: 730 });
+	await settle();
+	const activity = await page.locator("#desktop-window-github").boundingBox();
+	check(activity.x + activity.width <= 1241, `A tall window pushed Activity off-screen: ${JSON.stringify(activity)}`);
+
 	for (const width of [1440, 390, 320]) {
 		await page.setViewportSize({ width, height: 900 });
-		await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+		await settle();
 		const art = await secrets.locator(".desk-icon__art").boundingBox();
 		const bounds = await bubble.boundingBox();
 		check(bounds.width <= 206 && bounds.height <= 83, "Secrets bubble is too large");

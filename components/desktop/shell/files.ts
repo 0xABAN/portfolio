@@ -21,7 +21,7 @@ function game(id: string, label: string, href: string): DeskIcon {
 	return { id, label, src: `/icons/games/${id}.webp`, href };
 }
 
-export const DESK_ICONS: DeskIcon[] = [
+const DESK_ICONS: DeskIcon[] = [
 	game("hollow-knight", "Hollow Knight", "https://store.steampowered.com/app/367520/Hollow_Knight/"),
 	game("silksong", "Silksong", "https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/"),
 	game("terraria", "Terraria", "https://store.steampowered.com/app/105600/Terraria/"),

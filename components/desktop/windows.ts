@@ -86,7 +86,7 @@ function layoutMeWindow(vw: number, vh: number): Rect {
 	const availableW = vw - MARGIN * 2;
 	const availableH = vh - TASKBAR_H - MARGIN * 2;
 
-	let canvasH = availableH - chromeY;
+	let canvasH = Math.min(vh, DESIGN_H) - TASKBAR_H - MARGIN * 2 - chromeY;
 	let canvasW = canvasH / STREET_RATIO;
 	if (canvasW + chromeX > availableW) {
 		canvasW = availableW - chromeX;
