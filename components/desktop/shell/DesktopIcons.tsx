@@ -1,7 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { DESKTOP_REVEAL_MS } from "../effects";
-import { desktopScale, desktopSize } from "../viewport";
-import { TASKBAR_H } from "../windows";
+import { TASKBAR_H, desktopScale, desktopSize } from "../windows";
 import { BIN_ICON, DESK_ICONS as FILE_ICONS, byCatalogOrder, itemOf, type DeskIcon as CatalogIcon, type ShellNode } from "./files";
 import { ShellMenu, keyboardMenuPosition, menuPosition, useShell, useShellSelection, type MenuCommand, type MenuPosition } from "./Shell";
 

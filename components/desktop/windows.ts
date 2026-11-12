@@ -19,6 +19,19 @@ type Rect = Pick<DesktopWindow, "x" | "y" | "w" | "h">;
 export const TASKBAR_H = 32;
 const TITLE_H = 22;
 
+const DESIGN_W = 1710;
+const DESIGN_H = 900;
+const MIN_SCALE = 0.5;
+
+export function desktopScale() {
+	return Math.max(MIN_SCALE, Math.min(innerWidth / DESIGN_W, innerHeight / DESIGN_H));
+}
+
+export function desktopSize() {
+	const scale = desktopScale();
+	return { width: innerWidth / scale, height: innerHeight / scale };
+}
+
 const CHROME_X = 12;
 const CHROME_Y = TITLE_H + 12;
 const FRAME_X = CHROME_X / 2;

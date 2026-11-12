@@ -9,8 +9,7 @@ import {
 	type ReactNode,
 	type SetStateAction,
 } from "react";
-import { desktopScale } from "./viewport";
-import { minimizeWindowTree, type DesktopWindow } from "./windows";
+import { desktopScale, minimizeWindowTree, type DesktopWindow } from "./windows";
 import "./window.css";
 
 type Props = {

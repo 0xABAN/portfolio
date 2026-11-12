@@ -23,7 +23,7 @@ import {
 	STORAGE_KEY,
 	type ShellState,
 } from "./files";
-import { desktopScale } from "../viewport";
+import { desktopScale } from "../windows";
 import "./controls.css";
 
 type ShellDialog = { title: string; message: string; accept?: () => void };

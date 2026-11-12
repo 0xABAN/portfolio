@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { desktopScale, desktopSize } from "./viewport";
+import { desktopScale, desktopSize } from "./windows";
 import "./effects.css";
 
 export const DESKTOP_REVEAL_MS = 2100;

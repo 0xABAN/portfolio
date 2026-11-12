@@ -11,6 +11,8 @@ import { useTaskFlyout, Window } from "./Window";
 import {
 	TASKBAR_H,
 	activateWindow,
+	desktopScale,
+	desktopSize,
 	activeWindowId,
 	altCropStyle,
 	isDecoration,
@@ -24,7 +26,6 @@ import {
 	type AppId,
 	type DesktopWindow,
 } from "./windows";
-import { desktopScale, desktopSize } from "./viewport";
 import "./desktop.css";
 
 const APP_FILES: Partial<Record<AppId, string>> = { explorer: "secrets", experience: "experience" };
