@@ -78,7 +78,7 @@ type ScWidget = {
 type ScApi = { Widget: ((iframe: HTMLIFrameElement) => ScWidget) & { Events: ScEvents } };
 
 const FADE_MS = 10_000;
-const DEFAULT_VOLUME = 0.35;
+const DEFAULT_VOLUME = 0.15;
 const API_SRC = "https://w.soundcloud.com/player/api.js";
 const GETTER_TIMEOUT_MS = 2000;
 const RETRIES = 40;
