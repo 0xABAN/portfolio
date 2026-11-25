@@ -18,9 +18,9 @@ async function checkRecycling(page) {
 		window.open = (...args) => { window.openedLinks.push(args); return null; };
 	});
 	await page.evaluate(() => localStorage.clear());
-	await page.reload();
 	await page.clock.install({ time: new Date("2026-01-01T12:00:00Z") });
-	await page.clock.pauseAt(new Date("2026-01-01T12:00:01Z"));
+	await page.reload();
+	await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
 	const bin = () => page.locator("[data-recycle-bin]");
 	const icon = (id) => page.locator(`.desktop__icons [data-shell-item="${id}"]`);
 	const win = (id) => page.locator(`#desktop-window-${id}`);
@@ -30,9 +30,7 @@ async function checkRecycling(page) {
 	const state = () => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
 	const parentOf = async (id) => (await state()).nodes.find((node) => node.id === id)?.parentId;
 	async function boot() {
-		await page.locator(".rsod").click();
-		await page.clock.runFor(900);
-		await page.locator(".taskbar").waitFor();
+		while (!(await page.locator(".taskbar").count())) await page.clock.runFor(250);
 		await page.clock.runFor(1000);
 		while (!(await page.locator(".term__input").count())) await page.clock.runFor(250);
 		await page.addStyleTag({ content: "nextjs-portal { display: none; }" });

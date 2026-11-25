@@ -67,17 +67,38 @@
 .restarting {
 	box-sizing: border-box;
 	width: 100%;
-	min-height: 100dvh;
+	height: 100dvh;
 	margin: 0;
-	padding: 24px 28px;
+	padding: 12px 10px;
+	overflow: hidden;
 	background: #000;
 	color: #c0c0c0;
 	font-family: "Fixedsys", "Consolas", "Courier New", monospace;
-	font-size: clamp(13px, 1.8vw, 18px);
+	font-size: clamp(11px, 1.3vw, 14px);
 	line-height: 1.5;
 }
 
 .restarting__line {
 	margin: 0;
-	white-space: pre-wrap;
+	white-space: pre;
+}
+
+.restarting__line--title {
+	color: #fff;
+}
+
+.restarting__line--dim {
+	color: #808080;
+}
+
+.restarting__line--ok {
+	color: #55ff55;
+}
+
+.restarting__line--info {
+	color: #55ffff;
+}
+
+.restarting__line--command {
+	color: #ffff55;
 }

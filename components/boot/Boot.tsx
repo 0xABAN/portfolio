@@ -1,12 +1,91 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Desktop } from "../desktop/Desktop";
 import { prefetchFracture } from "../desktop/effects";
 import "./boot.css";
 
 type Phase = "unsupported" | "rsod" | "restarting" | "desktop";
 
-const RESTART_LINES = ["ATAPI CD-ROM: CD-ROM DRIVE", "Memory Test: 65536K OK", "", "Starting Windows 95..."];
+const BOOT_LOG = String.raw`Award Modular BIOS v4.51PG, An Energy Star Ally
+Copyright (C) 1984-95, Award Software, Inc.
+
+PENTIUM-S CPU at 133MHz
+Memory Test: 65536K OK
+
+Award Plug and Play BIOS Extension v1.0A
+Copyright (C) 1995, Award Software, Inc.
+  Detecting HDD Primary Master ...... QUANTUM FIREBALL1280A
+  Detecting HDD Primary Slave ....... None
+  Detecting HDD Secondary Master .... ATAPI CD-ROM DRIVE
+  Detecting HDD Secondary Slave ..... None
+
+ATAPI CD-ROM: CD-ROM DRIVE
+PCI device listing ...
+  Bus 0  Device 7   Vendor 8086  Device 7010  IDE Controller         IRQ 14
+  Bus 0  Device 7   Vendor 8086  Device 7020  Serial Bus Controller  IRQ 11
+  Bus 0  Device 17  Vendor 5333  Device 8811  Display Controller     IRQ NA
+  Bus 0  Device 19  Vendor 1274  Device 5000  Multimedia Device      IRQ 5
+Verifying DMI Pool Data ........
+Update Success
+
+Starting MS-DOS...
+HIMEM is testing extended memory...done.
+C:\>C:\DOS\SMARTDRV.EXE /X
+MSCDEX Version 2.25
+Copyright (C) Microsoft Corp. 1986-1995. All rights reserved.
+  Drive D: = Driver MSCD001 unit 0
+Loading device driver C:\WINDOWS\HIMEM.SYS
+Loading device driver C:\WINDOWS\IFSHLP.SYS
+Loading device driver C:\WINDOWS\SETVER.EXE
+Loading C:\WINDOWS\COMMAND\MOUSE.COM
+Mouse driver installed
+Loading C:\WINDOWS\SYSTEM\VMM32.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\IOS.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\VFAT.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\CDFS.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\VREDIR.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\VNETSUP.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\VCOMM.VXD
+Loading C:\WINDOWS\SYSTEM\VXD\VSHARE.VXD
+Loading C:\WINDOWS\SYSTEM\KRNL386.EXE
+Loading C:\WINDOWS\SYSTEM\GDI.EXE
+Loading C:\WINDOWS\SYSTEM\USER.EXE
+Loading C:\WINDOWS\SYSTEM\MMSYSTEM.DLL
+Loading C:\WINDOWS\SYSTEM\SHELL32.DLL
+Loading C:\WINDOWS\SYSTEM\COMMCTRL.DLL
+Loading C:\WINDOWS\FONTS\FIXEDSYS.FON
+Loading C:\WINDOWS\SYSTEM\KERNEL32.DLL
+Loading C:\WINDOWS\SYSTEM\ADVAPI32.DLL
+Loading C:\WINDOWS\SYSTEM\WINMM.DLL
+Loading C:\WINDOWS\SYSTEM\MSACM32.DLL
+Loading C:\WINDOWS\SYSTEM\DDRAW.DLL
+Loading C:\WINDOWS\SYSTEM\DSOUND.DLL
+Loading C:\WINDOWS\SYSTEM\MPR.DLL
+Loading C:\WINDOWS\SYSTEM\WSOCK32.DLL
+Loading C:\WINDOWS\SYSTEM\RNAAPP.EXE
+Loading C:\WINDOWS\SYSTEM\SYSTRAY.EXE
+Loading C:\WINDOWS\SYSTEM\MSGSRV32.EXE
+Loading C:\WINDOWS\SYSTEM\MMTASK.TSK
+Initializing display adapter ... S3 Trio64V+ (1024x768, 256 colors)
+Initializing sound card ... Creative AudioPCI (ES1370)
+Initializing network ... Dial-Up Adapter
+Restoring desktop settings ...
+Loading C:\WINDOWS\EXPLORER.EXE`.split("\n");
+const LAST_LINE = "Starting Windows 95...";
+
+const LINE_TONES: [RegExp, string][] = [
+	[/^Copyright/, "dim"],
+	[/(OK|done\.|Success|installed)$/, "ok"],
+	[/^(Award|PENTIUM|Starting)/, "title"],
+	[/^\s+(Detecting|Bus|Drive)|^Initializing/, "info"],
+	[/^C:\\>/, "command"],
+];
+
+function lineClassName(line: string) {
+	const tone = LINE_TONES.find(([pattern]) => pattern.test(line))?.[1];
+	return tone ? `restarting__line restarting__line--${tone}` : "restarting__line";
+}
 const RESTART_MS = 900;
+const RSOD_MS = 1000;
 
 let preloads: HTMLImageElement[] | undefined;
 
@@ -31,8 +110,13 @@ function StopScreen({ body, items, prompt }: { body: ReactNode; items: ReactNode
 
 function Rsod({ onContinue }: { onContinue: () => void }) {
 	useEffect(() => {
+		const timer = window.setTimeout(onContinue, RSOD_MS);
 		window.addEventListener("keydown", onContinue);
-		return () => window.removeEventListener("keydown", onContinue);
+
+		return () => {
+			window.clearTimeout(timer);
+			window.removeEventListener("keydown", onContinue);
+		};
 	}, [onContinue]);
 
 	return (
@@ -53,24 +137,36 @@ function Rsod({ onContinue }: { onContinue: () => void }) {
 }
 
 function Restarting({ onDone }: { onDone: () => void }) {
+	const ref = useRef<HTMLDivElement>(null);
+	const [lines, setLines] = useState<string[]>([]);
 	const [count, setCount] = useState(0);
 
+	useLayoutEffect(() => {
+		const style = getComputedStyle(ref.current!);
+		const height = ref.current!.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+		const rows = Math.floor(height / parseFloat(style.lineHeight));
+
+		setLines([...BOOT_LOG.slice(0, Math.max(0, rows - 1)), LAST_LINE]);
+	}, []);
+
 	useEffect(() => {
-		const step = RESTART_MS / (RESTART_LINES.length + 1);
+		if (!lines.length) return;
+
+		const step = RESTART_MS / (lines.length + 1);
 		const showLine = (i: number) => window.setTimeout(() => setCount(i + 1), step * (i + 1));
 
 		const timers = [
-			...RESTART_LINES.map((_, i) => showLine(i)),
+			...lines.map((_, i) => showLine(i)),
 			window.setTimeout(onDone, RESTART_MS),
 		];
 
 		return () => timers.forEach(window.clearTimeout);
-	}, [onDone]);
+	}, [lines, onDone]);
 
 	return (
-		<div className="restarting" role="status" aria-live="polite" aria-label="Restarting">
-			{RESTART_LINES.slice(0, count).map((line, i) => (
-				<p key={i} className="restarting__line">{line || "\u00a0"}</p>
+		<div ref={ref} className="restarting" role="status" aria-live="polite" aria-label="Restarting">
+			{lines.slice(0, count).map((line, i) => (
+				<p key={i} className={lineClassName(line)}>{line || "\u00a0"}</p>
 			))}
 		</div>
 	);

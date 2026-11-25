@@ -8,6 +8,7 @@ async function checkFracture(page) {
 		await page.waitForTimeout(2500);
 		await route.continue();
 	});
+	await page.reload();
 	await page.locator(".rsod").waitFor();
 	await page.evaluate(() => {
 		window.wallpaper = [];
@@ -24,7 +25,6 @@ async function checkFracture(page) {
 			if (intro && !document.querySelector('.fracture-background video[src*="intro"]') && !window.wallpaper.some(([, type]) => type === "removed")) log("intro", "removed");
 		}).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"] });
 	});
-	await page.locator(".rsod").click();
 
 	await page.locator(".desktop-sparks").waitFor({ state: "attached" });
 	await page.locator('.fracture-background video[src*="intro"]').waitFor({ state: "detached", timeout: 10000 });

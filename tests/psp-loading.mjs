@@ -27,9 +27,7 @@ try {
     });
 
     await page.goto(url);
-    await page.locator('.rsod').click();
     await page.locator('.neko').waitFor({ state: 'attached' });
-    await page.locator('[data-app-id="explorer"]').dblclick();
     const explorer = page.locator('#desktop-window-explorer');
     await explorer.waitFor();
     const open = () => explorer.getByRole('option', { name: 'experience.exe', exact: true }).dblclick();

@@ -69,11 +69,10 @@ async function checkAudio(page) {
 		await page.locator(".rsod").waitFor();
 		await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
 		await page.evaluate((value) => { window.blockAudio = value; }, blocked);
-		await page.locator(".rsod").click();
 		await page.clock.runFor(900);
 		await page.locator(".taskbar").waitFor();
 		check(await page.evaluate(() => window.audioStarted) === !blocked, "Unexpected initial playback result");
-		await page.clock.runFor(2000);
+		await page.clock.runFor(900);
 		check((await state()).volume === 0, "Music became audible before boot finished");
 		check(await speaker.getAttribute("aria-pressed") === "true", "Music is not enabled by default");
 		check(await task.count() === 1 && await player.evaluate((el) => el.inert), "CD Player must start minimized as a running app");

@@ -5,6 +5,8 @@ async function checkLaunches(page) {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.route("**/api/views", (route) => route.fulfill({ json: { count: 1 } }));
 	await page.route((url) => url.hostname === "w.soundcloud.com" && url.pathname === "/player/", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Muted test player</title>" }));
+	await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+	await page.reload();
 	await page.locator(".rsod").waitFor();
 	await page.evaluate(() => {
 		window.Audio = class extends window.Audio {
@@ -15,9 +17,8 @@ async function checkLaunches(page) {
 		window.openedLinks = [];
 		window.open = (...args) => { window.openedLinks.push(args); return null; };
 	});
-	await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
-	await page.clock.pauseAt(new Date("2026-01-01T00:00:01Z"));
-	await page.locator(".rsod").click();
+	await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+	await page.locator(".restarting").waitFor();
 	await page.clock.runFor(900);
 	await page.locator(".taskbar").waitFor();
 	await page.clock.runFor(1000);

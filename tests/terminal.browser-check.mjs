@@ -13,7 +13,6 @@ async function checkTerminal(page) {
 		await wakeHeld;
 		await route.fulfill(wakeResponse);
 	});
-	await page.locator(".rsod").click();
 	const input = page.getByRole("textbox", { name: "Terminal input" });
 	const lineTexts = () => page.locator(".term__line").allTextContents();
 
@@ -210,7 +209,6 @@ async function checkTerminal(page) {
 
 	wakeResponse = { status: 429, contentType: "application/json", body: JSON.stringify({ detail: "sry i'm too broke to afford this rn" }) };
 	await page.reload();
-	await page.locator(".rsod").click();
 	await input.waitFor();
 	const refused = await lineTexts();
 	check(refused.includes("ADAM> sry i'm too broke to afford this rn") && !refused.includes("ADAM> come chat with me :)"), "Refused wake-up still greeted the visitor");
@@ -218,7 +216,6 @@ async function checkTerminal(page) {
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.reload();
-	await page.locator(".rsod").click();
 	await input.waitFor();
 	check(await page.locator(".term__body").evaluate((el) => el.scrollWidth <= el.clientWidth), "Narrow terminal overflowed horizontally");
 	check(await input.evaluate((el) => el.getBoundingClientRect().width > 100), "Narrow prompt has no usable input space");
@@ -234,7 +231,6 @@ async function checkTerminal(page) {
 		});
 		observer.observe(document, { subtree: true, childList: true, characterData: true });
 	});
-	await page.locator(".rsod").click();
 	await input.waitFor();
 	const frames = await page.evaluate(() => [...window.startupCommands]);
 	check(frames.includes("C:\\PORTFOLIO>hel") && frames.includes("C:\\PORTFOLIO>ADA"), "Startup did not animate both commands");

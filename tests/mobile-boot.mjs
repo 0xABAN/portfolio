@@ -54,9 +54,7 @@ try {
       assert.equal(await page.locator('.restarting, .desktop, #sc-cd-player').count(), 0);
     } else {
       assert.equal(await page.locator('button.rsod').count(), 1, `${name}: desktop was blocked`);
-      await page.locator('button.rsod').click();
-      await page.clock.runFor(3000);
-      await page.locator('.desktop').waitFor();
+      while (!(await page.locator('.desktop').count())) await page.clock.runFor(250);
       assert.equal(await page.getByRole('main', { name: 'Mobile device not supported' }).count(), 0);
     }
 

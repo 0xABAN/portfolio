@@ -3,11 +3,8 @@ import { runCheck } from "./browser.mjs";
 
 const result = runCheck(`async (page) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.locator(".rsod").waitFor({ state: "visible" });
-	await page.locator(".rsod").click();
-	await page.locator(".desktop--busy").waitFor({ state: "hidden" });
+	await page.locator(".neko").waitFor({ state: "attached" });
 	const initialPspVisible = await page.locator("#desktop-window-experience").count();
-	await page.locator('[data-app-id="explorer"]').dblclick();
 	const explorer = page.locator("#desktop-window-explorer");
 	await explorer.waitFor({ state: "visible" });
 	await explorer.getByRole("option", { name: "experience.exe", exact: true }).dblclick();

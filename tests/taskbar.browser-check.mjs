@@ -66,7 +66,6 @@ async function checkTaskbar(page) {
 		Widget.Events = Events;
 		window.SC = { Widget };
 	});
-	await page.locator(".rsod").click();
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
 	const icons = await page.locator(".desktop__icons .desk-icon__label").allTextContents();
 	check(JSON.stringify(icons.slice(-3)) === JSON.stringify(["CD Player", "secrets", "Recycle Bin"]), "CD Player must sit immediately above Secrets");
