@@ -20,7 +20,7 @@ async function checkLaunches(page) {
 	await page.locator(".rsod").click();
 	await page.clock.runFor(900);
 	await page.locator(".taskbar").waitFor();
-	await page.clock.runFor(2100);
+	await page.clock.runFor(1000);
 	await page.locator(".neko").waitFor({ state: "attached" });
 	check(await page.locator("#desktop-window-explorer").isVisible(), "The secrets folder did not start open");
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });

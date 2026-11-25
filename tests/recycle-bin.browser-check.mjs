@@ -33,7 +33,7 @@ async function checkRecycling(page) {
 		await page.locator(".rsod").click();
 		await page.clock.runFor(900);
 		await page.locator(".taskbar").waitFor();
-		await page.clock.runFor(2100);
+		await page.clock.runFor(1000);
 		while (!(await page.locator(".term__input").count())) await page.clock.runFor(250);
 		await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	}
