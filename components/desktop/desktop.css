@@ -72,7 +72,7 @@
 
 .desktop__icons {
 	position: absolute;
-	inset: 12px 0 calc(var(--taskbar-height) + 16px) 10px;
+	inset: 2px 0 calc(var(--taskbar-height) + 2px) 2px;
 	z-index: 2;
 	margin: 0;
 	padding: 0;
@@ -81,18 +81,18 @@
 
 .desktop__icons > li {
 	position: absolute;
-	width: 96px;
-	height: 112px;
+	width: 75px;
+	height: 75px;
 }
 
 .desk-icon {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4px;
+	gap: 3px;
 	width: 100%;
 	margin: 0;
-	padding: 4px 2px;
+	padding: 2px 0;
 	border: 1px solid transparent;
 	background: transparent;
 	color: var(--chrome-text);
@@ -123,8 +123,10 @@
 .desk-icon__art {
 	position: relative;
 	display: block;
-	width: 70.4px;
-	height: 70.4px;
+	align-self: flex-start;
+	width: 32px;
+	height: 32px;
+	margin-left: 21px;
 }
 
 .desk-icon__img {
@@ -136,12 +138,15 @@
 	overflow: hidden;
 }
 
+.desk-icon__img[src^="/icons/games/"] {
+	image-rendering: auto;
+}
+
 .desk-icon__label {
 	max-width: 100%;
-	min-height: 2.4em;
-	padding: 0 2px;
-	font-size: 12px;
-	line-height: 1.2;
+	padding: 0 1px;
+	font-size: 11px;
+	line-height: 13px;
 	text-align: center;
 	text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
 	overflow-wrap: anywhere;

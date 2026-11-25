@@ -16,8 +16,8 @@ export type DesktopWindow = {
 
 type Rect = Pick<DesktopWindow, "x" | "y" | "w" | "h">;
 
-export const TASKBAR_H = 32;
-const TITLE_H = 22;
+export const TASKBAR_H = 28;
+export const TITLE_H = 18;
 
 const DESIGN_W = 1710;
 const DESIGN_H = 900;
@@ -32,14 +32,17 @@ export function desktopSize() {
 	return { width: innerWidth / scale, height: innerHeight / scale };
 }
 
-const CHROME_X = 12;
-const CHROME_Y = TITLE_H + 12;
-const FRAME_X = CHROME_X / 2;
-const FRAME_Y = TITLE_H + (CHROME_Y - TITLE_H) / 2;
+const FRAME = 4;
+const CLIENT_EDGE = 2;
+const FRAME_X = FRAME + CLIENT_EDGE;
+const FRAME_Y = FRAME + TITLE_H + 1 + CLIENT_EDGE;
+const CHROME_X = FRAME_X * 2;
+const CHROME_Y = FRAME_Y + FRAME_X;
 
 const PAINT_INNER_X = 56;
-const PAINT_INNER_Y = 18;
-const PAINT_INNER_BOTTOM = 70;
+const PAINT_INNER_Y = 19 + 2;
+const PAINT_INNER_RIGHT = 2;
+const PAINT_INNER_BOTTOM = 2 + 48 + 20;
 
 const STREET_RATIO = 1360 / 768;
 const MARGIN = 24;
@@ -52,7 +55,7 @@ function paintImageBounds(parent: Rect): Rect {
 	return {
 		x: parent.x + FRAME_X + PAINT_INNER_X,
 		y: parent.y + FRAME_Y + PAINT_INNER_Y,
-		w: parent.w - CHROME_X - PAINT_INNER_X,
+		w: parent.w - CHROME_X - PAINT_INNER_X - PAINT_INNER_RIGHT,
 		h: parent.h - CHROME_Y - PAINT_INNER_Y - PAINT_INNER_BOTTOM,
 	};
 }
@@ -81,7 +84,7 @@ export function clampWindowPos(x: number, y: number, w: number, vw: number, vh: 
 }
 
 function layoutMeWindow(vw: number, vh: number): Rect {
-	const chromeX = CHROME_X + PAINT_INNER_X;
+	const chromeX = CHROME_X + PAINT_INNER_X + PAINT_INNER_RIGHT;
 	const chromeY = CHROME_Y + PAINT_INNER_Y + PAINT_INNER_BOTTOM;
 	const availableW = vw - MARGIN * 2;
 	const availableH = vh - TASKBAR_H - MARGIN * 2;

@@ -28,10 +28,10 @@ type Props = {
 
 const RECYCLE_BIN: DeskIcon = { id: "recycle-bin", label: "Recycle Bin", src: BIN_ICON.empty, recycle: true };
 
-const CELL_W = 96;
-const CELL_H = 112;
-const STEP_X = CELL_W + 8;
-const STEP_Y = CELL_H + 8;
+const CELL_W = 75;
+const CELL_H = 75;
+const STEP_X = CELL_W;
+const STEP_Y = CELL_H;
 
 function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 	const onDesktop = nodes.filter((node) => node.parentId === "desktop").sort(byCatalogOrder);
@@ -45,8 +45,8 @@ function shellDeskIcons(nodes: readonly ShellNode[]): DeskIcon[] {
 }
 
 function gridBounds(vw: number, vh: number, count: number) {
-	const width = Math.max(CELL_W, vw - 10);
-	const height = Math.max(CELL_H, vh - TASKBAR_H - 28);
+	const width = Math.max(CELL_W, vw - 2);
+	const height = Math.max(CELL_H, vh - TASKBAR_H - 4);
 
 	const cols = Math.max(1, Math.floor((width - CELL_W) / STEP_X) + 1);
 	const rows = Math.max(1, Math.floor((height - CELL_H) / STEP_Y) + 1, Math.ceil(count / cols));
@@ -143,7 +143,7 @@ function DeskIconGlyph({ src, label }: GlyphProps) {
 	return (
 		<>
 			<span className="desk-icon__art">
-				<img className="desk-icon__img" src={src} alt="" width={64} height={64} draggable={false} />
+				<img className="desk-icon__img" src={src} alt="" width={32} height={32} draggable={false} />
 			</span>
 
 			<span className="desk-icon__label">{label}</span>

@@ -68,11 +68,10 @@ async function checkTaskbar(page) {
 	});
 	await page.locator("#desktop-window-sysmsg-4").waitFor();
 	const icons = await page.locator(".desktop__icons .desk-icon__label").allTextContents();
-	check(JSON.stringify(icons.slice(-3)) === JSON.stringify(["CD Player", "secrets", "Recycle Bin"]), "CD Player must sit immediately above Secrets");
+	check(JSON.stringify(icons.slice(-3)) === JSON.stringify(["CD Player", "secrets", "Recycle Bin"]), "CD Player must come right before Secrets");
 	const cdIcon = page.locator('[data-app-id="cd-player"]');
-	const cdIconBounds = await cdIcon.boundingBox();
-	const secretsBounds = await page.locator('[data-app-id="explorer"]').boundingBox();
-	check(cdIconBounds.x === secretsBounds.x && cdIconBounds.y < secretsBounds.y, "CD Player icon is not above Secrets");
+	const cells = await page.locator(".desktop__icons > li").evaluateAll((items) => items.map((li) => [li.offsetLeft, li.offsetTop]));
+	check(cells[0].join() === "0,0" && cells[1].join() === "0,75" && cells.every(([x, y]) => x % 75 === 0 && y % 75 === 0), "Desktop icons left the 75px Win95 grid");
 	const iconCell = async (locator) => {
 		const bounds = await locator.boundingBox();
 		return bounds && `${bounds.x}:${bounds.y}`;
@@ -279,7 +278,7 @@ async function checkTaskbar(page) {
 	await page.waitForFunction(() => document.activeElement?.textContent === "Paint");
 	check(await menu.locator('button:not(:disabled), a[href]').evaluateAll((nodes) => nodes.every((el) => getComputedStyle(el).cursor.includes("/cursors/hand.svg"))), "Start popup lost the hand cursor");
 	check(await menu.getByRole("menuitem", { name: "Activity", exact: true }).locator("img").getAttribute("src") === "/icons/code.svg", "Start did not use the Activity name and code icon");
-	check(await page.locator(".start-menu__submenu button").evaluateAll((items) => items.every((el) => el.getBoundingClientRect().height === 26)), "Start flyout rows lost their compact height");
+	check(await page.locator(".start-menu__submenu button").evaluateAll((items) => items.every((el) => el.getBoundingClientRect().height === 20)), "Start flyout rows lost their compact height");
 	check(await page.evaluate(() => getComputedStyle(document.activeElement).backgroundColor) === "rgb(175, 0, 0)", "Keyboard menu selection has no highlight");
 	const programs = menu.getByRole("menuitem", { name: "Programs", exact: true });
 	check(await programs.evaluate((el) => getComputedStyle(el).backgroundColor) === "rgb(175, 0, 0)", "Expanded menu parent lost its selection highlight");
@@ -334,7 +333,8 @@ async function checkTaskbar(page) {
 	}), "Win95 fonts did not load");
 	check(await page.locator(".desktop, .taskbar, .win:not(.win--dos):not(.win--error), .paint, .gh-app, .cd-player__body, .start-menu, .explorer, .exp").evaluateAll((nodes) => nodes.length > 0 && nodes.every((el) => getComputedStyle(el).fontFamily.includes("Win95 UI"))), "Non-terminal UI did not use the Win95 font");
 	check(await page.locator(".win--dos").evaluate((el) => getComputedStyle(el).fontFamily.startsWith("Tahoma")), "Terminal UI font changed");
-	check(await page.locator(".taskbar").evaluate((el) => el.getBoundingClientRect().height === 32), "Taskbar height drifted");
+	check(await page.locator(".taskbar").evaluate((el) => el.getBoundingClientRect().height === 28), "Taskbar is not the Win95 28px");
+	check(await page.locator("#desktop-window-me .win-titlebar").evaluate((el) => el.getBoundingClientRect().height === 18), "Titlebar is not the Win95 18px");
 	check(await start.evaluate((el) => getComputedStyle(el).borderTopWidth === "1px"), "Start lost its layered 1px bevel");
 	check(await page.locator(".taskbar__tray .taskbar__speaker").count() === 1, "Speaker is not inside the recessed tray");
 	check(await page.locator(".taskbar__views").innerText() === "2,717 views", "View counter was lost");

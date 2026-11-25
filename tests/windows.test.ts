@@ -13,6 +13,7 @@ import {
 	restoreDecorations,
 	taskWindows,
 	TASKBAR_H,
+	TITLE_H,
 	type AppId,
 	type DesktopWindow,
 } from "@/components/desktop/windows";
@@ -81,7 +82,7 @@ test("resized parents stay reachable and nested windows stay inside their canvas
 	const parent = result.find((w) => w.id === "me")!;
 	const child = result.find((w) => w.id === "alt")!;
 	assert.equal(parent.x, 960 - 48);
-	assert.equal(parent.y, 600 - TASKBAR_H - 22);
+	assert.equal(parent.y, 600 - TASKBAR_H - TITLE_H);
 	const bounds = nestBounds(parent);
 	assert.ok(child.x >= bounds.x && child.y >= bounds.y);
 	assert.ok(child.x + child.w <= bounds.x + bounds.w);

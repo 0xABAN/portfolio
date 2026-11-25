@@ -10,6 +10,7 @@ import { WindowContent } from "./apps/WindowContent";
 import { useTaskFlyout, Window } from "./Window";
 import {
 	TASKBAR_H,
+	TITLE_H,
 	activateWindow,
 	desktopScale,
 	desktopSize,
@@ -308,7 +309,7 @@ function DesktopWorkspace() {
 	return (
 		<div
 			className={busy ? "desktop desktop--busy" : "desktop"}
-			style={{ zoom: scale, "--taskbar-height": `${TASKBAR_H}px` } as CSSProperties}
+			style={{ zoom: scale, "--taskbar-height": `${TASKBAR_H}px`, "--title-height": `${TITLE_H}px` } as CSSProperties}
 			onDragOver={(event) => {
 				if (!isDesktopSurface(event.target) || !shell.canDrop(event, "desktop")) return;
 				event.preventDefault();

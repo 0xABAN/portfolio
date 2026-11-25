@@ -1,8 +1,8 @@
 .paint {
-	--paint-menu-h: 18px;
+	--paint-menu-h: 19px;
 	--paint-toolbox-w: 56px;
 	--paint-colors-h: 48px;
-	--paint-status-h: 22px;
+	--paint-status-h: 20px;
 
 	position: absolute;
 	inset: 0;
