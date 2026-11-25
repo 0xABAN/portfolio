@@ -65,7 +65,6 @@ function DesktopWorkspace() {
 	const [scale, setScale] = useState(desktopScale);
 
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
-	const [secretsOpened, setSecretsOpened] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const launchTimer = useRef<number | null>(null);
 
@@ -201,8 +200,6 @@ function DesktopWorkspace() {
 				return;
 			}
 
-			if (id === "explorer") setSecretsOpened(true);
-
 			const { width, height } = desktopSize();
 			setWindows((prev) => openApp(prev, id, width, height));
 			setBusy(false);
@@ -325,10 +322,7 @@ function DesktopWorkspace() {
 
 			<DesktopIcons
 				onOpenAction={openShell}
-				onSecretsOpenedAction={() => setSecretsOpened(true)}
 				revealed={revealed}
-				secretsOpened={secretsOpened}
-				explorerOpen={windows.some((w) => w.id === "explorer")}
 			/>
 
 			<div className="desktop__windows">

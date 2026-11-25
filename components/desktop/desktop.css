@@ -120,16 +120,6 @@
 	opacity: 0.45;
 }
 
-.desk-icon--bounce .desk-icon__img {
-	animation: desk-icon-bounce 1.8s infinite;
-}
-
-@keyframes desk-icon-bounce {
-	0%, 24%, 44%, 100% { transform: translateY(0); animation-timing-function: ease-out; }
-	12% { transform: translateY(-8px); animation-timing-function: ease-in; }
-	34% { transform: translateY(-3px); animation-timing-function: ease-in; }
-}
-
 .desk-icon__art {
 	position: relative;
 	display: block;
@@ -155,118 +145,6 @@
 	text-align: center;
 	text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
 	overflow-wrap: anywhere;
-}
-
-.desk-icon__badge {
-	position: absolute;
-	right: -2px;
-	bottom: -2px;
-	display: grid;
-	place-items: center;
-	width: 18px;
-	height: 18px;
-	border: 1px solid #fff;
-	border-radius: 50%;
-	background: #000;
-	color: #fff;
-	font-size: 12px;
-	font-weight: 700;
-	line-height: 1;
-	box-shadow: 0 0 0 1px #000;
-	pointer-events: none;
-}
-
-.desk-icon__bubble {
-	position: absolute;
-	left: calc(100% + 13px);
-	top: -72px;
-	width: 243px;
-	height: 117px;
-	z-index: 4;
-	pointer-events: none;
-	user-select: none;
-	-webkit-user-select: none;
-	-webkit-tap-highlight-color: transparent;
-}
-
-.desk-icon__bubble-x,
-.desk-icon__bubble-y,
-.desk-icon__bubble-body {
-	position: absolute;
-	inset: 0;
-}
-
-.desk-icon__bubble-x {
-	animation: secrets-bubble-horizontal 11s ease-in-out infinite;
-	will-change: transform;
-}
-
-.desk-icon__bubble-y {
-	animation: secrets-bubble-vertical 8s ease-in-out infinite;
-	will-change: transform;
-}
-
-.desk-icon__bubble-body {
-	display: grid;
-	place-items: center;
-	padding: 0 17px 23px 47px;
-	background: url("/desktop/secrets-bubble.svg") no-repeat center / 100% 100%;
-	image-rendering: pixelated;
-	color: #fff;
-	font: italic 700 21px / 24px "Rose Tinted", "Win95 UI", Tahoma, sans-serif;
-	white-space: nowrap;
-	transform-origin: 35% 76%;
-	animation: secrets-bubble-resize 9s ease-in-out infinite, secrets-bubble-rotate 13s ease-in-out infinite;
-	will-change: scale, rotate;
-}
-
-.desk-icon__bubble-text {
-	display: inline-block;
-	transform: rotate(-5deg);
-	user-select: none;
-}
-
-@keyframes secrets-bubble-horizontal {
-	0%, 100% { transform: translateX(0); }
-	25% { transform: translateX(3px); }
-	50% { transform: translateX(-4px); }
-	75% { transform: translateX(2px); }
-}
-
-@keyframes secrets-bubble-vertical {
-	0%, 100% { transform: translateY(0); }
-	23% { transform: translateY(-2px); }
-	48% { transform: translateY(3px); }
-	72% { transform: translateY(-1px); }
-}
-
-@keyframes secrets-bubble-resize {
-	0%, 100% { scale: 1 1; }
-	20% { scale: 1.02 0.95; }
-	43% { scale: 0.99 1.1; }
-	65% { scale: 1.03 0.96; }
-	82% { scale: 0.98 1.18; }
-}
-
-@keyframes secrets-bubble-rotate {
-	0%, 100% { rotate: 0deg; }
-	30% { rotate: 0.5deg; }
-	58% { rotate: -0.6deg; }
-	80% { rotate: 0.35deg; }
-}
-
-@media (max-width: 520px) {
-	.desk-icon__bubble {
-		top: -44px;
-		width: 180px;
-		height: 87px;
-	}
-
-	.desk-icon__bubble-body {
-		padding: 0 3px 17px 27px;
-		font-size: 18px;
-		line-height: 21px;
-	}
 }
 
 .chrome-raised {

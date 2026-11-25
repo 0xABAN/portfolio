@@ -23,10 +23,7 @@ type DeskIconPositions = Record<string, DeskIconPosition>;
 
 type Props = {
 	onOpenAction: (id: string) => void;
-	onSecretsOpenedAction: () => void;
 	revealed: (id: string) => boolean;
-	secretsOpened: boolean;
-	explorerOpen: boolean;
 };
 
 const RECYCLE_BIN: DeskIcon = { id: "recycle-bin", label: "Recycle Bin", src: BIN_ICON.empty, recycle: true };
@@ -140,27 +137,13 @@ function useDesktopSelection(icons: { id: string; label: string }[], open: (id: 
 	return { ...selection, onKeyDown, onContextMenu, menu };
 }
 
-type GlyphProps = { src: string; label: string; notification?: boolean; bubble?: boolean };
+type GlyphProps = { src: string; label: string };
 
-function DeskIconGlyph({ src, label, notification = false, bubble = false }: GlyphProps) {
+function DeskIconGlyph({ src, label }: GlyphProps) {
 	return (
 		<>
 			<span className="desk-icon__art">
 				<img className="desk-icon__img" src={src} alt="" width={64} height={64} draggable={false} />
-
-				{notification && <span className="desk-icon__badge" aria-hidden="true">!</span>}
-
-				{bubble && (
-					<span className="desk-icon__bubble" aria-hidden="true">
-						<span className="desk-icon__bubble-x">
-							<span className="desk-icon__bubble-y">
-								<span className="desk-icon__bubble-body">
-									<span className="desk-icon__bubble-text">don&apos;t click me!</span>
-								</span>
-							</span>
-						</span>
-					</span>
-				)}
 			</span>
 
 			<span className="desk-icon__label">{label}</span>
@@ -168,7 +151,7 @@ function DeskIconGlyph({ src, label, notification = false, bubble = false }: Gly
 	);
 }
 
-export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, secretsOpened, explorerOpen }: Props) {
+export function DesktopIcons({ onOpenAction, revealed }: Props) {
 	const shell = useShell();
 	const binFull = shell.state.entries.length > 0;
 
@@ -176,20 +159,12 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	const [binHot, setBinHot] = useState(false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 
-	const hasNotification = (id: string) => id === "secrets" && !secretsOpened;
-	const noticeShown = revealed("secrets-notice");
-	const bounceSecrets = noticeShown && !secretsOpened && !explorerOpen;
-
 	const deskIcons = shellDeskIcons(shell.state.nodes);
 	const visibleDeskIcons = deskIcons.filter((icon) => revealed(icon.id));
 	const desktopSelection = useDesktopSelection(visibleDeskIcons, onOpenAction);
 
 	const desktop = desktopSize();
 	const positions = normalizeDeskIconPositions(deskIconPositions, desktop.width, desktop.height, deskIcons);
-
-	function markDeskIconInteraction(icon: DeskIcon) {
-		if (!secretsOpened && icon.id === "secrets") onSecretsOpenedAction();
-	}
 
 	function moveDeskIconToCell(sourceId: string, col: number, row: number) {
 		const { cols, rows } = gridBounds(desktop.width, desktop.height, deskIcons.length);
@@ -215,7 +190,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 	function iconClassName(icon: DeskIcon) {
 		return [
 			"desk-icon shell-desktop-item",
-			icon.id === "secrets" && bounceSecrets && "desk-icon--bounce",
 			icon.recycle && binHot && "desk-icon--drop-hot",
 			draggingId === icon.id && "desk-icon--dragging",
 		].filter(Boolean).join(" ");
@@ -276,14 +250,10 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 							data-recycle-bin={icon.recycle ? "" : undefined}
 							role="option"
 							aria-selected={desktopSelection.selected.includes(icon.id)}
-							aria-label={hasNotification(icon.id) ? `${icon.label}, unopened folder` : icon.label}
+							aria-label={icon.label}
 							tabIndex={index === 0 ? 0 : -1}
 							draggable
-							onPointerDown={() => markDeskIconInteraction(icon)}
-							onFocus={() => markDeskIconInteraction(icon)}
 							onDragOver={(event) => {
-								markDeskIconInteraction(icon);
-
 								if (icon.recycle) {
 									if (!shell.canDrop(event, "bin")) return;
 									event.preventDefault();
@@ -302,7 +272,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 								if (icon.recycle) setBinHot(false);
 							}}
 							onDrop={(event) => {
-								markDeskIconInteraction(icon);
 								event.preventDefault();
 								event.stopPropagation();
 
@@ -316,8 +285,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 								setDraggingId(null);
 							}}
 							onDragStart={(event) => {
-								markDeskIconInteraction(icon);
-
 								if (icon.recycle) {
 									event.dataTransfer.setData("text/plain", icon.id);
 									event.dataTransfer.effectAllowed = "move";
@@ -334,7 +301,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 								setBinHot(false);
 							}}
 							onClick={(event) => {
-								markDeskIconInteraction(icon);
 								desktopSelection.select(icon.id, event);
 							}}
 							onDoubleClick={() => onOpenAction(icon.id)}
@@ -343,8 +309,6 @@ export function DesktopIcons({ onOpenAction, onSecretsOpenedAction, revealed, se
 							<DeskIconGlyph
 								src={icon.recycle ? (binFull ? BIN_ICON.full : BIN_ICON.empty) : icon.src}
 								label={icon.label}
-								notification={hasNotification(icon.id)}
-								bubble={noticeShown && hasNotification(icon.id)}
 							/>
 						</button>
 					</li>

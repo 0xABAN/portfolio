@@ -158,6 +158,21 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 	return { w, h, x: Math.round(anchor.x + anchor.w - w + 18), y: Math.round(anchor.y - h * 0.35) };
 }
 
+function layoutExplorerWindow(anchor: Rect, vw: number, vh: number): Rect {
+	const w = Math.min(252, vw - MARGIN * 2);
+	const h = Math.min(190, vh - TASKBAR_H - MARGIN * 2);
+
+	const x = Math.round(anchor.x + anchor.w * 0.11 - 150);
+	const y = Math.round(anchor.y + anchor.h * 0.75 - h / 2);
+
+	return {
+		w,
+		h,
+		x: Math.max(MARGIN, Math.min(x, vw - MARGIN - w)),
+		y: Math.max(MARGIN, Math.min(y, vh - TASKBAR_H - MARGIN - h)),
+	};
+}
+
 function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const h = 188;
 	return {
@@ -199,6 +214,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		terminal,
 		{ id: "github", title: "activity", icon: "/icons/code.svg", z: 13, kind: "github", ...layoutGitHubWindow(terminal) },
 		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
+		{ id: "explorer", title: "secrets", z: 5, kind: "explorer", icon: "/icons/folder.webp", ...layoutExplorerWindow(me, vw, vh) },
 		...layoutErrorStack(me),
 	];
 	return windows.map((w) => w.parentId ? w : { ...w, ...clampWindowPos(w.x, w.y, w.w, vw, vh) });
@@ -289,31 +305,6 @@ function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow 
 	};
 }
 
-export function makeExplorerWindow(z: number, anchor: Rect | undefined, vw: number, vh: number): DesktopWindow {
-	const gap = 35;
-	const leftSpace = anchor ? anchor.x - gap - MARGIN : 0;
-	const fitsLeft = leftSpace >= 320;
-
-	const w = Math.min(520, Math.max(1, vw - MARGIN * 2), fitsLeft ? leftSpace : 520);
-	const h = Math.min(360, Math.max(1, vh - TASKBAR_H - MARGIN * 2));
-
-	const centered = layoutCentered(w, h, vw, vh);
-	const x = anchor && fitsLeft ? anchor.x - w - gap : centered.x;
-	const y = anchor ? anchor.y + anchor.h - h : centered.y;
-
-	return {
-		id: "explorer",
-		title: "secrets",
-		kind: "explorer",
-		icon: "/icons/folder.webp",
-		z,
-		w,
-		h,
-		x: Math.max(MARGIN, Math.min(x, vw - MARGIN - w)),
-		y: Math.max(MARGIN, Math.min(y, vh - TASKBAR_H - MARGIN - h)),
-	};
-}
-
 export function altCropStyle(child: Pick<DesktopWindow, "x" | "y">, parent: Rect) {
 	const img = paintImageBounds(parent);
 
@@ -340,7 +331,6 @@ function createAppWindows(windows: DesktopWindow[], id: AppId, vw: number, vh: n
 
 	if (id === "recycle-bin") return [makeRecycleBinWindow(z, vw, vh)];
 	if (id === "experience") return [makeExperienceWindow(z, vw, vh)];
-	if (id === "explorer") return [makeExplorerWindow(z, windows.find((w) => w.id === "me"), vw, vh)];
 
 	return layoutDesktop(vw, vh).filter((w) => w.id === id || w.parentId === id);
 }

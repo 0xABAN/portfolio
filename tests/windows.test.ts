@@ -6,7 +6,6 @@ import {
 	clampWindowPos,
 	layoutDesktop,
 	makeExperienceWindow,
-	makeExplorerWindow,
 	minimizeWindowTree,
 	nestBounds,
 	openApp,
@@ -18,33 +17,19 @@ import {
 	type DesktopWindow,
 } from "@/components/desktop/windows";
 
-test("secrets opens left of the current adam window with aligned bottom borders", () => {
-	for (const [width, height] of [[1920, 1080], [1440, 900]]) {
-		const adam = layoutDesktop(width, height).find((w) => w.id === "me")!;
-		for (const anchor of [adam, { ...adam, x: adam.x + 80, y: adam.y - 10 }]) {
-			const secrets = makeExplorerWindow(50, anchor, width, height);
-			assert.equal(anchor.x - (secrets.x + secrets.w), 35);
-			assert.equal(secrets.y + secrets.h, anchor.y + anchor.h);
-			assert.ok(secrets.x >= 24);
-			assert.ok(secrets.w >= 320 && secrets.w <= 520);
-			assert.equal(secrets.h, 360);
-			assert.equal(secrets.z, 50);
-		}
-	}
-});
+test("secrets starts open as a small window over the lower-left of adam", () => {
+	const [adam, secrets] = ["me", "explorer"].map((id) => layoutDesktop(1710, 900).find((w) => w.id === id)!);
+	assert.ok(secrets.w <= 252 && secrets.h <= 190);
+	assert.ok(secrets.x < adam.x && secrets.x + secrets.w > adam.x);
+	assert.ok(secrets.y > adam.y + adam.h / 2 && secrets.y + secrets.h < adam.y + adam.h);
+	assert.ok(secrets.z > adam.z);
 
-test("secrets stays fully accessible when there is no room beside adam", () => {
 	for (const [width, height] of [[390, 844], [844, 390]]) {
-		const adam = layoutDesktop(width, height).find((w) => w.id === "me")!;
-		const secrets = makeExplorerWindow(50, adam, width, height);
+		const secrets = layoutDesktop(width, height).find((w) => w.id === "explorer")!;
 		assert.ok(secrets.x >= 24 && secrets.y >= 24);
 		assert.ok(secrets.x + secrets.w <= width - 24);
 		assert.ok(secrets.y + secrets.h <= height - TASKBAR_H - 24);
-		assert.equal(secrets.y + secrets.h, adam.y + adam.h);
 	}
-	const secrets = makeExplorerWindow(50, undefined, 1440, 900);
-	assert.equal(secrets.x + secrets.w / 2, 720);
-	assert.equal(secrets.y + secrets.h / 2, (900 - TASKBAR_H) / 2);
 });
 
 test("default windows reflow exactly between docked, mobile, and restored viewports", () => {
@@ -69,7 +54,7 @@ test("reflow preserves dragged offsets, nested placement, and user window state"
 		if (w.id === "terminal") return { ...w, minimized: true, z: 88 };
 		return w;
 	});
-	current.push({ id: "explorer", title: "secrets", kind: "explorer", x: 460, y: 270, w: 520, h: 360, z: 100 });
+	current.push({ id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", x: 460, y: 270, w: 520, h: 360, z: 100 });
 	const next = layoutDesktop(960, 600);
 	const result = reflowDesktop(current, previous, next, 960, 600);
 	assert.deepEqual(result.map((w) => w.id), current.map((w) => w.id));
@@ -81,7 +66,7 @@ test("reflow preserves dragged offsets, nested placement, and user window state"
 	}
 	assert.equal(result.find((w) => w.id === "terminal")?.minimized, true);
 	assert.equal(result.find((w) => w.id === "terminal")?.z, 88);
-	assert.deepEqual(result.find((w) => w.id === "explorer"), { ...current.at(-1), x: 220.5, y: 120 });
+	assert.deepEqual(result.find((w) => w.id === "recycle-bin"), { ...current.at(-1), x: 220.5, y: 120 });
 	const restored = reflowDesktop(result, next, previous, 1440, 900);
 	assert.deepEqual(restored, current);
 });
@@ -107,7 +92,7 @@ test("resized parents stay reachable and nested windows stay inside their canvas
 test("task order survives switching, minimizing and restoring", () => {
 	let windows = layoutDesktop(1440, 900);
 	const order = taskWindows(windows).map((w) => w.id);
-	assert.deepEqual(order, ["me", "terminal", "github", "cd-player"]);
+	assert.deepEqual(order, ["me", "terminal", "github", "cd-player", "explorer"]);
 	assert.equal(windows.find((w) => w.id === "experience"), undefined);
 	assert.equal(activeWindowId(activateWindow(windows, "sysmsg-0")), undefined);
 	windows = activateWindow(windows, "terminal");

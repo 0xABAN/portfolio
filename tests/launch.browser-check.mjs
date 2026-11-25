@@ -22,10 +22,7 @@ async function checkLaunches(page) {
 	await page.locator(".taskbar").waitFor();
 	await page.clock.runFor(2100);
 	await page.locator(".neko").waitFor({ state: "attached" });
-	check(await page.locator(".desk-icon__bubble").count() === 0, "The secrets bubble appeared before the rest of the desktop finished loading");
-	await page.clock.runFor(1000);
-	await page.locator(".desk-icon__bubble").waitFor();
-	check(await page.locator(".desk-icon--bounce").count() === 1, "The secrets folder did not start bouncing with its bubble");
+	check(await page.locator("#desktop-window-explorer").isVisible(), "The secrets folder did not start open");
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 
 	const win = (id) => page.locator(`#desktop-window-${id}`);
@@ -52,6 +49,7 @@ async function checkLaunches(page) {
 		await menu.getByRole("menuitem", { name: label, exact: true }).click();
 	}
 
+	await win("explorer").getByRole("button", { name: "Close secrets", exact: true }).click();
 	await delayed("cd-player", 1500, () => icon("cd-player").dblclick(), () => icon("explorer").dblclick());
 	check(await win("explorer").count() === 0, "A second click queued another app during the wait");
 	await delayed("explorer", 500, () => icon("explorer").dblclick());

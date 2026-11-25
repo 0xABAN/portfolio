@@ -105,30 +105,6 @@ async function checkTaskbar(page) {
 	const secretsIcon = page.locator('[data-icon-id="secrets"]');
 	check(await recycleBin.evaluate((el) => el instanceof HTMLButtonElement && el.draggable), "Recycle Bin is not a draggable desktop icon");
 	const secrets = page.locator('[data-app-id="explorer"]');
-	const bubble = secrets.locator(".desk-icon__bubble");
-	const bubbleBody = bubble.locator(".desk-icon__bubble-body");
-	check(await bubbleBody.innerText() === "don't click me!", "Secrets speech bubble has the wrong text");
-	check(await bubble.evaluate(async (el) => {
-		await document.fonts.load('italic 700 21px "Rose Tinted"');
-		const style = getComputedStyle(el);
-		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
-		const text = getComputedStyle(el.querySelector(".desk-icon__bubble-text"));
-		const art = new Image();
-		art.src = "/desktop/secrets-bubble.svg";
-		await art.decode();
-		return art.naturalWidth === 120 && art.naturalHeight === 58
-			&& document.fonts.check('italic 700 21px "Rose Tinted"')
-			&& body.fontFamily.includes("Rose Tinted")
-			&& body.fontSize === "21px" && body.fontStyle === "italic" && body.fontWeight === "700"
-			&& text.transform !== "none"
-			&& style.top === "-72px"
-			&& style.width === "243px" && style.height === "117px"
-			&& style.zIndex === "4"
-			&& body.paddingLeft === "47px" && body.paddingRight === "17px"
-			&& body.backgroundImage.includes("/desktop/secrets-bubble.svg")
-			&& body.imageRendering === "pixelated"
-			&& style.pointerEvents === "none";
-	}), "Secrets speech bubble lost its Rose Tinted font, angle, or existing artwork");
 	const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 	const iconLayout = () => page.locator(".desktop__icons > li").evaluateAll((items) => items.map((li) => `${li.style.left},${li.style.top}`).join(" "));
 	const layoutBeforeSqueeze = await iconLayout();
@@ -143,20 +119,6 @@ async function checkTaskbar(page) {
 	const activity = await page.locator("#desktop-window-github").boundingBox();
 	check(activity.x + activity.width <= 1241, `A tall window pushed Activity off-screen: ${JSON.stringify(activity)}`);
 
-	for (const width of [1440, 390, 320]) {
-		await page.setViewportSize({ width, height: 900 });
-		await settle();
-		const art = await secrets.locator(".desk-icon__art").boundingBox();
-		const bounds = await bubble.boundingBox();
-		check(bounds.width <= 250 && bounds.height <= 120, "Secrets bubble is too large");
-		check(bounds.x + bounds.width <= width, "Secrets bubble clips off-screen");
-
-		const tipX = bounds.x + bounds.width * (1 / 104);
-		const tipY = bounds.y + bounds.height * (48 / 50);
-		const gap = tipX - (art.x + art.width);
-		const pointsAtFolder = gap >= 5 && gap <= 18 && tipY > art.y && tipY < art.y + art.height;
-		check(pointsAtFolder, `Secrets bubble's tail should point at the folder from a small gap at ${width}px (gap ${gap})`);
-	}
 	await page.setViewportSize({ width: 1710, height: 900 });
 	await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
 	await page.evaluate(() => {
@@ -193,21 +155,6 @@ async function checkTaskbar(page) {
 	await sparks.waitFor({ state: "visible" });
 	check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) > 0, "Sparks do not animate");
 	check(await sparks.getAttribute("aria-hidden") === "true", "Decorative sparks are exposed to assistive technology");
-	check(await bubble.evaluate((el) => {
-		const x = getComputedStyle(el.querySelector(".desk-icon__bubble-x"));
-		const y = getComputedStyle(el.querySelector(".desk-icon__bubble-y"));
-		const body = getComputedStyle(el.querySelector(".desk-icon__bubble-body"));
-		return x.animationName === "secrets-bubble-horizontal"
-			&& y.animationName === "secrets-bubble-vertical"
-			&& body.animationName.includes("secrets-bubble-resize")
-			&& body.animationName.includes("secrets-bubble-rotate")
-			&& x.animationDuration === "11s"
-			&& y.animationDuration === "8s"
-			&& body.animationDuration.includes("9s")
-			&& body.animationDuration.includes("13s")
-			&& el.getAnimations({ subtree: true }).length >= 4;
-	}), "Secrets bubble shifts, resizes or rotates are not independently animated");
-	check(await secrets.locator(".desk-icon__art").evaluate((el) => getComputedStyle(el).animationName === "none"), "Speech bubble shares the folder bounce");
 	const binCell = await iconCell(recycleBin);
 	const secretsCell = await iconCell(secretsIcon);
 	await recycleBin.dragTo(secretsIcon);
@@ -215,7 +162,6 @@ async function checkTaskbar(page) {
 	await recycleBin.dragTo(secretsIcon);
 	check(await iconCell(recycleBin) === binCell && await iconCell(secretsIcon) === secretsCell, "Recycle Bin did not return to its original grid cell");
 	await secretsIcon.dragTo(cdIcon);
-	check(await bubble.count() === 0, "Dragging Secrets did not dismiss its speech bubble");
 	await secretsIcon.dragTo(cdIcon);
 	check(await sparks.evaluate((el) => {
 		const z = (selector) => Number(getComputedStyle(document.querySelector(selector)).zIndex);
@@ -259,7 +205,7 @@ async function checkTaskbar(page) {
 	const task = (id) => page.locator(`[data-task-id="${id}"]`);
 	const win = (id) => page.locator(`#desktop-window-${id}`);
 	const order = await page.locator("[data-task-id]").evaluateAll((nodes) => nodes.map((el) => el.dataset.taskId));
-	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github", "cd-player"]), "Running apps or decorations have incorrect tasks");
+	check(JSON.stringify(order) === JSON.stringify(["me", "terminal", "github", "cd-player", "explorer"]), "Running apps or decorations have incorrect tasks");
 	check(await win("cd-player").evaluate((el) => el.inert) && await task("cd-player").getAttribute("aria-pressed") === "false", "CD Player did not start minimized");
 
 	await task("github").click();
@@ -287,7 +233,6 @@ async function checkTaskbar(page) {
 	await secrets.dblclick();
 	await win("explorer").waitFor();
 	await page.waitForFunction(() => document.getElementById("desktop-window-explorer").contains(document.activeElement));
-	check(await bubble.count() === 0 && await secrets.locator(".desk-icon__badge").count() === 0, "Secrets bubble or badge survived the first opening");
 	await win("explorer").getByRole("button", { name: "Minimize", exact: true }).click();
 
 	await task("terminal").click();
