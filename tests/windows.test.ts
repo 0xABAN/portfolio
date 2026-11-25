@@ -7,9 +7,9 @@ import {
 	layoutDesktop,
 	makeExperienceWindow,
 	minimizeWindowTree,
+	resizeDesktop,
 	nestBounds,
 	openApp,
-	reflowDesktop,
 	restoreDecorations,
 	taskWindows,
 	TASKBAR_H,
@@ -18,75 +18,57 @@ import {
 	type DesktopWindow,
 } from "@/components/desktop/windows";
 
+const SIZES = [[1280, 720], [1710, 900], [1920, 1080], [2560, 1440]];
+const size = ({ id, w, h }: DesktopWindow) => `${id}:${w}x${h}`;
+
+test("windows keep the same pixel size at every resolution", () => {
+	const [first, ...rest] = SIZES.map(([width, height]) => layoutDesktop(width, height).map(size));
+	for (const sizes of rest) assert.deepEqual(sizes, first);
+});
+
+test("the default arrangement fits the 1710x900 design screen", () => {
+	for (const w of layoutDesktop(1710, 900).filter((w) => !w.minimized)) {
+		assert.ok(w.x >= 0 && w.y >= 0, w.id);
+		assert.ok(w.x + w.w <= 1710 && w.y + w.h <= 900 - TASKBAR_H, w.id);
+	}
+});
+
 test("secrets starts open as a small window over the lower-left of adam", () => {
 	const [adam, secrets] = ["me", "explorer"].map((id) => layoutDesktop(1710, 900).find((w) => w.id === id)!);
 	assert.ok(secrets.w <= 252 && secrets.h <= 190);
 	assert.ok(secrets.x < adam.x && secrets.x + secrets.w > adam.x);
 	assert.ok(secrets.y > adam.y + adam.h / 2 && secrets.y + secrets.h < adam.y + adam.h);
 	assert.ok(secrets.z > adam.z);
+});
 
-	for (const [width, height] of [[390, 844], [844, 390]]) {
-		const secrets = layoutDesktop(width, height).find((w) => w.id === "explorer")!;
-		assert.ok(secrets.x >= 24 && secrets.y >= 24);
-		assert.ok(secrets.x + secrets.w <= width - 24);
-		assert.ok(secrets.y + secrets.h <= height - TASKBAR_H - 24);
+test("resizing keeps the arrangement centered and dragged offsets intact", () => {
+	const wide = layoutDesktop(1798, 900).map((w) => (w.id === "terminal" ? { ...w, x: w.x + 30 } : w));
+	const narrow = layoutDesktop(1710, 900);
+	const result = resizeDesktop(wide, -44, 0, 1710, 900);
+
+	for (const w of result.filter((w) => w.id !== "cd-player")) {
+		const base = narrow.find((n) => n.id === w.id)!;
+		assert.equal(w.x - base.x, w.id === "terminal" ? 30 : 0, w.id);
+		assert.equal(w.y, base.y, w.id);
 	}
 });
 
-test("default windows reflow exactly between docked, mobile, and restored viewports", () => {
-	let previous = layoutDesktop(1440, 900);
-	let current = previous;
-	for (const [width, height] of [[960, 900], [960, 600], [390, 844], [1440, 600], [1440, 900]]) {
-		const next = layoutDesktop(width, height);
-		current = reflowDesktop(current, previous, next, width, height);
-		assert.deepEqual(current, next);
-		const adam = current.find((w) => w.id === "me")!;
-		assert.ok(Math.abs(adam.x + adam.w / 2 - width / 2) <= 0.5);
-		assert.ok(Math.abs(adam.y + adam.h / 2 - (height - TASKBAR_H) / 2) <= 0.5);
-		previous = next;
-	}
-});
+test("shrinking the screen moves windows only enough to keep titlebars reachable", () => {
+	const windows = layoutDesktop(1920, 1080);
+	const moved = resizeDesktop(windows, 0, 0, 800, 600);
 
-test("reflow preserves dragged offsets, nested placement, and user window state", () => {
-	const previous = layoutDesktop(1440, 900);
-	const current: DesktopWindow[] = previous.filter((w) => w.id !== "new").map((w) => {
-		if (w.id === "me") return { ...w, x: w.x + 35, y: w.y + 14 };
-		if (w.id === "alt") return { ...w, x: w.x + 40, y: w.y + 11 };
-		if (w.id === "terminal") return { ...w, minimized: true, z: 88 };
-		return w;
-	});
-	current.push({ id: "recycle-bin", title: "recycle bin", kind: "recycle-bin", x: 460, y: 270, w: 520, h: 360, z: 100 });
-	const next = layoutDesktop(960, 600);
-	const result = reflowDesktop(current, previous, next, 960, 600);
-	assert.deepEqual(result.map((w) => w.id), current.map((w) => w.id));
-	for (const [id, dx, dy] of [["me", 35, 14], ["alt", 40, 11]] as const) {
-		const window = result.find((w) => w.id === id)!;
-		const base = next.find((w) => w.id === id)!;
-		assert.equal(window.x - base.x, dx);
-		assert.equal(window.y - base.y, dy);
+	for (const w of moved) {
+		const before = windows.find((b) => b.id === w.id)!;
+		assert.equal(size(w), size(before));
+		if (w.parentId) continue;
+		assert.ok(w.x + w.w >= 48 && w.x <= 800 - 48, w.id);
+		assert.ok(w.y >= 0 && w.y <= 600 - TASKBAR_H - TITLE_H, w.id);
 	}
-	assert.equal(result.find((w) => w.id === "terminal")?.minimized, true);
-	assert.equal(result.find((w) => w.id === "terminal")?.z, 88);
-	assert.deepEqual(result.find((w) => w.id === "recycle-bin"), { ...current.at(-1), x: 220.5, y: 120 });
-	const restored = reflowDesktop(result, next, previous, 1440, 900);
-	assert.deepEqual(restored, current);
-});
 
-test("resized parents stay reachable and nested windows stay inside their canvas", () => {
-	const previous = layoutDesktop(1440, 900);
-	const current = previous.map((w) => w.id === "me" || w.parentId === "me"
-		? { ...w, x: w.x + 5000, y: w.y + 5000 }
-		: w);
-	const next = layoutDesktop(960, 600);
-	const result = reflowDesktop(current, previous, next, 960, 600);
-	const parent = result.find((w) => w.id === "me")!;
-	const child = result.find((w) => w.id === "alt")!;
-	assert.equal(parent.x, 960 - 48);
-	assert.equal(parent.y, 600 - TASKBAR_H - TITLE_H);
-	const bounds = nestBounds(parent);
-	assert.ok(child.x >= bounds.x && child.y >= bounds.y);
-	assert.ok(child.x + child.w <= bounds.x + bounds.w);
-	assert.ok(child.y + child.h <= bounds.y + bounds.h);
+	const [paint, alt] = ["me", "alt"].map((id) => moved.find((w) => w.id === id)!);
+	const bounds = nestBounds(paint);
+	assert.ok(alt.x >= bounds.x && alt.y >= bounds.y);
+	assert.ok(alt.x + alt.w <= bounds.x + bounds.w && alt.y + alt.h <= bounds.y + bounds.h);
 	assert.deepEqual(clampWindowPos(-5000, -5000, 400, 960, 600), { x: -352, y: 0 });
 });
 

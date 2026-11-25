@@ -21,7 +21,7 @@ import {
 	minimizeWindowTree,
 	moveWindow,
 	openApp,
-	reflowDesktop,
+	resizeDesktop,
 	restoreDecorations,
 	taskWindows,
 	type AppId,
@@ -62,7 +62,6 @@ function DesktopWorkspace() {
 		const { width, height } = desktopSize();
 		return layoutDesktop(width, height);
 	});
-	const layoutRef = useRef(windows);
 	const [scale, setScale] = useState(desktopScale);
 
 	const [explorerFolder, setExplorerFolder] = useState("secrets");
@@ -82,14 +81,16 @@ function DesktopWorkspace() {
 	}, []);
 
 	useEffect(() => {
+		let previous = desktopSize();
+
 		const resize = () => {
 			const { width, height } = desktopSize();
-			setScale(desktopScale());
+			const dx = Math.round((width - previous.width) / 2);
+			const dy = Math.round((height - previous.height) / 2);
+			previous = { width, height };
 
-			const previous = layoutRef.current;
-			const next = layoutDesktop(width, height);
-			layoutRef.current = next;
-			setWindows((current) => reflowDesktop(current, previous, next, width, height));
+			setScale(desktopScale());
+			setWindows((current) => resizeDesktop(current, dx, dy, width, height));
 		};
 
 		window.addEventListener("resize", resize);

@@ -21,10 +21,9 @@ export const TITLE_H = 18;
 
 const DESIGN_W = 1710;
 const DESIGN_H = 900;
-const MIN_SCALE = 0.5;
 
 export function desktopScale() {
-	return Math.max(MIN_SCALE, Math.min(innerWidth / DESIGN_W, innerHeight / DESIGN_H));
+	return Math.max(0.5, Math.min(innerWidth / DESIGN_W, innerHeight / DESIGN_H));
 }
 
 export function desktopSize() {
@@ -45,10 +44,10 @@ const PAINT_INNER_RIGHT = 2;
 const PAINT_INNER_BOTTOM = 2 + 48 + 20;
 
 const STREET_RATIO = 1360 / 768;
-const MARGIN = 24;
+const STREET_W = 396;
 
 function layoutCentered(w: number, h: number, vw: number, vh: number): Rect {
-	return { w, h, x: Math.round((vw - w) / 2), y: Math.round((vh - TASKBAR_H - h) / 2) };
+	return { w, h, x: Math.max(0, Math.round((vw - w) / 2)), y: Math.max(0, Math.round((vh - TASKBAR_H - h) / 2)) };
 }
 
 function paintImageBounds(parent: Rect): Rect {
@@ -84,21 +83,9 @@ export function clampWindowPos(x: number, y: number, w: number, vw: number, vh: 
 }
 
 function layoutMeWindow(vw: number, vh: number): Rect {
-	const chromeX = CHROME_X + PAINT_INNER_X + PAINT_INNER_RIGHT;
-	const chromeY = CHROME_Y + PAINT_INNER_Y + PAINT_INNER_BOTTOM;
-	const availableW = vw - MARGIN * 2;
-	const availableH = vh - TASKBAR_H - MARGIN * 2;
-
-	let canvasH = Math.min(vh, DESIGN_H) - TASKBAR_H - MARGIN * 2 - chromeY;
-	let canvasW = canvasH / STREET_RATIO;
-	if (canvasW + chromeX > availableW) {
-		canvasW = availableW - chromeX;
-		canvasH = canvasW * STREET_RATIO;
-	}
-
-	const w = Math.round(canvasW + chromeX);
-	const h = Math.round(canvasH + chromeY);
-	return { w, h, x: Math.round((vw - w) / 2), y: Math.round(MARGIN + (availableH - h) / 2) };
+	const w = STREET_W + CHROME_X + PAINT_INNER_X + PAINT_INNER_RIGHT;
+	const h = Math.round(STREET_W * STREET_RATIO) + CHROME_Y + PAINT_INNER_Y + PAINT_INNER_BOTTOM;
+	return layoutCentered(w, h, vw, vh);
 }
 
 function layoutAltOnParent(parent: Rect): Rect {
@@ -141,13 +128,10 @@ function layoutErrorStack(paint: Rect): DesktopWindow[] {
 	});
 }
 
-function layoutTerminalWindow(anchor: Rect, vw: number, vh: number): Rect {
-	const w = Math.round(anchor.w * 1.3 * 0.85);
-	const h = Math.round(anchor.h * 0.7);
-
-	const x = anchor.x + anchor.w + 50;
-	const y = Math.round(anchor.y + (anchor.h - h) / 2);
-	return { w, h, ...clampWindowPos(x, y, w, vw, vh) };
+function layoutTerminalWindow(anchor: Rect): Rect {
+	const w = 500;
+	const h = 576;
+	return { w, h, x: anchor.x + anchor.w + 50, y: Math.round(anchor.y + (anchor.h - h) / 2) };
 }
 
 function layoutGitHubWindow(anchor: Rect): Rect {
@@ -161,22 +145,13 @@ function layoutGitHubWindow(anchor: Rect): Rect {
 	return { w, h, x: Math.round(anchor.x + anchor.w - w + 18), y: Math.round(anchor.y - h * 0.35) };
 }
 
-function layoutExplorerWindow(anchor: Rect, vw: number, vh: number): Rect {
-	const w = Math.min(252, vw - MARGIN * 2);
-	const h = Math.min(190, vh - TASKBAR_H - MARGIN * 2);
-
-	const x = Math.round(anchor.x + anchor.w * 0.11 - 150);
-	const y = Math.round(anchor.y + anchor.h * 0.75 - h / 2);
-
-	return {
-		w,
-		h,
-		x: Math.max(MARGIN, Math.min(x, vw - MARGIN - w)),
-		y: Math.max(MARGIN, Math.min(y, vh - TASKBAR_H - MARGIN - h)),
-	};
+function layoutExplorerWindow(anchor: Rect): Rect {
+	const w = 252;
+	const h = 190;
+	return { w, h, x: Math.round(anchor.x + anchor.w * 0.11 - 150), y: Math.round(anchor.y + anchor.h * 0.75 - h / 2) };
 }
 
-function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
+function makeCdPlayerWindow(z: number, vh: number): DesktopWindow {
 	const h = 188;
 	return {
 		id: "cd-player",
@@ -184,7 +159,7 @@ function makeCdPlayerWindow(z: number, vw: number, vh: number): DesktopWindow {
 		kind: "cd-player",
 		icon: "/icons/cd.webp",
 		z,
-		w: Math.min(360, vw - 16),
+		w: 360,
 		h,
 		x: 8,
 		y: Math.max(0, vh - TASKBAR_H - h - 4),
@@ -208,7 +183,7 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		z: 12,
 		kind: "terminal" as const,
 		icon: "/icons/terminal.svg",
-		...layoutTerminalWindow(me, vw, vh),
+		...layoutTerminalWindow(me),
 	};
 	const windows: DesktopWindow[] = [
 		me,
@@ -216,64 +191,11 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 		{ id: "new", title: "beep boop", z: 4, src: "/desktop/beep-boop.webp", ...layoutBeepBoop(me) },
 		terminal,
 		{ id: "github", title: "activity", icon: "/icons/code.svg", z: 13, kind: "github", ...layoutGitHubWindow(terminal) },
-		{ ...makeCdPlayerWindow(14, vw, vh), minimized: true },
-		{ id: "explorer", title: "secrets", z: 5, kind: "explorer", icon: "/icons/folder.webp", ...layoutExplorerWindow(me, vw, vh) },
+		{ ...makeCdPlayerWindow(14, vh), minimized: true },
+		{ id: "explorer", title: "secrets", z: 5, kind: "explorer", icon: "/icons/folder.webp", ...layoutExplorerWindow(me) },
 		...layoutErrorStack(me),
 	];
 	return windows.map((w) => w.parentId ? w : { ...w, ...clampWindowPos(w.x, w.y, w.w, vw, vh) });
-}
-
-export function reflowDesktop(
-	current: DesktopWindow[],
-	previous: DesktopWindow[],
-	next: DesktopWindow[],
-	vw: number,
-	vh: number,
-): DesktopWindow[] {
-	const oldLayout = new Map(previous.map((w) => [w.id, w]));
-	const newLayout = new Map(next.map((w) => [w.id, w]));
-
-	const oldAnchor = oldLayout.get("me");
-	const anchor = newLayout.get("me");
-	if (!oldAnchor || !anchor) return current;
-
-	const dx = anchor.x + anchor.w / 2 - oldAnchor.x - oldAnchor.w / 2;
-	const dy = anchor.y + anchor.h / 2 - oldAnchor.y - oldAnchor.h / 2;
-
-	const resized = current.map((w) => {
-		if (w.parentId) return w;
-
-		const old = oldLayout.get(w.id);
-		const target = newLayout.get(w.id);
-		const width = target?.w ?? w.w;
-		const x = old && target ? target.x + w.x - old.x : w.x + dx;
-		const y = old && target ? target.y + w.y - old.y : w.y + dy;
-
-		return { ...w, w: width, h: target?.h ?? w.h, ...clampWindowPos(x, y, width, vw, vh) };
-	});
-
-	return resized.map((w) => {
-		const parent = resized.find((p) => p.id === w.parentId);
-		const oldParent = current.find((p) => p.id === w.parentId);
-		if (!parent || !oldParent) return w;
-
-		const old = oldLayout.get(w.id);
-		const target = newLayout.get(w.id);
-		const oldBase = oldLayout.get(parent.id);
-		const newBase = newLayout.get(parent.id);
-		const shift = old && target && oldBase && newBase;
-
-		const shiftX = shift ? target.x - newBase.x - old.x + oldBase.x : 0;
-		const shiftY = shift ? target.y - newBase.y - old.y + oldBase.y : 0;
-		const child = {
-			x: parent.x + w.x - oldParent.x + shiftX,
-			y: parent.y + w.y - oldParent.y + shiftY,
-			w: target?.w ?? w.w,
-			h: target?.h ?? w.h,
-		};
-
-		return { ...w, ...clampToParent(child, nestBounds(parent)) };
-	});
 }
 
 export function makeExperienceWindow(z: number, vw: number, vh: number): DesktopWindow {
@@ -295,8 +217,8 @@ export function makeExperienceWindow(z: number, vw: number, vh: number): Desktop
 }
 
 function makeRecycleBinWindow(z: number, vw: number, vh: number): DesktopWindow {
-	const w = Math.min(760, Math.max(240, vw - 24));
-	const h = Math.min(400, Math.max(200, vh - TASKBAR_H - 48));
+	const w = 640;
+	const h = 360;
 
 	return {
 		id: "recycle-bin",
@@ -398,6 +320,15 @@ export function minimizeWindowTree(windows: DesktopWindow[], id: string): Deskto
 	const rootId = target?.parentId ?? id;
 
 	return windows.map((w) => (w.id === rootId || w.parentId === rootId ? { ...w, minimized: true } : w));
+}
+
+export function resizeDesktop(windows: DesktopWindow[], dx: number, dy: number, vw: number, vh: number): DesktopWindow[] {
+	return windows.reduce((next, w) => {
+		if (w.parentId) return next;
+
+		const current = next.find((c) => c.id === w.id)!;
+		return moveWindow(next, w.id, current.x + dx, current.y + dy, vw, vh);
+	}, windows);
 }
 
 export function moveWindow(
