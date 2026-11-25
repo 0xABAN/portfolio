@@ -200,11 +200,8 @@ export function layoutDesktop(vw: number, vh: number): DesktopWindow[] {
 
 export function makeExperienceWindow(z: number, vw: number, vh: number): DesktopWindow {
 	const ratio = 1840 / 855;
-	const maxW = Math.max(0, Math.min(1350, vw - 16));
-	const maxH = Math.max(0, vh - TASKBAR_H - 16);
-
-	const w = Math.max(1, Math.min(maxW, Math.floor(maxH * ratio)));
-	const h = Math.max(1, Math.round(w / ratio));
+	const w = Math.min(1350, vw - 16, Math.floor((vh - TASKBAR_H - 16) * ratio));
+	const h = Math.round(w / ratio);
 
 	return {
 		id: "experience",

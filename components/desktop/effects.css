@@ -39,12 +39,6 @@
 	animation-iteration-count: infinite;
 }
 
-@media (max-width: 600px) {
-	.desktop-sparks__spark:nth-child(n + 13) {
-		display: none;
-	}
-}
-
 .neko {
 	position: fixed;
 	top: 0;

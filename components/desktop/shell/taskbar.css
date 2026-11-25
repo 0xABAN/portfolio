@@ -155,12 +155,6 @@
 	cursor: var(--cursor-arrow);
 }
 
-@media (max-width: 640px) {
-	.taskbar__views-label {
-		display: none;
-	}
-}
-
 .start-menu,
 .start-menu__submenu {
 	padding: 3px;
@@ -176,7 +170,7 @@
 	position: fixed;
 	inset: auto auto var(--taskbar-height) 4px;
 	margin: 0;
-	width: min(238px, calc(100vw - 8px));
+	width: 238px;
 	overflow: visible;
 }
 
@@ -271,19 +265,8 @@
 	top: -3px;
 	z-index: 1;
 	width: 188px;
-	max-height: calc(100dvh - var(--taskbar-height) - 12px);
-	overflow-y: auto;
 }
 
 .start-menu .start-menu__submenu button {
 	min-height: 20px;
-}
-
-@media (max-width: 520px) {
-	.start-menu__submenu {
-		left: 12px;
-		top: auto;
-		bottom: 100%;
-		max-width: calc(100vw - 56px);
-	}
 }

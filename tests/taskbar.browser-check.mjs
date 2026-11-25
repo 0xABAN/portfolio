@@ -508,7 +508,6 @@ async function checkTaskbar(page) {
 
 	for (const width of [390, 320]) {
 		await page.setViewportSize({ width, height: 844 });
-		check(await sparks.evaluate((el) => el.getAnimations({ subtree: true }).length) === 12, "Narrow screens did not reduce spark density");
 		check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), "Sparks added horizontal overflow");
 		for (const control of [start, page.locator(".taskbar__tray")]) {
 			const r = await control.boundingBox();

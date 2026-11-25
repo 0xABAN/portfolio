@@ -328,7 +328,7 @@ export function Taskbar({ muted, onToggleMuteAction, revealed: show, ...props }:
 						suppressHydrationWarning
 					>
 						{viewFormat.format(views)}
-						<span className="taskbar__views-label"> views</span>
+						<span> views</span>
 					</span>
 				)}
 
